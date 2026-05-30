@@ -43,19 +43,20 @@ _All M1-blocking questions resolved 2026-05-30 against the live test site — se
 - [x] **Node version** — on v24.16.0 (satisfies RN 0.85's `^24.3.0`); no `EBADENGINE` warnings.
 - [x] Obtain staging API credentials — live test site + OAuth2 creds in hand; round-trip verified.
 - [x] Capture real API payloads; correct `types/api.ts` + API docs to verified wire shapes (`docs/API_NOTES.md`).
-- [ ] Define Drizzle schema (`database/schema.ts`) mirroring spec §11.2 exactly; generate first migration.
-- [ ] `database/client.ts` — expo-sqlite connection + drizzle instance + migration runner on boot.
+- [x] Define Drizzle schema (`database/schema.ts`) mirroring spec §11.2; first migration generated (`db:generate`).
+- [x] `database/client.ts` — expo-sqlite connection + drizzle instance; migration runner on boot (`useDatabase` → `BootGate`).
+- [x] `database/mappers.ts` + `utils/coerce.ts` — API→DB coercion boundary (string wire → typed rows). Unit-tested.
 
 ## Milestone 1 — Walking skeleton
 
 **Auth & bootstrap** (US-001, US-002, US-004 · AC: Authentication)
-- [ ] `services/api/auth.ts` — `POST /rest_login`, `POST /rest_logout`.
-- [ ] `services/apiClient.ts` — axios instance, base URL from `authStore.siteUrl`, Bearer
-  interceptor, 401 → clear token + redirect (CLAUDE.md API rules).
-- [ ] `authStore` — token + site config in **expo-secure-store**; persists across restart.
+- [x] `services/api/auth.ts` — two-step `rest_login` → `oauth2/access_token`; `rest_logout`.
+- [x] `services/apiClient.ts` — axios instance, base URL + Bearer from `authStore`, 401 → `clearSession`, PHP-warning-stripping `transformResponse`.
+- [x] `authStore` — token + (multi-site) config in **expo-secure-store**; `hydrate()` restores across restart.
+- [x] `services/api/{configuration,jobs,customers}.ts` — typed read endpoints + (unverified) write endpoints.
 - [ ] Onboarding screen — site URL + client_id/secret, validate via `/rest_login`.
-- [ ] Login screen — real form, error surfacing from API `message`, role-based home redirect.
-- [ ] `GET /configuration` → seed reference tables + `current_user` into local DB.
+- [ ] Login screen — real form, error surfacing from API error `message`, role-based home redirect.
+- [ ] `GET /configuration` → seed reference tables + `current_user` into local DB (use `mapConfiguration`).
 - [ ] `useRole()` — derive role from `roles` array (not display strings).
 
 **Offline core — the point of this milestone** (US-051 · AC: Offline-First)
