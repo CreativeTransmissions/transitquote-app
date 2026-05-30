@@ -64,18 +64,19 @@ _All M1-blocking questions resolved 2026-05-30 against the live test site — se
 - [x] Route guards + protected `(app)` layout; `useLogout` (server logout + clear DB); placeholder home screen.
 
 **Offline core — the point of this milestone** (US-051 · AC: Offline-First)
+- [~] `syncEngine` — **pull side done** (`pullJobs` list reconcile, `pullJobDetail` hydrate, `sync_meta`);
+  push/flush side deferred until write endpoints verified.
+- [x] `useConnectivity()` (expo-network) + `OfflineBanner` with "last synced X ago".
 - [ ] Outbox table + `outboxFlusher` (pending/in_progress/failed/synced; 4xx→failed no retry,
-  5xx/network→pending retry — spec §11.5).
+  5xx/network→pending retry — spec §11.5). _Blocked on write-endpoint verification._
 - [ ] `conflictResolver` — server-wins + notify (spec §11.6).
-- [ ] `syncEngine` — initial full sync, foreground sync, on-reconnect flush-then-pull (§11.4).
-- [ ] `useConnectivity()` (expo-network) + `OfflineBanner` with "last synced X ago".
 - [ ] Optimistic local write on status update; reconcile on sync.
 
 **Vertical slice UI**
-- [ ] `useJobs()` reactive query (Drizzle `useLiveQuery`) → minimal `JobList`/`JobCard`.
-- [ ] `useJobDetail(id)` → minimal Job detail.
-- [ ] Status update flow with confirm dialog → outbox → optimistic UI (US-017).
-- [ ] **Exit test:** offline list renders; status change queues and syncs on reconnect.
+- [x] `useJobs()` reactive query (Drizzle `useLiveQuery`) → `JobList`/`JobCard` (+ `JobStatusBadge`, `EmptyState`).
+- [x] `useJobDetail(id)` → Job detail (customer, stops, pricing, payment); per-job hydration.
+- [ ] Status update flow with confirm dialog → outbox → optimistic UI (US-017). _Blocked on write-endpoint verification._
+- [~] **Exit test:** offline list renders from DB ✅; status change queue+sync pending (write path).
 
 ## Milestone 2 — Driver
 

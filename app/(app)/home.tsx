@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/shared/Button';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
@@ -28,7 +28,10 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Signed in</Text>
+        <Pressable onPress={() => router.back()} hitSlop={8}>
+          <Text style={styles.back}>‹ Back</Text>
+        </Pressable>
+        <Text style={styles.title}>Profile</Text>
 
         <View style={styles.card}>
           <Row label="User" value={name || user?.firstName || '—'} />
@@ -58,6 +61,7 @@ function Row({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLOURS.background },
   content: { padding: SPACING.lg },
+  back: { ...TYPOGRAPHY.body, color: COLOURS.primary, marginBottom: SPACING.sm },
   title: { ...TYPOGRAPHY.title, color: COLOURS.text, marginBottom: SPACING.lg },
   card: {
     backgroundColor: COLOURS.surface,

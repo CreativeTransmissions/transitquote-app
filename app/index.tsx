@@ -9,7 +9,7 @@ export default function Index() {
   const status = useAuthStore((s) => s.status);
   const siteUrl = useAuthStore((s) => s.siteUrl);
 
-  if (status === 'authenticated') return <Redirect href="/home" />;
+  if (status === 'authenticated') return <Redirect href="/jobs" />;
   if (!siteUrl) return <Redirect href="/onboarding" />;
   return <Redirect href="/login" />;
 }

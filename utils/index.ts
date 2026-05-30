@@ -2,3 +2,4 @@ export { formatDate, formatDateTime, relativeFromNow, formatCurrency, fullName }
 export { resolveRole, isDispatcher, isDriver, canAssignTo } from './roleGuards';
 export { toInt, toFloat, toBool, toDateOrNull, toStr } from './coerce';
 export { normaliseSiteUrl } from './url';
+export { resolveStatusColour } from './status';
