@@ -22,13 +22,19 @@ build all live. Maestro itself is Unix-first, so the **Maestro runner lives in W
 the **emulator on the Windows host** over ADB.
 
 ```
-Windows host:  Android Studio emulator (Pixel_8_Pro_API_34)  +  adb server  +  expo run:android (build)
+Windows host:  Android Studio emulator (AVD: Pixel_9)  +  adb server  +  expo run:android (build)
                                    ▲ ADB (TCP)
-WSL2:          maestro test  ──────┘
+WSL2 (Ubuntu): maestro test  ──────┘
 ```
 
 Only the *runner* crosses the boundary. **The build always happens on Windows.** The one-time cost
 is bridging ADB from WSL2 to the Windows adb server — see step 1.
+
+> **This machine's verified state (2026-05-30):** the available AVD is **`Pixel_9`**. WSL2 has
+> **openjdk 25** + **Maestro 1.44.0** installed via Homebrew/installer and persisted in `~/.bashrc`.
+> The bridge is configured via **mirrored networking** (`C:\Users\andre\.wslconfig` written) — apply
+> it with `wsl --shutdown`. The TCP fallback (below) was found to be **blocked by Windows Firewall**
+> on this machine, so mirrored networking is the path here.
 
 ---
 
@@ -55,23 +61,32 @@ adb devices                  # should list the running emulator
 
 ```powershell
 adb kill-server
-adb -a -P 5037 nodaemon-server   # bind adb to all interfaces (leave running)
+adb -a -P 5037 nodaemon server   # bind adb to all interfaces (leave running)
 ```
 
-In **WSL2**, point the adb client at the Windows host IP (from `/etc/resolv.conf`):
+In **WSL2**, point the adb client at the Windows host IP (the default gateway in NAT mode):
 
 ```bash
-export ADB_SERVER_SOCKET=tcp:$(grep nameserver /etc/resolv.conf | awk '{print $2}'):5037
+export ADB_SERVER_SOCKET=tcp:$(ip route show default | awk '{print $3}'):5037
 adb devices
 ```
+
+> ⚠️ **Firewall:** on this machine, WSL2→Windows:5037 was **blocked by Windows Defender Firewall**
+> (NAT mode). Option B therefore needs a one-time inbound rule — run, from an **elevated** PowerShell:
+> `powershell -ExecutionPolicy Bypass -File scripts\adb-bridge-firewall.ps1`. Because that requires
+> admin, **Option A (mirrored networking) is preferred here** — it shares localhost and needs no rule.
 
 ### 2. Install Maestro + Java in WSL2
 
 ```bash
-curl -fsSL "https://get.maestro.mobile.dev" | bash   # installs to ~/.maestro/bin
-sudo apt-get install -y openjdk-17-jre               # Maestro requires a JRE
+# Java (a JRE 11+ is required to run Maestro). Via Homebrew (no sudo) or apt:
+brew install openjdk                                  # or: sudo apt-get install -y openjdk-17-jre
+curl -Ls "https://get.maestro.mobile.dev" | bash     # installs Maestro to ~/.maestro/bin
 maestro --version
 ```
+
+> Already done on this machine: openjdk 25 + Maestro 1.44.0, with `JAVA_HOME`/PATH persisted in
+> `~/.bashrc`. `maestro` is **not** a Homebrew formula — use the installer script above.
 
 ---
 
@@ -80,6 +95,8 @@ maestro --version
 1. **Build + install on Windows** (Git Bash / PowerShell) onto the running emulator:
 
    ```bash
+   # Boot the emulator first if needed:
+   ~/AppData/Local/Android/Sdk/emulator/emulator -avd Pixel_9 &
    npx expo run:android        # debug build; installs com.transitteam.app on the emulator
    ```
 
