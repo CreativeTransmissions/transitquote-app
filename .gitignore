@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Captured live API sample payloads (contain secrets — never commit)
+.api-samples/
