@@ -47,7 +47,8 @@
     "test:watch": "jest --watchAll",
     "test:coverage": "jest --coverage",
     "db:generate": "drizzle-kit generate",
-    "doctor": "expo-doctor"
+    "doctor": "expo-doctor",
+    "e2e": "maestro test .maestro"
   },
   "private": true
 }

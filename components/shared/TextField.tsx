@@ -18,13 +18,15 @@ interface TextFieldProps
   > {
   label: string;
   errorText?: string;
+  testID?: string;
 }
 
-export function TextField({ label, errorText, ...inputProps }: TextFieldProps) {
+export function TextField({ label, errorText, testID, ...inputProps }: TextFieldProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
+        testID={testID}
         style={[styles.input, errorText ? styles.inputError : null]}
         placeholderTextColor={COLOURS.textMuted}
         {...inputProps}

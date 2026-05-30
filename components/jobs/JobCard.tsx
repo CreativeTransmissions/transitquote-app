@@ -18,6 +18,7 @@ export function JobCard({ job, showDriver = false, outboxState, onPress }: JobCa
 
   return (
     <Pressable
+      testID={`job-card-${job.id}`}
       accessibilityRole="button"
       onPress={() => onPress(job.id)}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}

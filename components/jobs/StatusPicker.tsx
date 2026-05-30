@@ -23,6 +23,7 @@ export function StatusPicker({ visible, statuses, currentStatusId, onSelect, onC
               return (
                 <Pressable
                   key={status.id}
+                  testID={`status-option-${status.id}`}
                   style={styles.row}
                   accessibilityRole="button"
                   onPress={() => onSelect(status)}
@@ -33,7 +34,7 @@ export function StatusPicker({ visible, statuses, currentStatusId, onSelect, onC
               );
             })}
           </ScrollView>
-          <Pressable style={styles.cancel} onPress={onClose} accessibilityRole="button">
+          <Pressable testID="status-cancel" style={styles.cancel} onPress={onClose} accessibilityRole="button">
             <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
         </Pressable>

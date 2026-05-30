@@ -1,0 +1,66 @@
+# Smoke test — the M1 happy path: onboarding → login → jobs list → job detail → status update.
+# Run (from WSL2, emulator on the Windows host — see docs/SMOKE_TESTING.md):
+#   maestro test \
+#     -e SITE_URL=https://tq-pro-teams-php8.ddev.site \
+#     -e CLIENT_ID=... -e CLIENT_SECRET=... \
+#     -e TQ_USERNAME=api-driver -e TQ_PASSWORD=... \
+#     .maestro/smoke.yaml
+# NEVER hardcode credentials here — they are passed via -e (env) at runtime.
+appId: com.transitteam.app
+env:
+  SITE_URL: ""
+  CLIENT_ID: ""
+  CLIENT_SECRET: ""
+  TQ_USERNAME: ""
+  TQ_PASSWORD: ""
+---
+- launchApp:
+    clearState: true
+
+# --- Onboarding (shown on first launch / cleared state) ---
+- assertVisible: "Connect your site"
+- tapOn:
+    id: "onboarding-site-url"
+- inputText: "${SITE_URL}"
+- tapOn:
+    id: "onboarding-client-id"
+- inputText: "${CLIENT_ID}"
+- tapOn:
+    id: "onboarding-client-secret"
+- inputText: "${CLIENT_SECRET}"
+- hideKeyboard
+- tapOn:
+    id: "onboarding-submit"
+
+# --- Login ---
+- assertVisible: "Sign in"
+- tapOn:
+    id: "login-username"
+- inputText: "${TQ_USERNAME}"
+- tapOn:
+    id: "login-password"
+- inputText: "${TQ_PASSWORD}"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+
+# --- Jobs list renders from the local DB ---
+- assertVisible: "Jobs"
+- tapOn:
+    id: "job-card-.*"
+    index: 0
+
+# --- Job detail: update status (confirm dialog is native — tapped by text) ---
+- assertVisible:
+    id: "job-update-status"
+- tapOn:
+    id: "job-update-status"
+- tapOn:
+    id: "status-option-.*"
+    index: 1
+- tapOn: "Confirm"
+
+# --- Back to the list ---
+- tapOn:
+    id: "job-back"
+- assertVisible: "Jobs"

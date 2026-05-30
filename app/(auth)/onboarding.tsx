@@ -34,6 +34,7 @@ export default function OnboardingScreen() {
           </Text>
 
           <TextField
+            testID="onboarding-site-url"
             label="Site URL"
             value={siteUrl}
             onChangeText={setSiteUrl}
@@ -43,6 +44,7 @@ export default function OnboardingScreen() {
             keyboardType="url"
           />
           <TextField
+            testID="onboarding-client-id"
             label="Client ID"
             value={clientId}
             onChangeText={setClientId}
@@ -50,6 +52,7 @@ export default function OnboardingScreen() {
             autoCorrect={false}
           />
           <TextField
+            testID="onboarding-client-secret"
             label="Client Secret"
             value={clientSecret}
             onChangeText={setClientSecret}
@@ -62,7 +65,7 @@ export default function OnboardingScreen() {
             <Text style={styles.error}>{getApiErrorMessage(onboarding.error)}</Text>
           ) : null}
 
-          <Button label="Continue" onPress={handleSubmit} loading={onboarding.isPending} />
+          <Button testID="onboarding-submit" label="Continue" onPress={handleSubmit} loading={onboarding.isPending} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

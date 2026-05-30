@@ -47,7 +47,7 @@ export default function JobDetailScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <OfflineBanner />
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
+        <Pressable testID="job-back" onPress={() => router.back()} hitSlop={8}>
           <Text style={styles.back}>‹ Back</Text>
         </Pressable>
       </View>
@@ -90,6 +90,7 @@ export default function JobDetailScreen() {
 
           <View style={styles.updateButton}>
             <Button
+              testID="job-update-status"
               label="Update status"
               onPress={() => setPickerVisible(true)}
               loading={update.isPending}

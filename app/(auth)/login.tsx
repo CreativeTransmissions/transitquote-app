@@ -35,6 +35,7 @@ export default function LoginScreen() {
           </Text>
 
           <TextField
+            testID="login-username"
             label="Username"
             value={username}
             onChangeText={setUsername}
@@ -43,6 +44,7 @@ export default function LoginScreen() {
             textContentType="username"
           />
           <TextField
+            testID="login-password"
             label="Password"
             value={password}
             onChangeText={setPassword}
@@ -56,7 +58,7 @@ export default function LoginScreen() {
             <Text style={styles.error}>{getApiErrorMessage(loginMutation.error)}</Text>
           ) : null}
 
-          <Button label="Sign in" onPress={handleSubmit} loading={loginMutation.isPending} />
+          <Button testID="login-submit" label="Sign in" onPress={handleSubmit} loading={loginMutation.isPending} />
 
           <Pressable
             onPress={() => router.replace('/onboarding')}
