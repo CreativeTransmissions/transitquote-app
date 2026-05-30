@@ -98,7 +98,22 @@ maestro --version
      .maestro/smoke.yaml
    ```
 
-   (`npm run e2e` runs `maestro test .maestro` once the env vars are exported in your shell.)
+   Swap `.maestro/smoke.yaml` for `.maestro/offline.yaml` to run the offline flow.
+   (`npm run e2e` runs `maestro test .maestro` — i.e. every flow — once the env vars are exported.)
+
+---
+
+## Offline flow — network control
+
+`offline.yaml` uses **`toggleAirplaneMode`** (Android-only), the broadly-available command. It is a
+**relative toggle**, so the flow assumes it **starts online**: run it on a freshly-booted/online
+emulator (1st toggle → offline, 2nd → online).
+
+- ⚠️ If the flow aborts while offline, the device stays offline — re-enable the network or reboot
+  the emulator before the next run.
+- Newer Maestro versions may support the absolute `setAirplaneMode: Enabled|Disabled`. If yours does,
+  prefer it (deterministic regardless of starting state) and add an `onFlowComplete` that forces the
+  network back on. The flow header documents the exact swap.
 
 ---
 
