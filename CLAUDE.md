@@ -380,7 +380,10 @@ The user must always know the state of their data (spec §11.9):
 - Each hook must have tests for: loading state, success state, error state, offline state
 - Each outbox operation must have tests for: pending, synced, failed, retry behaviour
 - Role-based rendering: test that driver does NOT see dispatcher-only UI elements
-- Detox E2E (Android): login flow, job list, status update, offline mode
+- **Maestro E2E (Android):** login flow, job list, status update, offline mode. Black-box,
+  driven over ADB — fits Expo + RN 0.85 New Arch (supersedes the Detox plan). Flows live in
+  `.maestro/`; target elements by `testID`. Setup + run loop: `docs/SMOKE_TESTING.md`.
+  Runner lives in WSL2 against the Windows-host emulator; the build stays on Windows.
 
 ---
 

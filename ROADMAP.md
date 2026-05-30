@@ -71,7 +71,7 @@ retry/discard) · multi-site switching in Profile.
 
 ## Milestone 5 — Hardening & release
 
-Error boundaries at route level · Detox E2E (login, list, status update, offline) ·
+Error boundaries at route level · Maestro E2E (login, list, status update, offline) ·
 performance pass (zero-latency launch) · EAS builds (iOS preview, Android apk) · store assets.
 
 ---

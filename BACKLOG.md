@@ -114,7 +114,8 @@ Decentralized (US-011, US-012, US-019 · AC: Driver–Decentralized)
 ## Milestone 5 — Hardening & release
 
 - [ ] Route-level error boundaries (CLAUDE.md).
-- [ ] Detox E2E: login · job list · status update · offline mode.
+- [~] Maestro E2E: login · job list · status update · offline mode (scaffold + smoke flow done;
+  on-emulator run pending — see `docs/SMOKE_TESTING.md`). _Supersedes Detox._
 - [ ] Performance: zero-network-latency launch (AC: Performance); first-sync progress + cancel.
 - [ ] EAS builds: iOS preview (.ipa), Android apk; store listing assets.
 
