@@ -6,6 +6,7 @@
 #     -e TQ_USERNAME=api-driver -e TQ_PASSWORD=... \
 #     .maestro/smoke.yaml
 # NEVER hardcode credentials here — they are passed via -e (env) at runtime.
+# NOTE: this mutates a test job's status on the live DDEV site.
 appId: com.transitteam.app
 env:
   SITE_URL: ""
@@ -14,38 +15,10 @@ env:
   TQ_USERNAME: ""
   TQ_PASSWORD: ""
 ---
-- launchApp:
-    clearState: true
+# Onboarding → login → jobs list (shared with offline.yaml).
+- runFlow: subflows/auth.yaml
 
-# --- Onboarding (shown on first launch / cleared state) ---
-- assertVisible: "Connect your site"
-- tapOn:
-    id: "onboarding-site-url"
-- inputText: "${SITE_URL}"
-- tapOn:
-    id: "onboarding-client-id"
-- inputText: "${CLIENT_ID}"
-- tapOn:
-    id: "onboarding-client-secret"
-- inputText: "${CLIENT_SECRET}"
-- hideKeyboard
-- tapOn:
-    id: "onboarding-submit"
-
-# --- Login ---
-- assertVisible: "Sign in"
-- tapOn:
-    id: "login-username"
-- inputText: "${TQ_USERNAME}"
-- tapOn:
-    id: "login-password"
-- inputText: "${TQ_PASSWORD}"
-- hideKeyboard
-- tapOn:
-    id: "login-submit"
-
-# --- Jobs list renders from the local DB ---
-- assertVisible: "Jobs"
+# --- Open the first job ---
 - tapOn:
     id: "job-card-.*"
     index: 0

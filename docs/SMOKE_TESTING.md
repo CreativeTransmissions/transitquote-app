@@ -1,8 +1,13 @@
 # Smoke Testing with Maestro (Android)
 
 End-to-end smoke tests use [Maestro](https://maestro.dev). They drive the **real app** against the
-**live test site** ([`tq-pro-teams-php8.ddev.site`](https://tq-pro-teams-php8.ddev.site)), exercising
-the M1 path: onboarding → login → jobs list → job detail → status update.
+**live test site** ([`tq-pro-teams-php8.ddev.site`](https://tq-pro-teams-php8.ddev.site)).
+
+Flows (`.maestro/`):
+- **`smoke.yaml`** — the M1 happy path: onboarding → login → jobs list → job detail → status update.
+- **`offline.yaml`** — the offline-first promise (ROADMAP M1 exit criterion): go offline → list still
+  renders from the local DB → queue a status change while offline → it auto-syncs on reconnect.
+- **`subflows/auth.yaml`** — shared onboarding+login, invoked via `runFlow` by both flows above.
 
 > **Why Maestro (not Detox)?** Maestro is black-box (drives the app over ADB, no native
 > instrumentation/build hooks), which suits Expo + RN 0.85 New Architecture. It needs only a

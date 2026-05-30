@@ -1,0 +1,71 @@
+# Offline-first test — the core architectural promise (spec §11, ROADMAP M1 exit criterion):
+#   kill the network → the list still renders from the local DB → a status change queues
+#   while offline → it syncs automatically on reconnect.
+#
+# Run (from WSL2, emulator on the Windows host — see docs/SMOKE_TESTING.md):
+#   maestro test \
+#     -e SITE_URL=https://tq-pro-teams-php8.ddev.site \
+#     -e CLIENT_ID=... -e CLIENT_SECRET=... \
+#     -e TQ_USERNAME=api-driver -e TQ_PASSWORD=... \
+#     .maestro/offline.yaml
+#
+# NETWORK CONTROL — IMPORTANT:
+#   This flow uses `toggleAirplaneMode` (Android-only; the broadly-available command). It is a
+#   RELATIVE toggle, so the flow assumes it starts ONLINE — run it on a freshly-booted / online
+#   emulator. Each toggle is deterministic from that known state: 1st = offline, 2nd = online.
+#   If your Maestro version supports the absolute form, prefer it for robustness — replace each
+#   `- toggleAirplaneMode` with `- setAirplaneMode: Enabled` / `- setAirplaneMode: Disabled`
+#   and add an `onFlowComplete: [ - setAirplaneMode: Disabled ]` safety net.
+#   ⚠️ If this flow aborts while offline, manually re-enable the network (or reboot the emulator).
+#
+#   This mutates a test job's status on the live DDEV site. Credentials come from -e env vars.
+appId: com.transitteam.app
+env:
+  SITE_URL: ""
+  CLIENT_ID: ""
+  CLIENT_SECRET: ""
+  TQ_USERNAME: ""
+  TQ_PASSWORD: ""
+---
+# Authenticate ONLINE so the local DB is seeded with jobs first (assumes start = online).
+- runFlow: subflows/auth.yaml
+
+# Same data is present and the list is rendered from the local DB.
+- assertVisible:
+    id: "job-card-.*"
+
+# --- Go offline (online → offline) ---
+- toggleAirplaneMode
+
+# The offline banner appears AND the list still renders from the local DB (offline-first).
+- extendedWaitUntil:
+    visible: "Offline"
+    timeout: 15000
+- assertVisible:
+    id: "job-card-.*"
+
+# --- Queue a write while offline ---
+- tapOn:
+    id: "job-card-.*"
+    index: 0
+- tapOn:
+    id: "job-update-status"
+- tapOn:
+    id: "status-option-.*"
+    index: 1
+- tapOn: "Confirm"
+
+# Optimistic change applied locally; the action is queued (not yet synced).
+- tapOn:
+    id: "job-back"
+- assertVisible: "Pending sync"
+
+# --- Reconnect (offline → online): the outbox flushes and pending state clears automatically ---
+- toggleAirplaneMode
+- extendedWaitUntil:
+    notVisible: "Offline"
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible: "Pending sync"
+    timeout: 30000
+- assertVisible: "Jobs"
