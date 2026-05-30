@@ -1,5 +1,6 @@
 export { apiClient } from './apiClient';
 export { parseApiBody } from './parseApiBody';
+export { getApiErrorMessage } from './apiError';
 export { login, logout } from './api/auth';
 export type { LoginCredentials, LoginResult } from './api/auth';
 export { getConfiguration } from './api/configuration';

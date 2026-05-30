@@ -32,6 +32,9 @@ _All M1-blocking questions resolved 2026-05-30 against the live test site — se
   filter by `driver_id` client-side). _(US-010.)_
 - [ ] **Write endpoint shapes.** `update_job_status` / `update_assigned` request+response not yet
   exercised (they mutate test data). Verify before building the outbox flusher. _(US-017, US-019.)_
+- [ ] **User-with-no-driver-record.** The `api-driver` test user's `wp_user_id` isn't in
+  `/configuration` > `drivers`, so derived `current_user.driver_id` is null. Decide the "My Jobs"
+  fallback when a driver user has no driver record (filter empty? show all?). _(US-010, US-011.)_
 
 ---
 
@@ -54,10 +57,11 @@ _All M1-blocking questions resolved 2026-05-30 against the live test site — se
 - [x] `services/apiClient.ts` — axios instance, base URL + Bearer from `authStore`, 401 → `clearSession`, PHP-warning-stripping `transformResponse`.
 - [x] `authStore` — token + (multi-site) config in **expo-secure-store**; `hydrate()` restores across restart.
 - [x] `services/api/{configuration,jobs,customers}.ts` — typed read endpoints + (unverified) write endpoints.
-- [ ] Onboarding screen — site URL + client_id/secret, validate via `/rest_login`.
-- [ ] Login screen — real form, error surfacing from API error `message`, role-based home redirect.
-- [ ] `GET /configuration` → seed reference tables + `current_user` into local DB (use `mapConfiguration`).
-- [ ] `useRole()` — derive role from `roles` array (not display strings).
+- [x] Onboarding screen — site URL + client_id/secret → `saveSiteConfig` (`useOnboarding`).
+- [x] Login screen — real form, error surfacing via `getApiErrorMessage`, role-based home redirect (`useLogin`).
+- [x] `GET /configuration` → seed reference tables + `current_user` into local DB (`seedConfiguration` + `mapConfiguration`). Verified against real payload.
+- [x] `useRole()` — derives role from `roles` array + assignment mode from DB (reactive via `useLiveQuery`).
+- [x] Route guards + protected `(app)` layout; `useLogout` (server logout + clear DB); placeholder home screen.
 
 **Offline core — the point of this milestone** (US-051 · AC: Offline-First)
 - [ ] Outbox table + `outboxFlusher` (pending/in_progress/failed/synced; 4xx→failed no retry,
