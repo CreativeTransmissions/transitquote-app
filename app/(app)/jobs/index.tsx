@@ -6,11 +6,13 @@ import { OfflineBanner } from '../../../components/sync/OfflineBanner';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { useJobs } from '../../../hooks/useJobs';
 import { useRole } from '../../../hooks/useRole';
+import { useOutbox } from '../../../hooks/useOutbox';
 import { COLOURS, SPACING, TYPOGRAPHY } from '../../../constants';
 
 export default function JobsScreen() {
   const { jobs, dbError, isSyncing, syncError, refresh } = useJobs();
   const { isDispatcher } = useRole();
+  const { stateByJob } = useOutbox();
 
   const showSpinner = jobs.length === 0 && isSyncing && !syncError;
 
@@ -46,6 +48,7 @@ export default function JobsScreen() {
           refreshing={isSyncing}
           onRefresh={refresh}
           showDriver={isDispatcher}
+          outboxStateByJob={stateByJob}
           emptyTitle="No jobs yet"
           emptySubtitle="Pull down to refresh."
         />

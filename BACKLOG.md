@@ -30,8 +30,10 @@ _All M1-blocking questions resolved 2026-05-30 against the live test site — se
 - [ ] **Centralized server-side filtering.** Driver and Dispatch `GET /jobs` returned identical
   41-job lists — "filtered to this driver" was not observed. Confirm before relying on it (else
   filter by `driver_id` client-side). _(US-010.)_
-- [ ] **Write endpoint shapes.** `update_job_status` / `update_assigned` request+response not yet
-  exercised (they mutate test data). Verify before building the outbox flusher. _(US-017, US-019.)_
+- [x] **Write endpoint shapes.** Verified live (reversibly). `update_job_status` = JSON `{id, status_type_id}`
+  → `{data:<job>, success}`. `update_assigned` has **two server bugs** (JSON crashes it → needs
+  form-urlencoding; `driver_id` must be `drivers.id`) and an unconfirmed happy path — see
+  [`docs/API_NOTES.md`](./docs/API_NOTES.md) §10. _(US-017 unblocked; US-019 partially.)_
 - [ ] **User-with-no-driver-record.** The `api-driver` test user's `wp_user_id` isn't in
   `/configuration` > `drivers`, so derived `current_user.driver_id` is null. Decide the "My Jobs"
   fallback when a driver user has no driver record (filter empty? show all?). _(US-010, US-011.)_
@@ -64,19 +66,20 @@ _All M1-blocking questions resolved 2026-05-30 against the live test site — se
 - [x] Route guards + protected `(app)` layout; `useLogout` (server logout + clear DB); placeholder home screen.
 
 **Offline core — the point of this milestone** (US-051 · AC: Offline-First)
-- [~] `syncEngine` — **pull side done** (`pullJobs` list reconcile, `pullJobDetail` hydrate, `sync_meta`);
-  push/flush side deferred until write endpoints verified.
+- [x] `syncEngine` — pull side (`pullJobs` reconcile, `pullJobDetail` hydrate, `sync_meta`) +
+  flush-then-pull on every foreground sync (`useSyncJobs`).
 - [x] `useConnectivity()` (expo-network) + `OfflineBanner` with "last synced X ago".
-- [ ] Outbox table + `outboxFlusher` (pending/in_progress/failed/synced; 4xx→failed no retry,
-  5xx/network→pending retry — spec §11.5). _Blocked on write-endpoint verification._
-- [ ] `conflictResolver` — server-wins + notify (spec §11.6).
-- [ ] Optimistic local write on status update; reconcile on sync.
+- [x] Outbox table + `outboxFlusher` (pending/in_progress/failed; permanent (4xx / 200+success:false)→failed
+  no retry; transient (5xx/network)→pending retry to MAX_RETRY_ATTEMPTS — spec §11.5). `isPermanentFailure` tested.
+- [x] `conflictResolver` — server-wins via pull overwrite; failed outbox items surfaced on job card + detail
+  (retry/discard). _(Notify-on-silent-overwrite refinement deferred.)_
+- [x] Optimistic local write on status update; reconciled by flush-then-pull.
 
 **Vertical slice UI**
 - [x] `useJobs()` reactive query (Drizzle `useLiveQuery`) → `JobList`/`JobCard` (+ `JobStatusBadge`, `EmptyState`).
 - [x] `useJobDetail(id)` → Job detail (customer, stops, pricing, payment); per-job hydration.
-- [ ] Status update flow with confirm dialog → outbox → optimistic UI (US-017). _Blocked on write-endpoint verification._
-- [~] **Exit test:** offline list renders from DB ✅; status change queue+sync pending (write path).
+- [x] Status update flow: `StatusPicker` + confirm dialog → optimistic write → outbox → flush (US-017).
+- [x] **Exit test:** offline list renders from DB; status change queues offline and syncs on reconnect (logic complete; on-device run pending — no emulator here).
 
 ## Milestone 2 — Driver
 

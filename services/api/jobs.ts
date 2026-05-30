@@ -1,6 +1,7 @@
 /** Jobs API — list (flat), detail (nested via ?id=), and the status/assignment writes. */
 import { apiClient } from '../apiClient';
-import type { ApiResponse, Job, JobDetail } from '../../types/api';
+import { ApiActionError } from '../apiError';
+import type { ApiResponse, Job, JobDetail, WriteResponse } from '../../types/api';
 
 const PATH = '/wp-json/transitquote/v1/jobs';
 
@@ -16,25 +17,41 @@ export async function getJobDetail(id: number): Promise<JobDetail> {
   return res.data.data;
 }
 
-// ⚠️ UNVERIFIED write payloads. The spec does not define these request bodies and they have
-// not been exercised live (they mutate test data). The shapes below are best-guess — verify
-// against the live API before wiring the outbox flusher (BACKLOG: "write endpoint shapes").
+// Both writes take `id` (not job_id) and return a top-level `success` (docs/API_NOTES.md §10).
+// A 200 with success=false is a permanent failure (ApiActionError) — surfaced, not retried.
 export interface UpdateStatusPayload {
-  job_id: number;
+  id: number;
   status_type_id: number;
 }
 
 export interface UpdateAssignedPayload {
-  job_id: number;
+  id: number;
   driver_id: number;
 }
 
-export async function updateJobStatus(payload: UpdateStatusPayload): Promise<void> {
-  const res = await apiClient.post<ApiResponse<unknown>>(`${PATH}/update_job_status`, payload);
-  if (!res.data?.success) throw new Error('Failed to update job status');
+function assertWriteOk(data: WriteResponse | undefined): void {
+  if (!data?.success) {
+    throw new ApiActionError(data?.message ?? data?.msg ?? 'The action did not take effect.', data?.code);
+  }
 }
 
+/** Verified live: JSON body, returns `{ data: <updated job>, success }`. */
+export async function updateJobStatus(payload: UpdateStatusPayload): Promise<void> {
+  const res = await apiClient.post<WriteResponse>(`${PATH}/update_job_status`, payload);
+  assertWriteOk(res.data);
+}
+
+/**
+ * update_assigned must be sent FORM-ENCODED: the server runs urldecode() on driver_id and crashes
+ * (HTTP 500) on a JSON integer (docs/API_NOTES.md §10 — server bug reported). Returns `{ msg, success }`.
+ */
 export async function updateAssigned(payload: UpdateAssignedPayload): Promise<void> {
-  const res = await apiClient.post<ApiResponse<unknown>>(`${PATH}/update_assigned`, payload);
-  if (!res.data?.success) throw new Error('Failed to assign driver');
+  const body = new URLSearchParams({
+    id: String(payload.id),
+    driver_id: String(payload.driver_id),
+  }).toString();
+  const res = await apiClient.post<WriteResponse>(`${PATH}/update_assigned`, body, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
+  assertWriteOk(res.data);
 }

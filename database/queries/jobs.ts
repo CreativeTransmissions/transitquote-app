@@ -28,7 +28,7 @@ export function jobDetailByIdQuery(id: number) {
  */
 export function replaceJobs(rows: JobInsert[]): void {
   db.transaction((tx) => {
-    const ids = rows.map((r) => r.id);
+    const ids = rows.map((r) => r.id).filter((id): id is number => id != null);
     if (ids.length) {
       tx.delete(jobDetails).where(notInArray(jobDetails.jobId, ids)).run();
       tx.delete(jobs).where(notInArray(jobs.id, ids)).run();
@@ -40,6 +40,14 @@ export function replaceJobs(rows: JobInsert[]): void {
       tx.insert(jobs).values(row).onConflictDoUpdate({ target: jobs.id, set: row }).run();
     }
   });
+}
+
+/** Optimistic local status change (applied immediately; reconciled by the next pull). */
+export function applyOptimisticStatus(jobId: number, statusTypeId: number, statusName: string | null): void {
+  db.update(jobs)
+    .set({ statusTypeId, statusName, modified: new Date().toISOString() })
+    .where(eq(jobs.id, jobId))
+    .run();
 }
 
 /** Upsert a job + its hydrated detail (from GET /jobs?id=). */

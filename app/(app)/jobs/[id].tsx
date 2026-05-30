@@ -1,12 +1,19 @@
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { JobStatusBadge } from '../../../components/jobs/JobStatusBadge';
+import { StatusPicker } from '../../../components/jobs/StatusPicker';
 import { OfflineBanner } from '../../../components/sync/OfflineBanner';
 import { EmptyState } from '../../../components/shared/EmptyState';
+import { Button } from '../../../components/shared/Button';
 import { useJobDetail } from '../../../hooks/useJobDetail';
 import { useTeamSettings } from '../../../hooks/useTeamSettings';
+import { useStatusTypes, type StatusType } from '../../../hooks/useStatusTypes';
+import { useUpdateJobStatus } from '../../../hooks/useUpdateJobStatus';
+import { useOutbox } from '../../../hooks/useOutbox';
+import { useRetryOutboxItem, useDiscardOutboxItem } from '../../../hooks/useOutboxActions';
 import { fullName, formatDateTime } from '../../../utils/formatters';
 import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../../constants';
 
@@ -15,7 +22,26 @@ export default function JobDetailScreen() {
   const jobId = Number(id);
   const { job, detail, isHydrating, error } = useJobDetail(jobId);
   const settings = useTeamSettings();
+  const statuses = useStatusTypes();
+  const update = useUpdateJobStatus();
+  const { failed } = useOutbox();
+  const retry = useRetryOutboxItem();
+  const discard = useDiscardOutboxItem();
+
+  const [pickerVisible, setPickerVisible] = useState(false);
   const currency = settings?.currencySymbol ?? '';
+  const failedItem = failed.find((item) => item.payload.id === jobId);
+
+  const handleSelect = (status: StatusType) => {
+    setPickerVisible(false);
+    Alert.alert('Update status', `Set status to “${status.name}”?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Confirm',
+        onPress: () => update.mutate({ jobId, statusTypeId: status.id, statusName: status.name }),
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -41,10 +67,35 @@ export default function JobDetailScreen() {
             <JobStatusBadge statusName={job.statusName} />
           </View>
 
+          {failedItem ? (
+            <View style={styles.failed}>
+              <Text style={styles.failedText} numberOfLines={3}>
+                Update failed: {failedItem.lastError ?? 'The action was rejected.'}
+              </Text>
+              <View style={styles.failedActions}>
+                <Pressable onPress={() => retry.mutate(failedItem.id)} disabled={retry.isPending} hitSlop={6}>
+                  <Text style={styles.retry}>Retry</Text>
+                </Pressable>
+                <Pressable onPress={() => discard.mutate(failedItem.id)} disabled={discard.isPending} hitSlop={6}>
+                  <Text style={styles.discard}>Discard</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
+
           {job.description ? <Text style={styles.description}>{job.description}</Text> : null}
           {job.deliveryTime ? (
             <Text style={styles.meta}>Scheduled: {formatDateTime(job.deliveryTime)}</Text>
           ) : null}
+
+          <View style={styles.updateButton}>
+            <Button
+              label="Update status"
+              onPress={() => setPickerVisible(true)}
+              loading={update.isPending}
+              disabled={statuses.length === 0}
+            />
+          </View>
 
           {detail?.customer ? (
             <Section title="Customer">
@@ -87,6 +138,14 @@ export default function JobDetailScreen() {
           ) : null}
         </ScrollView>
       )}
+
+      <StatusPicker
+        visible={pickerVisible}
+        statuses={statuses}
+        currentStatusId={job?.statusTypeId ?? null}
+        onSelect={handleSelect}
+        onClose={() => setPickerVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -121,6 +180,17 @@ const styles = StyleSheet.create({
   ref: { ...TYPOGRAPHY.title, color: COLOURS.text, flexShrink: 1 },
   description: { ...TYPOGRAPHY.body, color: COLOURS.text },
   meta: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted },
+  updateButton: { marginTop: SPACING.sm },
+  failed: {
+    backgroundColor: '#FDECEA',
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    gap: SPACING.sm,
+  },
+  failedText: { ...TYPOGRAPHY.caption, color: COLOURS.danger },
+  failedActions: { flexDirection: 'row', gap: SPACING.lg },
+  retry: { ...TYPOGRAPHY.body, color: COLOURS.primary, fontWeight: '600' },
+  discard: { ...TYPOGRAPHY.body, color: COLOURS.danger },
   section: { marginTop: SPACING.md, gap: SPACING.xs },
   sectionTitle: { ...TYPOGRAPHY.label, color: COLOURS.textMuted, textTransform: 'uppercase' },
   card: {

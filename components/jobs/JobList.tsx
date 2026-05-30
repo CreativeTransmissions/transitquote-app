@@ -4,6 +4,7 @@ import { JobCard } from './JobCard';
 import { EmptyState } from '../shared/EmptyState';
 import { COLOURS, SPACING } from '../../constants';
 import type { JobRow } from '../../database/schema';
+import type { JobOutboxState } from '../../hooks/useOutbox';
 
 interface JobListProps {
   jobs: JobRow[];
@@ -11,6 +12,7 @@ interface JobListProps {
   refreshing: boolean;
   onRefresh: () => void;
   showDriver?: boolean;
+  outboxStateByJob?: Map<number, JobOutboxState>;
   emptyTitle?: string;
   emptySubtitle?: string;
 }
@@ -21,6 +23,7 @@ export function JobList({
   refreshing,
   onRefresh,
   showDriver = false,
+  outboxStateByJob,
   emptyTitle = 'No jobs',
   emptySubtitle,
 }: JobListProps) {
@@ -28,7 +31,14 @@ export function JobList({
     <FlatList
       data={jobs}
       keyExtractor={(item) => String(item.id)}
-      renderItem={({ item }) => <JobCard job={item} showDriver={showDriver} onPress={onSelect} />}
+      renderItem={({ item }) => (
+        <JobCard
+          job={item}
+          showDriver={showDriver}
+          outboxState={outboxStateByJob?.get(item.id)}
+          onPress={onSelect}
+        />
+      )}
       contentContainerStyle={jobs.length === 0 ? styles.emptyContent : styles.content}
       ListEmptyComponent={<EmptyState title={emptyTitle} subtitle={emptySubtitle} />}
       refreshControl={

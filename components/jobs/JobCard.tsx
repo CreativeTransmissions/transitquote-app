@@ -1,17 +1,19 @@
-/** Job list row: reference, customer, status, scheduled time, and (optionally) the driver. */
+/** Job list row: reference, customer, status, scheduled time, driver, and sync state. */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { JobStatusBadge } from './JobStatusBadge';
 import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
 import { formatDateTime } from '../../utils/formatters';
 import type { JobRow } from '../../database/schema';
+import type { JobOutboxState } from '../../hooks/useOutbox';
 
 interface JobCardProps {
   job: JobRow;
   showDriver?: boolean;
+  outboxState?: JobOutboxState;
   onPress: (id: number) => void;
 }
 
-export function JobCard({ job, showDriver = false, onPress }: JobCardProps) {
+export function JobCard({ job, showDriver = false, outboxState, onPress }: JobCardProps) {
   const scheduled = formatDateTime(job.deliveryTime);
 
   return (
@@ -37,6 +39,12 @@ export function JobCard({ job, showDriver = false, onPress }: JobCardProps) {
           </Text>
         ) : null}
       </View>
+
+      {outboxState ? (
+        <Text style={[styles.sync, outboxState === 'failed' ? styles.syncFailed : styles.syncPending]}>
+          {outboxState === 'failed' ? '⚠ Update failed' : '↻ Pending sync'}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
@@ -56,4 +64,7 @@ const styles = StyleSheet.create({
   customer: { ...TYPOGRAPHY.body, color: COLOURS.text },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', gap: SPACING.sm },
   meta: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted, flexShrink: 1 },
+  sync: { ...TYPOGRAPHY.label },
+  syncPending: { color: COLOURS.warning },
+  syncFailed: { color: COLOURS.danger },
 });

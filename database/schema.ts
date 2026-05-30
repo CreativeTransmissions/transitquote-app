@@ -123,8 +123,8 @@ export const currentUser = sqliteTable('current_user', {
 // ─── Sync infrastructure ──────────────────────────────────────────────────────
 export const outbox = sqliteTable('outbox', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  actionType: text('action_type').notNull(), // e.g. 'UPDATE_STATUS' | 'ASSIGN_DRIVER'
-  payload: text('payload_json', { mode: 'json' }).notNull(),
+  actionType: text('action_type').$type<OutboxActionType>().notNull(),
+  payload: text('payload_json', { mode: 'json' }).$type<OutboxActionPayload>().notNull(),
   status: text('status').$type<OutboxStatus>().notNull().default('pending'),
   attempts: integer('attempts').notNull().default(0),
   lastError: text('last_error'),
@@ -137,6 +137,15 @@ export const syncMeta = sqliteTable('sync_meta', {
 });
 
 export type OutboxStatus = 'pending' | 'in_progress' | 'failed' | 'synced';
+
+export type OutboxActionType = 'UPDATE_STATUS' | 'ASSIGN_DRIVER';
+
+/** Outbox payload. `id` is always the job id; the other fields depend on the action type. */
+export interface OutboxActionPayload {
+  id: number;
+  status_type_id?: number;
+  driver_id?: number;
+}
 
 // Inferred row types — the app's local domain model.
 export type JobRow = typeof jobs.$inferSelect;

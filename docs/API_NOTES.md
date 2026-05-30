@@ -116,10 +116,33 @@ Gated by WP **role name** (lowercased), not per-capability:
 | `POST /jobs/update_assigned`, `POST /assign` | ❌ | ✅ | ✅ |
 | `GET /customers`, `GET /customers/{id}` | ❌ | ✅ | ✅ |
 
+## 10. Write endpoints (verified live 2026-05-30, reversibly)
+
+Both take `id` (the job id, **not** `job_id`) and expose a top-level `success`. Their envelopes
+are otherwise **inconsistent** with each other and with reads:
+
+**`POST /jobs/update_job_status`** — JSON body `{ "id": <jobId>, "status_type_id": <id> }`.
+- Success (HTTP 200): `{ data: <full updated job>, success: true }` (same top-level `success` as reads).
+- Verified by changing job 1 status 2→3→2 (reverted). All roles may call it.
+
+**`POST /jobs/update_assigned`** — Dispatch/Admin only. ⚠️ **Two server bugs:**
+1. Must be sent **form-urlencoded** (`id=..&driver_id=..`). A **JSON** body crashes the server with
+   `HTTP 500 — Uncaught TypeError: urldecode(): Argument #1 must be of type string, int given`.
+2. `driver_id` must reference `drivers.id` (FK `wp_tq_pro4_job_assignments.driver_id`). Passing a
+   `wp_user_id` fails the FK constraint (500).
+- Envelope uses **`msg`**, not `message`: failure → `{ msg: "Could not update job id<N> to driver id: ", success: false }`.
+- Missing `id` → `{ code: "rest_missing_callback_param", message: "Missing parameter(s): id", data: { status: 400 } }`.
+- A **successful** assignment was NOT confirmed: the only test driver (id 432) is `available: "0"`, and a
+  successful assign couldn't be cleanly reverted to "unassigned". Shape implemented from the evidence; the
+  happy path needs re-verification once an assignable driver exists. **Both bugs reported to the server team.**
+
+Client handling (services/api/jobs.ts): `update_job_status` posts JSON; `update_assigned` posts
+form-urlencoded. A 200 with `success: false` is raised as `ApiActionError` → the outbox marks it
+**failed** (permanent, no retry).
+
 ## 9. Open items still to verify against live
 
 - **Centralized server-side filtering:** the Driver and Dispatch `GET /jobs` returned
   byte-identical 41-job lists — the "filtered to this driver" behaviour was **not observed**.
   Confirm whether Centralized actually filters server-side, or the app must filter by `driver_id`.
-- **Write endpoints** (`update_job_status`, `update_assigned`): request/response shapes not yet
-  exercised (they mutate test data) — verify before building the outbox flusher against them.
+- **update_assigned happy path:** see §10 — needs an available driver to confirm a successful assignment.

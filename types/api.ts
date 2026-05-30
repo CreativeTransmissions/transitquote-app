@@ -34,6 +34,20 @@ export interface ApiErrorResponse {
   data: { status: number; [key: string]: unknown };
 }
 
+/**
+ * Write endpoint envelopes (verified live, see docs/API_NOTES.md §10). They are inconsistent:
+ *  - update_job_status → `{ data: <updated job>, success: boolean }` (same top-level `success` as reads).
+ *  - update_assigned   → `{ msg: string, success: boolean }` (uses `msg`, not `message`).
+ * Both expose a top-level `success`; this loose shape covers both.
+ */
+export interface WriteResponse {
+  success: boolean;
+  data?: unknown;
+  message?: string;
+  msg?: string;
+  code?: string;
+}
+
 // ─── Authentication (two-step OAuth2 authorization-code grant) ───────────────
 // 1. POST /transitquote/v1/rest_login → returns an authorization `code` (NOT a token).
 // 2. POST /oauth2/access_token (form-encoded) → exchanges the code for an access_token.
