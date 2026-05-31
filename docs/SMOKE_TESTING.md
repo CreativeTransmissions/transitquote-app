@@ -127,10 +127,35 @@ needs a new AVD.
    adb reverse tcp:443 tcp:443; adb reverse tcp:80 tcp:80
    ```
 
-2. **Build + install the app:**
+2. **Build + install the app — with the JS bundle EMBEDDED (required for Maestro).**
+
+   ⚠️ **Why embed:** this project has **no `expo-dev-client`**, so a plain `npx expo run:android`
+   debug build ships no bundled JS and depends on a live Metro connection. On this machine Avast
+   blocks the emulator→Metro path, and Maestro's `clearState` wipes the saved dev-server URL — so the
+   app shows the red **"Unable to load script"** screen and every flow fails at the first assert.
+   Embedding the production bundle makes the app load its own JS: no Metro needed, survives `clearState`.
+
    ```powershell
-   npx expo run:android   # debug build; installs com.transitteam.app on the emulator
+   # Point Gradle at the Avast-patched truststore (see Environment notes).
+   $env:JAVA_TOOL_OPTIONS = "-Djavax.net.ssl.trustStore=$env:USERPROFILE\.tqapp-certs\cacerts -Djavax.net.ssl.trustStorePassword=changeit"
+
+   # (a) Apply config plugins (TLS network-security-config + bundled mkcert CA) into android/.
+   npx expo prebuild -p android
+
+   # (b) Generate the embedded JS bundle into the debug APK's assets.
+   npx expo export:embed `
+     --platform android --dev false --entry-file index.ts `
+     --bundle-output android/app/src/main/assets/index.android.bundle `
+     --assets-dest android/app/src/main/res
+
+   # (c) Build the debug APK (now contains assets/index.android.bundle) and install it.
+   cd android; ./gradlew assembleDebug; cd ..
+   adb install -r android/app/build/outputs/apk/debug/app-debug.apk
    ```
+   Verify the bundle made it in: `unzip -l <apk> | grep index.android.bundle` (≈2 MB entry).
+
+   > Re-run (b)+(c) whenever JS changes — the embedded bundle is a build-time snapshot. A future
+   > improvement is a single bundled APK profile so this is one command.
 
 3. **Run the minimal flow first (no creds needed)** — confirms the build renders before involving
    the API:
