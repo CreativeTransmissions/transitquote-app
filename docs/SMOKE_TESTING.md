@@ -4,10 +4,17 @@ End-to-end smoke tests use [Maestro](https://maestro.dev). They drive the **real
 **live test site** ([`tq-pro-teams-php8.ddev.site`](https://tq-pro-teams-php8.ddev.site)).
 
 Flows (`.maestro/`):
+- **`minimal.yaml`** — smallest possible check: launch the app and assert the first screen renders
+  ("Connect your site" + the site-URL field). **No network, no auth, no creds.** Run this FIRST —
+  it isolates "the JS bundle loads and React renders" from every other concern. ✅ **Verified passing
+  2026-05-31** (exit 0, all steps COMPLETED) on the embedded-bundle build (see step 2 below).
 - **`smoke.yaml`** — the M1 happy path: onboarding → login → jobs list → job detail → status update.
 - **`offline.yaml`** — the offline-first promise (ROADMAP M1 exit criterion): go offline → list still
   renders from the local DB → queue a status change while offline → it auto-syncs on reconnect.
-- **`subflows/auth.yaml`** — shared onboarding+login, invoked via `runFlow` by both flows above.
+- **`subflows/auth.yaml`** — shared onboarding+login, invoked via `runFlow` by `smoke`/`offline`.
+
+> **Status (2026-05-31):** `minimal.yaml` is green. `smoke.yaml` / `offline.yaml` have not yet been
+> confirmed green on the embedded-bundle build — run and verify before claiming they pass.
 
 > **Why Maestro (not Detox)?** Maestro is black-box (drives the app over ADB, no native
 > instrumentation/build hooks), which suits Expo + RN 0.85 New Architecture. It needs only a
@@ -125,7 +132,16 @@ needs a new AVD.
    npx expo run:android   # debug build; installs com.transitteam.app on the emulator
    ```
 
-3. **Run a flow.** Credentials are passed as env vars — **never commit them**:
+3. **Run the minimal flow first (no creds needed)** — confirms the build renders before involving
+   the API:
+   ```powershell
+   maestro test .maestro\minimal.yaml
+   ```
+   Expect every step `COMPLETED` and exit 0. If this fails, the build/bundle is broken — fix that
+   before touching the credentialed flows.
+
+4. **Run a credentialed flow.** Credentials are passed as env vars — **never commit them**. Source
+   them from the gitignored creds file (see [Credentials](#credentials)) rather than typing them:
    ```powershell
    maestro test `
      -e SITE_URL=https://tq-pro-teams-php8.ddev.site `
@@ -137,6 +153,10 @@ needs a new AVD.
    ```
    Swap `smoke.yaml` for `offline.yaml` to run the offline flow. `npm run e2e` runs every flow in
    `.maestro\` once the env vars are set in your shell.
+
+   > A credentialed flow also needs the DDEV bridge from the previous section: `adb reverse`
+   > (tcp:443/:80) + the mkcert CA trusted via the `withDevNetworkSecurity` plugin. `minimal.yaml`
+   > needs none of that.
 
 ---
 
@@ -157,10 +177,32 @@ emulator (1st toggle → offline, 2nd → online).
 
 - **DDEV reachability + TLS:** the emulator can't reach `*.ddev.site` without `adb reverse`, and
   HTTPS needs the mkcert CA trusted — see "Reaching the DDEV test site from the emulator" above.
-- **Secrets:** keep them in your shell/`.env` (gitignored), CI secrets, or EAS env — never in
+- **Secrets:** keep them in your shell, a gitignored env file, CI secrets, or EAS env — never in
   `.maestro\*.yaml`. The flows only reference `${...}` placeholders.
 - **Element targeting:** flows match by `testID` (`id:`) or visible text. When adding UI we target in
   a flow, add a stable `testID` rather than relying on copy.
-- **First run is the real test:** Maestro now runs on Windows and the emulator is up, but the flows
-  have **not** yet executed end-to-end against an installed build. Expect to iterate on
-  selectors/timing on the first pass (needs `npx expo run:android` + the live credentials).
+- **Verification discipline:** a flow PASSES only when every step prints `COMPLETED` **and** the run
+  exits 0 — read the actual Maestro output, not just a wrapper/exit code. Maestro can report a
+  step-level `FAILED` while the surrounding shell still exits 0.
+
+## Credentials
+
+All live test credentials (3 role logins **and** the OAuth `client_id`/`client_secret`) live in one
+file in the WSL DDEV site root, **outside this repo**:
+
+```
+/home/andrew/projects/tq-pro-teams-php8/TEST_USERS.md   # read: wsl -d Ubuntu -e bash -lc 'cat …'
+```
+
+For convenience the per-run loop can source a **gitignored** env file (e.g. `.api-samples/e2e.env`,
+covered by the `.api-samples/` ignore) holding `SITE_URL`/`CLIENT_ID`/`CLIENT_SECRET`/`TQ_USERNAME`/
+`TQ_PASSWORD`. The mkcert root CA (DDEV's TLS signer) is in WSL at
+`/home/andrew/.local/share/mkcert/rootCA.pem`; a copy is staged for the build at
+`certs/ddev-rootCA.pem` (gitignored). Verified round-trip working 2026-05-31.
+
+## Current status (2026-05-31)
+
+- ✅ App **builds, installs, and renders** on the `Pixel_9` emulator (embedded-bundle debug APK).
+- ✅ `minimal.yaml` passes (launch + first-screen asserts, exit 0).
+- ⏳ `smoke.yaml` / `offline.yaml` — the bundle blocker that broke them is fixed; re-run on the
+  embedded build and confirm `COMPLETED` on every step before marking them green.

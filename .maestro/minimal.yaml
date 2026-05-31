@@ -1,0 +1,12 @@
+# Minimal smoke: does the app launch and render its first screen at all?
+# No network, no auth, no DDEV — this isolates "the JS bundle loads and React renders"
+# from every other concern. If this fails, the build/bundle is broken, not the flows.
+#
+# Run: maestro test .maestro/minimal.yaml   (no -e env vars needed)
+appId: com.transitteam.app
+---
+- launchApp
+# First screen is onboarding ("Connect your site") with the site-URL field.
+- assertVisible: "Connect your site"
+- assertVisible:
+    id: "onboarding-site-url"

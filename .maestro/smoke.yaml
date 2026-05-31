@@ -1,5 +1,6 @@
 # Smoke test — the M1 happy path: onboarding → login → jobs list → job detail → status update.
-# Run (from WSL2, emulator on the Windows host — see docs/SMOKE_TESTING.md):
+# Run (native Windows — emulator, adb, and Maestro all on Windows; see docs/SMOKE_TESTING.md.
+# Requires the embedded-bundle build + adb reverse + mkcert CA — full recipe in that doc):
 #   maestro test \
 #     -e SITE_URL=https://tq-pro-teams-php8.ddev.site \
 #     -e CLIENT_ID=... -e CLIENT_SECRET=... \
