@@ -78,18 +78,24 @@ emulator that points at the **emulator's own loopback** (nothing listening there
 reach the API. You can't simply swap in `10.0.2.2` (the host alias) either, because DDEV routes by
 **Host header** and rejects a mismatched host (verified: wrong host → 404).
 
-**The fix — `adb reverse` (no root, recommended).** `adb reverse` forwards a port on the
-**emulator's** `127.0.0.1` to the **host's** `127.0.0.1`. Because the app already resolves the DDEV
-name to `127.0.0.1`, requests land on the host's DDEV router with the correct hostname **and** Host
-header — no hosts-file edit, no rootable AVD.
+**`adb reverse` does NOT work on this machine.** It was the original plan, but its **return path is
+broken** here (proven 2026-05-31 with a trivial host server: the emulator's outbound connection
+reaches the host, but no response is ever relayed back — likely a Docker-Desktop/WSL2 loopback
+interaction). Do not rely on it. `scripts/emulator-bridge.ps1` is kept only for reference.
 
-```powershell
-./scripts/emulator-bridge.ps1     # boots Pixel_9 if needed, then sets the reverse ports
-# equivalent manual step, with the emulator running:
-adb reverse tcp:443 tcp:443
-adb reverse tcp:80  tcp:80
-```
-> `adb reverse` is cleared on emulator reboot / adb restart — re-run the script each session.
+**The fix that works — host DNS responder + the `10.0.2.2` NAT path (no root, keeps the https
+hostname).** The emulator reaches the host reliably only via the QEMU NAT alias `10.0.2.2`. So:
+1. Run the DNS responder (maps `*.ddev.site → 10.0.2.2`, forwards everything else). Leave it running:
+   ```bash
+   node scripts/emulator-ddev-dns.js          # binds 127.0.0.1:53
+   ```
+2. Boot the emulator pointed at it (see the per-run loop). The app keeps the real
+   `https://tq-pro-teams-php8.ddev.site` URL — only the IP it resolves to changes — so SNI/Host are
+   correct, DDEV serves its mkcert cert, and the bundled CA validates.
+> ⚠️ **Avast must not filter DNS.** Avast's Web Shield / "Real Site" silently drops UDP-53 replies on
+> loopback (verified: port 9953 round-trips, port 53 doesn't). Turn Web Shield OFF for the run, or the
+> DNS responder's answers never arrive. Avast also MITMs HTTPS (see build notes) — Web Shield OFF
+> fixes both. Re-enable it afterwards.
 
 **HTTPS trust (mkcert).** DDEV serves TLS with a **mkcert** certificate, which Android (API 24+)
 won't trust by default. Two pieces make `https://` work in **debug** builds:
@@ -118,14 +124,21 @@ needs a new AVD.
 
 ## Per-run loop
 
-1. **Boot the emulator + bridge** (if not already running):
-   ```powershell
-   ./scripts/emulator-bridge.ps1          # boots Pixel_9, sets adb reverse, prints the maestro line
-   # or manually:
-   & "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe" -avd Pixel_9
-   adb devices                            # should list emulator-5554
-   adb reverse tcp:443 tcp:443; adb reverse tcp:80 tcp:80
+1. **Start the DNS responder, then boot the emulator pointed at it** (credentialed/API flows only;
+   `minimal.yaml` and `steps/01-launch.yaml` need none of this):
+   ```bash
+   # (a) DNS responder — leave running (maps *.ddev.site -> 10.0.2.2). Avast Web Shield must be OFF.
+   node scripts/emulator-ddev-dns.js &
+   # (b) Boot the emulator USING that resolver (fresh state):
+   "$LOCALAPPDATA/Android/Sdk/emulator/emulator.exe" -avd Pixel_9 -dns-server 127.0.0.1 -no-snapshot-load &
+   adb wait-for-device                    # then wait for sys.boot_completed == 1
+   # (c) Verify the guest resolves the host: should print 10.0.2.2
+   adb shell ping -c1 tq-pro-teams-php8.ddev.site
+   # (d) Suppress the "Try out your stylus" keyboard popup — it steals focus and breaks text input:
+   adb shell settings put secure stylus_handwriting_enabled 0
    ```
+   > `adb reverse` is NOT used (its relay is broken here — see the bridge section). The `-dns-server`
+   > value is read from the HOST's perspective, so `127.0.0.1` = the responder on the host loopback.
 
 2. **Build + install the app — with the JS bundle EMBEDDED (required for Maestro).**
 
@@ -206,6 +219,15 @@ emulator (1st toggle → offline, 2nd → online).
   `assertVisible: ""` which **passes trivially** — a silent false-green that looks like an input bug.
   Pass values ONLY via `-e`; document required vars in a comment, not an `env:` block.
   (Diagnosed 2026-05-31 — this was the real cause of "text isn't being entered".)
+- **⚠️ The "Try out your stylus" keyboard popup breaks text input.** Android shows a one-time
+  stylus-handwriting promo in the keyboard area; it steals focus from the field so `inputText` lands
+  nowhere (the read-back assert then fails), and a stray dismiss tap can back you out to the home
+  screen. Suppress it: `adb shell settings put secure stylus_handwriting_enabled 0` (persists until
+  the AVD is wiped).
+- **⚠️ Dismiss the keyboard between fields with a blank-area tap, NOT `hideKeyboard`.** On Android
+  Maestro implements `hideKeyboard` as a BACK press, which from a root screen (onboarding/login)
+  EXITS the app (process dies → home screen). The subflows tap a blank upper area (`point: 50%,10%`)
+  to blur the field + dismiss the keyboard via the form's `keyboardShouldPersistTaps="handled"`.
 - **⚠️ Maestro can leave the device's IME on its own non-rendering keyboard** after an aborted run,
   so you can no longer type (manually or via a flow) and text silently fails to appear. Fix:
   `adb shell ime reset` (restores the default keyboard). Run it at the start of a session if input
@@ -248,6 +270,11 @@ covered by the `.api-samples/` ignore) holding `SITE_URL`/`CLIENT_ID`/`CLIENT_SE
   Required the env-block fix + IME reset + hideKeyboard-between-fields (see Notes & gotchas).
   Run with `-e SITE_URL=… -e CLIENT_ID=… -e CLIENT_SECRET=…` (dummy values are fine — onboarding
   only validates+saves locally, no API call until login/step 3).
-- ⏳ **`steps/03-login.yaml`** and beyond (04/05, `smoke.yaml`, `offline.yaml`) — first rungs that hit
-  the API. Need real `-e TQ_USERNAME`/`TQ_PASSWORD` (+ client creds) + the DDEV bridge (adb reverse +
-  mkcert CA). Env-block fix already applied; run one rung at a time and confirm `COMPLETED` + exit 0.
+- ✅ **`steps/03-login.yaml`** — real OAuth login → `GET /configuration` → lands on the **Jobs** list,
+  exit 0, verified reproducible. Required: the DNS responder (`scripts/emulator-ddev-dns.js`) + emulator
+  booted with `-dns-server 127.0.0.1` (adb reverse is broken here), Avast Web Shield OFF, stylus popup
+  disabled, the `login → /jobs` routing fix, and the blank-tap keyboard dismiss. Run with all five
+  `-e` vars (SITE_URL + client id/secret + TQ_USERNAME/PASSWORD).
+- ⏳ **`steps/04-job-detail.yaml`, `steps/05-status-update.yaml`, `smoke.yaml`, `offline.yaml`** — next
+  rungs (open a job → detail → status update). Same bridge/setup as step 3. ⚠️ 05/smoke/offline MUTATE
+  a test job's status on the live DDEV site. Run one rung at a time; confirm `COMPLETED` + exit 0.

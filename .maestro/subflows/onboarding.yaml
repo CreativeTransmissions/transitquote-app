@@ -1,17 +1,18 @@
 # Building block: complete onboarding (site URL + client creds) → lands on the login screen.
 # PRECONDITION: the onboarding screen is showing (run subflows/launch.yaml first).
-# Needs env: SITE_URL, CLIENT_ID, CLIENT_SECRET (inherited from the calling flow).
+# Needs env: SITE_URL, CLIENT_ID, CLIENT_SECRET (inherited from the calling flow, passed via -e).
 #
 # ROBUSTNESS (why the extra steps):
 #  - tap → waitForAnimationToEnd BEFORE inputText: Maestro otherwise fires inputText before the
-#    field is focused + keyboard is ready, so keystrokes drop and focus skips to the next box.
-#  - hideKeyboard AFTER each field, BEFORE tapping the next one: the form centres its content, so
-#    with the keyboard open the lower fields (esp. Client Secret) sit UNDER the keyboard. Tapping an
-#    obscured field doesn't focus it, so the next inputText leaks into the still-focused field above
-#    (verified: "id" + "secret" both landed in Client ID). Dismissing the keyboard first keeps every
-#    field visible + tappable. (Diagnosed 2026-05-31 via .maestro/steps/diag-input.yaml.)
-#  - assertVisible after each VISIBLE field: read-back check that the value actually landed
-#    (assertVisible retries, so it also waits out slow input).
+#    field is focused + keyboard is ready, so keystrokes drop / focus skips to the next box.
+#  - DISMISS the keyboard between fields by tapping a blank upper area (NOT `hideKeyboard`): the form
+#    centres its content, so with the keyboard open the lower fields (esp. Client Secret) sit UNDER
+#    the keyboard — tapping an obscured field doesn't focus it, so the next inputText leaks into the
+#    field above. `hideKeyboard` would dismiss it, BUT on Android Maestro implements hideKeyboard as a
+#    BACK press, which from this root screen EXITS THE APP (process dies → home screen). Tapping blank
+#    space blurs the input + dismisses the keyboard via keyboardShouldPersistTaps="handled", no BACK.
+#    (Both diagnosed 2026-05-31 via .maestro/steps/diag-input.yaml.)
+#  - assertVisible after each VISIBLE field: read-back check that the value actually landed.
 #  - Client Secret is masked (secureTextEntry) → its value can't be read back; entered last, and the
 #    post-submit validation-error checks below catch it if it didn't land.
 appId: com.transitteam.app
@@ -21,24 +22,25 @@ appId: com.transitteam.app
 - waitForAnimationToEnd
 - inputText: "${SITE_URL}"
 - assertVisible: "${SITE_URL}"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"          # dismiss keyboard (blank area) so the next field isn't obscured
 
 - tapOn:
     id: "onboarding-client-id"
 - waitForAnimationToEnd
 - inputText: "${CLIENT_ID}"
 - assertVisible: "${CLIENT_ID}"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 
 - tapOn:
     id: "onboarding-client-secret"
 - waitForAnimationToEnd
 - inputText: "${CLIENT_SECRET}"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 
-# Let the keyboard-dismiss animation settle and re-confirm the URL is still present BEFORE submitting.
-# Tapping submit mid-animation (layout re-centring as the keyboard slides away) races the tap against
-# the moving button and the form read; this settle+read-back makes the submit deterministic.
+# Settle + re-confirm the URL is still present BEFORE submitting (avoids racing the submit tap).
 - waitForAnimationToEnd
 - assertVisible: "${SITE_URL}"
 - tapOn:

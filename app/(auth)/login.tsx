@@ -18,7 +18,7 @@ export default function LoginScreen() {
   const handleSubmit = () => {
     loginMutation.mutate(
       { username, password },
-      { onSuccess: () => router.replace('/home') },
+      { onSuccess: () => router.replace('/jobs') },
     );
   };
 
