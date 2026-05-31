@@ -35,6 +35,10 @@ interface AuthState {
   setAccessToken: (token: string) => Promise<void>;
   /** Clear the active site's token (logout / 401). Site config is retained for re-login. */
   clearSession: () => Promise<void>;
+  /** All saved site configs (for the multi-site switcher). */
+  listSites: () => Promise<SiteConfig[]>;
+  /** Make another saved site active, loading its stored token (status follows token presence). */
+  switchSite: (id: string) => Promise<void>;
 }
 
 async function readSites(): Promise<SiteConfig[]> {
@@ -114,5 +118,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { activeSiteId } = get();
     if (activeSiteId) await SecureStore.deleteItemAsync(tokenKey(activeSiteId));
     set({ accessToken: null, status: 'unauthenticated' });
+  },
+
+  listSites: async () => readSites(),
+
+  switchSite: async (id) => {
+    const sites = await readSites();
+    const site = sites.find((s) => s.id === id);
+    if (!site) throw new Error('Unknown site');
+    await SecureStore.setItemAsync(ACTIVE_SITE_KEY, id);
+    const token = await SecureStore.getItemAsync(tokenKey(id));
+    set({
+      activeSiteId: id,
+      siteUrl: site.siteUrl,
+      clientId: site.clientId,
+      clientSecret: site.clientSecret,
+      accessToken: token,
+      status: token ? 'authenticated' : 'unauthenticated',
+    });
   },
 }));
