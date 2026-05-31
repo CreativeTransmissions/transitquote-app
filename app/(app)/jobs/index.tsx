@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { JobList } from '../../../components/jobs/JobList';
 import { JobFilterSheet } from '../../../components/jobs/JobFilterSheet';
 import { OfflineBanner } from '../../../components/sync/OfflineBanner';
+import { SyncStatusIndicator } from '../../../components/sync/SyncStatusIndicator';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { useJobs, type JobScope } from '../../../hooks/useJobs';
 import { useJobFilters } from '../../../hooks/useJobFilters';
@@ -42,7 +43,10 @@ export default function JobsScreen() {
       <OfflineBanner />
 
       <View style={styles.header}>
-        <Text style={styles.title}>Jobs</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Jobs</Text>
+          <SyncStatusIndicator />
+        </View>
         <View style={styles.headerLinks}>
           {isDispatcher ? (
             <>
@@ -169,6 +173,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
   },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
   headerLinks: { flexDirection: 'row', gap: SPACING.md },
   title: { ...TYPOGRAPHY.title, color: COLOURS.text },
   link: { ...TYPOGRAPHY.body, color: COLOURS.primary },

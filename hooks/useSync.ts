@@ -6,11 +6,14 @@ import { useConnectivityStore } from '../stores/connectivityStore';
 
 export function useSyncJobs(): UseMutationResult<void, Error, void> {
   const setLastSyncedAt = useConnectivityStore((s) => s.setLastSyncedAt);
+  const setSyncing = useConnectivityStore((s) => s.setSyncing);
   return useMutation<void, Error, void>({
     mutationFn: async () => {
       await flushOutbox(); // push pending local writes before pulling (flush-then-pull)
       await pullJobs();
       setLastSyncedAt(new Date().toISOString());
     },
+    onMutate: () => setSyncing(true),
+    onSettled: () => setSyncing(false),
   });
 }
