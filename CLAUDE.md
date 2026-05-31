@@ -177,7 +177,9 @@ database/
   sync/
     syncEngine.ts             ← Full sync orchestration (foreground + background)
     outboxFlusher.ts          ← Outbox flush logic (see spec §11.5)
-    conflictResolver.ts       ← Conflict resolution (server wins, notify user — see spec §11.6)
+    # Conflict resolution (spec §11.6) is server-wins by construction — the pull overwrites
+    # local rows (replaceJobs in queries/jobs.ts), so no standalone conflictResolver module
+    # exists. Add one only if notify-on-silent-overwrite is implemented.
 
 stores/
   authStore.ts                ← Access token, site URL, client credentials, logout

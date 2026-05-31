@@ -2,8 +2,9 @@
  * Pull-side sync: fetch from the API, map, and write to the local DB. The UI never reads from
  * the API directly — it reads the DB (offline-first) and these functions keep the DB fresh.
  *
- * The push/outbox side (status updates, assignment) is deferred until the write endpoint shapes
- * are verified against the live API (see BACKLOG).
+ * The push side lives in `outboxFlusher.ts`; `useSyncJobs` runs flush-then-pull so queued local
+ * writes go up before fresh data comes down. Conflict resolution is server-wins by construction:
+ * `replaceJobs` overwrites local rows with the pulled server state.
  */
 import { getJobs, getJobDetail } from '../../services/api/jobs';
 import { mapJob, mapJobDetail } from '../mappers';
