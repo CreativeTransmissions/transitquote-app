@@ -55,8 +55,8 @@ export default function CustomerDetailScreen() {
             <View style={styles.headerBlock}>
               <Text style={styles.name}>{fullName(customer.firstName, customer.lastName) || `Customer ${customer.id}`}</Text>
               <View style={styles.card}>
-                <LinkRow label="Phone" value={customer.phone} url={phone} testID="customer-call" />
-                <LinkRow label="Email" value={customer.email} url={email} testID="customer-email" />
+                <LinkRow label="Phone" value={customer.phone ?? ''} url={phone} testID="customer-call" />
+                <LinkRow label="Email" value={customer.email ?? ''} url={email} testID="customer-email" />
               </View>
               <Text style={styles.section}>Job history ({jobs.length})</Text>
             </View>

@@ -123,13 +123,26 @@ CREATE TABLE \`vehicles\` (
 );
 `;
 
+// Verbatim copy of 0001_unique_trish_tilby.sql (adds the customers table — M3).
+const m0001 = `CREATE TABLE \`customers\` (
+	\`id\` integer PRIMARY KEY NOT NULL,
+	\`wp_user_id\` integer,
+	\`first_name\` text,
+	\`last_name\` text,
+	\`email\` text,
+	\`phone\` text,
+	\`created\` text,
+	\`modified\` text
+);
+`;
+
 // Shape consumed by the Expo migrator (drizzle-orm/expo-sqlite/migrator).
 const bundle: {
   journal: typeof journal;
   migrations: Record<string, string>;
 } = {
   journal,
-  migrations: { m0000 },
+  migrations: { m0000, m0001 },
 };
 
 export default bundle;

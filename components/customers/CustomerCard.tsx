@@ -1,5 +1,5 @@
 /** Customer list row: name + contact (spec §6.8). */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
 import { fullName } from '../../utils/formatters';
 import type { CustomerRow } from '../../database/schema';

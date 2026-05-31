@@ -61,8 +61,8 @@ export default function DriverDetailScreen() {
               </View>
 
               <View style={styles.card}>
-                <LinkRow label="Phone" value={driver.phone} url={phone} testID="driver-call" />
-                <LinkRow label="Email" value={driver.email} url={email} testID="driver-email" />
+                <LinkRow label="Phone" value={driver.phone ?? ''} url={phone} testID="driver-call" />
+                <LinkRow label="Email" value={driver.email ?? ''} url={email} testID="driver-email" />
                 {assignTarget ? (
                   <Row label="Can assign to" value={fullName(assignTarget.firstName, assignTarget.lastName)} />
                 ) : null}

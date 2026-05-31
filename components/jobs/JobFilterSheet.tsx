@@ -3,7 +3,7 @@
  * single-select (dispatcher only), and a scheduled-date range. Holds a local draft so changes
  * only take effect on Apply; Clear All resets to empty.
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TextField } from '../shared/TextField';
 import { Button } from '../shared/Button';
@@ -36,11 +36,6 @@ export function JobFilterSheet({
 }: JobFilterSheetProps) {
   const [draft, setDraft] = useState<JobFilters>(filters);
 
-  // Re-seed the draft from the applied filters each time the sheet opens.
-  useEffect(() => {
-    if (visible) setDraft(filters);
-  }, [visible, filters]);
-
   const toggleStatus = (id: number) => {
     setDraft((d) => ({
       ...d,
@@ -51,7 +46,13 @@ export function JobFilterSheet({
   const selectDriver = (id: number | null) => setDraft((d) => ({ ...d, driverId: id }));
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      onShow={() => setDraft(filters)}
+    >
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.sheet}>
           <Text style={styles.title}>Filter jobs</Text>
