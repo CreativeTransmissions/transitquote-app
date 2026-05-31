@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { JobStatusBadge } from '../../../components/jobs/JobStatusBadge';
 import { StatusPicker } from '../../../components/jobs/StatusPicker';
+import { DriverPicker } from '../../../components/jobs/DriverPicker';
+import { StopList } from '../../../components/jobs/StopList';
 import { OfflineBanner } from '../../../components/sync/OfflineBanner';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { Button } from '../../../components/shared/Button';
@@ -12,10 +14,25 @@ import { useJobDetail } from '../../../hooks/useJobDetail';
 import { useTeamSettings } from '../../../hooks/useTeamSettings';
 import { useStatusTypes, type StatusType } from '../../../hooks/useStatusTypes';
 import { useUpdateJobStatus } from '../../../hooks/useUpdateJobStatus';
+import { useAssignDriver } from '../../../hooks/useAssignDriver';
+import { useAssignableDrivers } from '../../../hooks/useDrivers';
+import { useCurrentUser } from '../../../hooks/useCurrentUser';
+import { useRole } from '../../../hooks/useRole';
 import { useOutbox } from '../../../hooks/useOutbox';
 import { useRetryOutboxItem, useDiscardOutboxItem } from '../../../hooks/useOutboxActions';
-import { fullName, formatDateTime } from '../../../utils/formatters';
+import { fullName, formatDateTime, formatCurrency } from '../../../utils/formatters';
+import { toFloat } from '../../../utils/coerce';
+import { mailtoUrl, mapsDirectionsUrl, telUrl } from '../../../utils/links';
 import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../../constants';
+import type { DriverRow } from '../../../database/schema';
+import type { Stop } from '../../../types/api';
+
+async function openUrl(url: string | null): Promise<void> {
+  if (!url) return;
+  const supported = await Linking.canOpenURL(url);
+  if (supported) await Linking.openURL(url);
+  else Alert.alert('Unable to open', 'No app available to handle this link.');
+}
 
 export default function JobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,15 +41,24 @@ export default function JobDetailScreen() {
   const settings = useTeamSettings();
   const statuses = useStatusTypes();
   const update = useUpdateJobStatus();
+  const assign = useAssignDriver();
+  const { drivers: assignableDrivers, canAssign } = useAssignableDrivers();
+  const currentUser = useCurrentUser();
+  const { isDriver, isDecentralized, driverId } = useRole();
   const { failed } = useOutbox();
   const retry = useRetryOutboxItem();
   const discard = useDiscardOutboxItem();
 
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [driverPickerVisible, setDriverPickerVisible] = useState(false);
+
   const currency = settings?.currencySymbol ?? '';
   const failedItem = failed.find((item) => item.payload.id === jobId);
+  const showAssignment = isDriver && isDecentralized;
+  const canClaim = showAssignment && job?.driverId == null && driverId != null;
+  const mutating = update.isPending || assign.isPending;
 
-  const handleSelect = (status: StatusType) => {
+  const handleSelectStatus = (status: StatusType) => {
     setPickerVisible(false);
     Alert.alert('Update status', `Set status to “${status.name}”?`, [
       { text: 'Cancel', style: 'cancel' },
@@ -42,6 +68,32 @@ export default function JobDetailScreen() {
       },
     ]);
   };
+
+  const handleClaim = () => {
+    if (driverId == null) return;
+    const myName = fullName(currentUser?.firstName, currentUser?.lastName) || null;
+    Alert.alert('Claim job', 'Assign this job to yourself?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Claim', onPress: () => assign.mutate({ jobId, driverId, driverName: myName }) },
+    ]);
+  };
+
+  const handleSelectDriver = (driver: DriverRow) => {
+    setDriverPickerVisible(false);
+    const name = fullName(driver.firstName, driver.lastName) || null;
+    Alert.alert('Assign driver', `Assign this job to ${name ?? `driver ${driver.id}`}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Assign', onPress: () => assign.mutate({ jobId, driverId: driver.id, driverName: name }) },
+    ]);
+  };
+
+  const handleOpenStop = (stop: Stop) => {
+    void openUrl(mapsDirectionsUrl([stop]));
+  };
+
+  const routeUrl = detail?.stops?.length ? mapsDirectionsUrl(detail.stops) : null;
+  const customerPhone = telUrl(detail?.customer?.phone);
+  const customerEmail = mailtoUrl(detail?.customer?.email);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -70,7 +122,7 @@ export default function JobDetailScreen() {
           {failedItem ? (
             <View style={styles.failed}>
               <Text style={styles.failedText} numberOfLines={3}>
-                Update failed: {failedItem.lastError ?? 'The action was rejected.'}
+                Action failed: {failedItem.lastError ?? 'The action was rejected.'}
               </Text>
               <View style={styles.failedActions}>
                 <Pressable onPress={() => retry.mutate(failedItem.id)} disabled={retry.isPending} hitSlop={6}>
@@ -88,41 +140,79 @@ export default function JobDetailScreen() {
             <Text style={styles.meta}>Scheduled: {formatDateTime(job.deliveryTime)}</Text>
           ) : null}
 
-          <View style={styles.updateButton}>
+          <View style={styles.actions}>
             <Button
               testID="job-update-status"
               label="Update status"
               onPress={() => setPickerVisible(true)}
               loading={update.isPending}
-              disabled={statuses.length === 0}
+              disabled={statuses.length === 0 || mutating}
             />
           </View>
 
-          {detail?.customer ? (
-            <Section title="Customer">
-              <Field label="Name" value={fullName(detail.customer.first_name, detail.customer.last_name)} />
-              <Field label="Phone" value={detail.customer.phone} />
-              <Field label="Email" value={detail.customer.email} />
+          {showAssignment ? (
+            <Section title="Assignment">
+              <Field label="Driver" value={job.driverName ?? 'Unassigned'} />
+              <View style={styles.assignButtons}>
+                {canClaim ? (
+                  <Button
+                    testID="job-claim"
+                    label="Claim job"
+                    onPress={handleClaim}
+                    loading={assign.isPending}
+                    disabled={mutating}
+                  />
+                ) : null}
+                {canAssign ? (
+                  <Button
+                    testID="job-assign"
+                    label="Assign driver"
+                    variant="secondary"
+                    onPress={() => setDriverPickerVisible(true)}
+                    disabled={mutating}
+                  />
+                ) : null}
+              </View>
             </Section>
           ) : null}
 
           {detail?.stops?.length ? (
-            <Section title={`Stops (${detail.stops.length})`}>
-              {detail.stops.map((stop, index) => (
-                <View key={stop.id ?? index} style={styles.stop}>
-                  <Text style={styles.stopType}>{stop.visit_type || `Stop ${index + 1}`}</Text>
-                  <Text style={styles.stopAddress}>{stop.address}</Text>
+            <Section title={`Route (${detail.stops.length} stops)`}>
+              {detail.journey ? (
+                <Field
+                  label="Distance / time"
+                  value={[detail.journey.distance, detail.journey.time].filter(Boolean).join(' · ') || '—'}
+                />
+              ) : null}
+              <StopList stops={detail.stops} onOpenStop={handleOpenStop} />
+              {routeUrl ? (
+                <View style={styles.mapButton}>
+                  <Button testID="job-open-maps" label="Open route in Maps" variant="secondary" onPress={() => openUrl(routeUrl)} />
                 </View>
-              ))}
+              ) : null}
+            </Section>
+          ) : null}
+
+          {detail?.customer ? (
+            <Section title="Customer">
+              <Field label="Name" value={fullName(detail.customer.first_name, detail.customer.last_name)} />
+              <LinkField label="Phone" value={detail.customer.phone} url={customerPhone} testID="customer-call" />
+              <LinkField label="Email" value={detail.customer.email} url={customerEmail} testID="customer-email" />
+              {job.customerReference ? <Field label="Reference" value={job.customerReference} /> : null}
             </Section>
           ) : null}
 
           {detail?.quote ? (
             <Section title="Pricing">
-              <Field label="Distance" value={`${currency}${detail.quote.distance_cost}`} />
-              <Field label="Time" value={`${currency}${detail.quote.time_cost}`} />
-              <Field label="Tax" value={`${currency}${detail.quote.tax_cost}`} />
-              <Field label="Total" value={`${currency}${detail.quote.total}`} emphasis />
+              <Field label="Basic" value={formatCurrency(toFloat(detail.quote.basic_cost), currency)} />
+              <Field label="Distance" value={formatCurrency(toFloat(detail.quote.distance_cost), currency)} />
+              <Field label="Time" value={formatCurrency(toFloat(detail.quote.time_cost), currency)} />
+              <Field label="Surcharge" value={formatCurrency(toFloat(detail.quote.notice_cost), currency)} />
+              <Field label={settings?.taxName || 'Tax'} value={formatCurrency(toFloat(detail.quote.tax_cost), currency)} />
+              <Field label="Total" value={formatCurrency(toFloat(detail.quote.total), currency)} emphasis />
+              {job.weight != null ? (
+                <Field label="Weight" value={`${job.weight} ${settings?.weightUnit ?? ''}`.trim()} />
+              ) : null}
             </Section>
           ) : null}
 
@@ -144,8 +234,16 @@ export default function JobDetailScreen() {
         visible={pickerVisible}
         statuses={statuses}
         currentStatusId={job?.statusTypeId ?? null}
-        onSelect={handleSelect}
+        onSelect={handleSelectStatus}
         onClose={() => setPickerVisible(false)}
+      />
+
+      <DriverPicker
+        visible={driverPickerVisible}
+        drivers={assignableDrivers}
+        currentDriverId={job?.driverId ?? null}
+        onSelect={handleSelectDriver}
+        onClose={() => setDriverPickerVisible(false)}
       />
     </SafeAreaView>
   );
@@ -171,6 +269,19 @@ function Field({ label, value, emphasis = false }: { label: string; value: strin
   );
 }
 
+/** A field whose value is a tappable deep-link (tel:/mailto:) when `url` is non-null. */
+function LinkField({ label, value, url, testID }: { label: string; value: string; url: string | null; testID?: string }) {
+  if (!url) return <Field label={label} value={value} />;
+  return (
+    <Pressable testID={testID} style={styles.field} accessibilityRole="link" onPress={() => openUrl(url)}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={[styles.fieldValue, styles.fieldValueLink]} numberOfLines={2}>
+        {value}
+      </Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLOURS.background },
   header: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },
@@ -181,13 +292,10 @@ const styles = StyleSheet.create({
   ref: { ...TYPOGRAPHY.title, color: COLOURS.text, flexShrink: 1 },
   description: { ...TYPOGRAPHY.body, color: COLOURS.text },
   meta: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted },
-  updateButton: { marginTop: SPACING.sm },
-  failed: {
-    backgroundColor: '#FDECEA',
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    gap: SPACING.sm,
-  },
+  actions: { marginTop: SPACING.sm },
+  assignButtons: { gap: SPACING.sm, paddingVertical: SPACING.sm },
+  mapButton: { paddingTop: SPACING.sm },
+  failed: { backgroundColor: '#FDECEA', borderRadius: RADIUS.md, padding: SPACING.md, gap: SPACING.sm },
   failedText: { ...TYPOGRAPHY.caption, color: COLOURS.danger },
   failedActions: { flexDirection: 'row', gap: SPACING.lg },
   retry: { ...TYPOGRAPHY.body, color: COLOURS.primary, fontWeight: '600' },
@@ -211,8 +319,6 @@ const styles = StyleSheet.create({
   fieldLabel: { ...TYPOGRAPHY.body, color: COLOURS.textMuted },
   fieldValue: { ...TYPOGRAPHY.body, color: COLOURS.text, flexShrink: 1, textAlign: 'right' },
   fieldValueEmphasis: { ...TYPOGRAPHY.subheading, color: COLOURS.text },
-  stop: { paddingVertical: SPACING.sm, gap: 2 },
-  stopType: { ...TYPOGRAPHY.label, color: COLOURS.primary, textTransform: 'capitalize' },
-  stopAddress: { ...TYPOGRAPHY.body, color: COLOURS.text },
+  fieldValueLink: { color: COLOURS.primary },
   detailSpinner: { marginTop: SPACING.lg },
 });

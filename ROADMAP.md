@@ -51,11 +51,13 @@ Plus: connectivity detection + offline banner + "last synced" timestamp.
 Exit criteria: kill the network mid-use — list still renders, a status change queues and
 syncs on reconnect.
 
-## Milestone 2 — Driver experience
+## Milestone 2 — Driver experience  ·  _code complete (on-device run pending)_
 
-Centralized job list (server-filtered) · job detail (stops, route map, pricing, native-maps
-link) · status update picker. Then Decentralized: Available/My Jobs tabs · claim job ·
-assign within `can_assign_to`.
+Centralized job list · job detail (stops, pricing, native-maps deep link) · status update picker.
+Decentralized: Available/My Jobs tabs · claim job · assign within `can_assign_to`. Done bar one
+deferral: the **embedded** route map (react-native-maps) is deferred to M5 in favour of an "Open in
+Maps" deep-link — it needs a native rebuild + on-device verify, blocked by the emulator. Per-stop
+contact (US-016) isn't in the API; customer-level tap-to-call/email shipped instead. See BACKLOG.
 
 ## Milestone 3 — Dispatcher experience
 

@@ -1,4 +1,4 @@
-# Project Status — 2026-05-30
+# Project Status — 2026-05-31
 
 Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROADMAP.md) (milestones),
 [`BACKLOG.md`](../BACKLOG.md) (task list), [`docs/`](.) (decisions & guides).
@@ -11,7 +11,7 @@ Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROAD
 |---|---|---|
 | **M0 — Foundation & de-risking** | ✅ Done | Stack reconciled, DB engine chosen (ADR-001), tooling green, live API access + creds obtained, all open questions resolved. |
 | **M1 — Walking skeleton** | ✅ Code complete | Full vertical slice built & unit-tested. **Not yet run on a device end-to-end** (see Maestro blocker). |
-| **M2 — Driver experience** | ⬜ Not started | Centralized list/detail/maps; decentralized tabs + claim/assign. |
+| **M2 — Driver experience** | ✅ Code complete | Centralized list/detail; decentralized Available/My-Jobs tabs + claim/assign; status update; tap-to-call/email; "Open in Maps" deep-link. **Embedded route map deferred** (native dep, see M5); per-stop contact not in API. On-device run pending. |
 | **M3 — Dispatcher experience** | ⬜ Not started | All-jobs list, filter sheet, drivers/customers lists. |
 | **M4 — Notifications & polish** | ⬜ Not started | Polling local notifications, full sync UI, multi-site switch. |
 | **M5 — Hardening & release** | 🟡 Partial | Maestro E2E scaffolded (below); error boundaries, perf, EAS builds outstanding. |
@@ -20,12 +20,18 @@ Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROAD
 
 ## What works (verified)
 
-**App (M1) — passes `tsc` · `eslint` · 43 unit tests:**
+**App (M1 + M2) — passes `tsc` · `eslint` · 51 unit tests:**
 - Two-step OAuth login (`rest_login` → `oauth2/access_token`), token in `expo-secure-store`.
 - Onboarding (site URL + client creds) → login → `/configuration` seeds the local SQLite DB → role-based routing.
 - Offline-first job list + detail: UI reads from SQLite via `useLiveQuery`; background sync (pull + per-job detail hydration) keeps it fresh.
 - Optimistic status updates through an outbox (queue offline → flush-then-pull on reconnect; 4xx/`success:false` → failed-no-retry, 5xx/network → retry).
 - API layer validated against the **live DDEV API** (real payloads; write endpoints probed reversibly — see [`API_NOTES.md`](./API_NOTES.md) §10).
+
+**Driver experience (M2):**
+- Decentralized **Available / My Jobs** tabs (DB-filtered: unassigned vs assigned-to-me); centralized/dispatcher single list.
+- **Claim** (assign-to-self) and **Assign driver** (filtered to `can_assign_to` via `DriverPicker`) — optimistic write through the outbox, server rejection surfaces as a failed item with retry/discard.
+- Job detail: ordered **StopList**, **"Open in Maps"** deep-link (route + per-stop), tap-to-call/email customer, currency-formatted pricing breakdown, status picker.
+- **Deferred by choice:** embedded react-native-maps (native dep + on-device verify, blocked by emulator). **Not in API:** per-stop contact name/phone (US-016).
 
 **Maestro E2E (M5 scaffold):**
 - Maestro **2.6.0** installed natively on Windows; runner topology decided (native Windows, no WSL — see [`SMOKE_TESTING.md`](./SMOKE_TESTING.md)).
@@ -70,6 +76,6 @@ Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROAD
 
 ## Suggested next steps
 
-- **Resume feature work (recommended):** M2 driver experience — doesn't depend on the emulator.
+- **Resume feature work (recommended):** M3 dispatcher experience (all-jobs list, filter sheet, drivers/customers) — reuses the M2 engine; doesn't depend on the emulator.
 - **Or finish E2E:** build the rootable AVD per `SMOKE_TESTING.md` to get the first green smoke + offline run.
 - **Follow-ups:** report the `update_assigned` server bugs; bundle JS in a release APK so E2E doesn't need Metro.

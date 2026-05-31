@@ -34,9 +34,13 @@ _All M1-blocking questions resolved 2026-05-30 against the live test site — se
   → `{data:<job>, success}`. `update_assigned` has **two server bugs** (JSON crashes it → needs
   form-urlencoding; `driver_id` must be `drivers.id`) and an unconfirmed happy path — see
   [`docs/API_NOTES.md`](./docs/API_NOTES.md) §10. _(US-017 unblocked; US-019 partially.)_
-- [ ] **User-with-no-driver-record.** The `api-driver` test user's `wp_user_id` isn't in
-  `/configuration` > `drivers`, so derived `current_user.driver_id` is null. Decide the "My Jobs"
-  fallback when a driver user has no driver record (filter empty? show all?). _(US-010, US-011.)_
+- [~] **User-with-no-driver-record.** The `api-driver` test user's `wp_user_id` isn't in
+  `/configuration` > `drivers`, so derived `current_user.driver_id` is null. **Decided (M2):** "My Jobs"
+  shows an **empty** list (and Claim is hidden) when `driver_id` is null — `myJobsQuery(-1)` matches
+  nothing. Confirm this is the desired UX once a properly-linked driver user is available. _(US-010, US-011.)_
+- [ ] **Decentralized assignment happy path.** Claim/assign code is complete and queues through the
+  outbox, but the live `update_assigned` success path is unverified (the only test driver is
+  unavailable / has no driver record). Verify against a real assignable driver. _(US-012, US-019.)_
 
 ---
 
@@ -71,8 +75,9 @@ _All M1-blocking questions resolved 2026-05-30 against the live test site — se
 - [x] `useConnectivity()` (expo-network) + `OfflineBanner` with "last synced X ago".
 - [x] Outbox table + `outboxFlusher` (pending/in_progress/failed; permanent (4xx / 200+success:false)→failed
   no retry; transient (5xx/network)→pending retry to MAX_RETRY_ATTEMPTS — spec §11.5). `isPermanentFailure` tested.
-- [x] `conflictResolver` — server-wins via pull overwrite; failed outbox items surfaced on job card + detail
-  (retry/discard). _(Notify-on-silent-overwrite refinement deferred.)_
+- [x] Conflict resolution — server-wins **by construction** (no standalone module): the pull's
+  `replaceJobs` overwrites local rows with server state; failed outbox items surfaced on job card +
+  detail (retry/discard). _(Notify-on-silent-overwrite refinement deferred.)_
 - [x] Optimistic local write on status update; reconciled by flush-then-pull.
 
 **Vertical slice UI**
@@ -81,16 +86,28 @@ _All M1-blocking questions resolved 2026-05-30 against the live test site — se
 - [x] Status update flow: `StatusPicker` + confirm dialog → optimistic write → outbox → flush (US-017).
 - [x] **Exit test:** offline list renders from DB; status change queues offline and syncs on reconnect (logic complete; on-device run pending — no emulator here).
 
-## Milestone 2 — Driver
+## Milestone 2 — Driver  (code complete; passes tsc · eslint · 51 unit tests — on-device run pending)
 
 Centralized (US-010, US-013–US-017 · AC: Driver–Centralized)
-- [ ] Server-filtered job list; full Job detail (Header/Route/Customer/Pricing/Status — spec §6.5).
-- [ ] StopList with contact name/phone; RouteMap (react-native-maps); native-maps deep link (US-014, US-015).
-- [ ] Pricing breakdown with currency from config; status picker → `update_job_status`.
+- [x] Job list (centralized driver sees the server-returned list; dispatcher sees all). Full Job
+  detail: Header (ref/status), Route, Customer, Pricing, Status (spec §6.5). _Server-side
+  per-driver filtering still unconfirmed — see Open Questions._
+- [x] `StopList` (ordered stops, visit type, scheduled time, tap-to-open-in-Maps); native-maps
+  deep link via `utils/links.ts` (`mapsDirectionsUrl`, unit-tested) — route-level + per-stop (US-014, US-015).
+- [x] Pricing breakdown (basic/distance/time/surcharge/tax/total) with currency + tax label from
+  config (`formatCurrency`); status picker → `update_job_status`.
+- [~] **RouteMap (embedded react-native-maps) — DEFERRED.** Shipped the "Open in Maps" deep-link
+  instead (no native dep, works offline). Embedded map needs a native rebuild + on-device verify,
+  blocked by the emulator (see M5). Do when the emulator is unblocked. (US-014.)
+- [ ] **Per-stop contact name/phone (US-016) — NOT in the API.** The live stop payload has address +
+  visit type + date only; no per-stop contact. Customer-level phone/email tap-to-call/email shipped
+  instead. Revisit if the server adds per-stop contacts.
 
 Decentralized (US-011, US-012, US-019 · AC: Driver–Decentralized)
-- [ ] Available / My Jobs tabs; claim job → `update_assigned`.
-- [ ] Assign within `can_assign_to`; surface server 4xx rejection. _Depends on open question._
+- [x] Available / My Jobs tabs (`useJobs(scope, driverId)` → `availableJobsQuery`/`myJobsQuery`).
+- [x] Claim job (assign to self) → `update_assigned` through the outbox (optimistic → flush-then-pull).
+- [x] Assign within `can_assign_to` (`useAssignableDrivers` + `DriverPicker`); server 4xx/`success:false`
+  surfaces as a failed outbox item on the job (retry/discard). _Happy path needs a live run — see below._
 
 ## Milestone 3 — Dispatcher
 

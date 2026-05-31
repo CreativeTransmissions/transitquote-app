@@ -2,13 +2,23 @@
  * Job read/write queries against the local DB. Read queries return Drizzle builders for
  * `useLiveQuery` (reactive). Writes are synchronous transactions (expo-sqlite).
  */
-import { desc, eq, notInArray } from 'drizzle-orm';
+import { desc, eq, isNull, notInArray } from 'drizzle-orm';
 import { db } from '../client';
 import { jobs, jobDetails, type JobInsert, type JobDetailRow } from '../schema';
 
 /** Reactive: all jobs, newest first. */
 export function jobsListQuery() {
   return db.select().from(jobs).orderBy(desc(jobs.modified));
+}
+
+/** Reactive: unassigned jobs (decentralized "Available" tab), newest first. */
+export function availableJobsQuery() {
+  return db.select().from(jobs).where(isNull(jobs.driverId)).orderBy(desc(jobs.modified));
+}
+
+/** Reactive: jobs assigned to one driver (decentralized "My Jobs" tab), newest first. */
+export function myJobsQuery(driverId: number) {
+  return db.select().from(jobs).where(eq(jobs.driverId, driverId)).orderBy(desc(jobs.modified));
 }
 
 /** Reactive: a single job row by id. */
@@ -46,6 +56,14 @@ export function replaceJobs(rows: JobInsert[]): void {
 export function applyOptimisticStatus(jobId: number, statusTypeId: number, statusName: string | null): void {
   db.update(jobs)
     .set({ statusTypeId, statusName, modified: new Date().toISOString() })
+    .where(eq(jobs.id, jobId))
+    .run();
+}
+
+/** Optimistic local assignment change (applied immediately; reconciled by the next pull). */
+export function applyOptimisticAssignment(jobId: number, driverId: number, driverName: string | null): void {
+  db.update(jobs)
+    .set({ driverId, driverName, modified: new Date().toISOString() })
     .where(eq(jobs.id, jobId))
     .run();
 }
