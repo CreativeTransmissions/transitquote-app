@@ -3,6 +3,7 @@
  * Synchronous — expo-sqlite/Drizzle transactions run via `withTransactionSync` (writes use `.run()`).
  * Replaces each reference table wholesale (the config is small and authoritative).
  */
+import { eq } from 'drizzle-orm';
 import { db } from '../client';
 import {
   services,
@@ -12,8 +13,14 @@ import {
   drivers,
   teamSettings,
   currentUser,
+  type CurrentUserRow,
 } from '../schema';
 import type { MappedConfiguration } from '../mappers';
+
+/** Non-reactive read of the single current-user row (id = 1), or null before config is seeded. */
+export function getCurrentUserRow(): CurrentUserRow | null {
+  return db.select().from(currentUser).where(eq(currentUser.id, 1)).all().at(0) ?? null;
+}
 
 export function seedConfiguration(config: MappedConfiguration): void {
   db.transaction((tx) => {

@@ -4,11 +4,16 @@
  */
 import { desc, eq, isNull, notInArray } from 'drizzle-orm';
 import { db } from '../client';
-import { jobs, jobDetails, type JobInsert, type JobDetailRow } from '../schema';
+import { jobs, jobDetails, type JobInsert, type JobDetailRow, type JobRow } from '../schema';
 
 /** Reactive: all jobs, newest first. */
 export function jobsListQuery() {
   return db.select().from(jobs).orderBy(desc(jobs.modified));
+}
+
+/** Non-reactive snapshot of every job row — used by the sync engine to diff for notifications. */
+export function getAllJobs(): JobRow[] {
+  return db.select().from(jobs).all();
 }
 
 /** Reactive: unassigned jobs (decentralized "Available" tab), newest first. */
