@@ -13,8 +13,8 @@ Flows (`.maestro/`):
   renders from the local DB → queue a status change while offline → it auto-syncs on reconnect.
 - **`subflows/auth.yaml`** — shared onboarding+login, invoked via `runFlow` by `smoke`/`offline`.
 
-> **Status (2026-05-31):** `minimal.yaml` is green. `smoke.yaml` / `offline.yaml` have not yet been
-> confirmed green on the embedded-bundle build — run and verify before claiming they pass.
+> **Status (2026-05-31):** ALL flows green on the embedded-bundle build (exit 0) — `minimal`, the
+> `steps/01`→`05` ladder, `smoke.yaml`, and `offline.yaml`. See the full status section at the bottom.
 
 > **Why Maestro (not Detox)?** Maestro is black-box (drives the app over ADB, no native
 > instrumentation/build hooks), which suits Expo + RN 0.85 New Architecture. It needs only a
@@ -275,6 +275,23 @@ covered by the `.api-samples/` ignore) holding `SITE_URL`/`CLIENT_ID`/`CLIENT_SE
   booted with `-dns-server 127.0.0.1` (adb reverse is broken here), Avast Web Shield OFF, stylus popup
   disabled, the `login → /jobs` routing fix, and the blank-tap keyboard dismiss. Run with all five
   `-e` vars (SITE_URL + client id/secret + TQ_USERNAME/PASSWORD).
-- ⏳ **`steps/04-job-detail.yaml`, `steps/05-status-update.yaml`, `smoke.yaml`, `offline.yaml`** — next
-  rungs (open a job → detail → status update). Same bridge/setup as step 3. ⚠️ 05/smoke/offline MUTATE
-  a test job's status on the live DDEV site. Run one rung at a time; confirm `COMPLETED` + exit 0.
+- ✅ **`steps/04-job-detail.yaml`** — auth → open first job → job detail renders (read path), exit 0.
+- ✅ **`steps/05-status-update.yaml`** — auth → open job → update status → back to list, exit 0.
+  ⚠️ MUTATES a test job's status on the live DDEV site.
+- ✅ **`smoke.yaml`** — the combined M1 happy path (= step 05 end to end), exit 0. ⚠️ MUTATES a job.
+- ✅ **`offline.yaml`** — the offline-first promise verified end to end, exit 0: go offline → banner
+  ("Offline — showing data from …") + list still renders from the local DB → queue a status update
+  ("↻ Pending sync" on the card) → reconnect → banner + pending-sync clear (outbox auto-flush) → Jobs.
+  ⚠️ MUTATES a job and toggles airplane mode (left online after). **Fix applied 2026-05-31:** the four
+  text matchers were exact strings (`"Offline"`, `"Pending sync"`) but Maestro matches the WHOLE element
+  text, so they never matched the real banner/card copy — the two `notVisible` checks were silent
+  false-greens. Now regex (`"Offline.*"`, `".*Pending sync"`). App behaviour was correct throughout.
+
+> **Two operational gotchas hit while running 04/05/offline (2026-05-31):**
+> 1. **First flow after a cold emulator boot flakes** with `io.grpc … UNAVAILABLE / Command failed
+>    (tcp:…): closed` on the first `viewHierarchy` after `clearState` — the Maestro driver channel
+>    isn't ready. Just re-run; let the device settle (~8s, dismiss keyguard) first.
+> 2. **"Unable to launch app" between runs** = an **orphaned Maestro `java.exe`** on the host holding
+>    the driver connection. `adb kill-server && adb start-server` sometimes clears it; the reliable
+>    fix is `taskkill /PID <java.exe> /F` (the app itself launches fine via `adb shell monkey`, which
+>    proves it's a Maestro-side wedge, not an app crash). Then re-run.

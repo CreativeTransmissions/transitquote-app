@@ -35,8 +35,10 @@ appId: com.transitteam.app
 - toggleAirplaneMode
 
 # The offline banner appears AND the list still renders from the local DB (offline-first).
+# The banner text is "Offline — showing data from …" (OfflineBanner.tsx) — match by regex prefix
+# (Maestro matches the WHOLE element text, so a bare "Offline" would never match).
 - extendedWaitUntil:
-    visible: "Offline"
+    visible: "Offline.*"
     timeout: 15000
 - assertVisible:
     id: "job-card-.*"
@@ -53,16 +55,19 @@ appId: com.transitteam.app
 - tapOn: "Confirm"
 
 # Optimistic change applied locally; the action is queued (not yet synced).
+# JobCard renders "↻ Pending sync" — leading glyph means we must regex-match, not equate.
 - tapOn:
     id: "job-back"
-- assertVisible: "Pending sync"
+- assertVisible: ".*Pending sync"
 
 # --- Reconnect (offline → online): the outbox flushes and pending state clears automatically ---
+# Regex matchers again — a bare "Offline"/"Pending sync" notVisible would pass trivially (the exact
+# string never exists), a silent false-green; "Offline.*" / ".*Pending sync" check the real text.
 - toggleAirplaneMode
 - extendedWaitUntil:
-    notVisible: "Offline"
+    notVisible: "Offline.*"
     timeout: 20000
 - extendedWaitUntil:
-    notVisible: "Pending sync"
+    notVisible: ".*Pending sync"
     timeout: 30000
 - assertVisible: "Jobs"
