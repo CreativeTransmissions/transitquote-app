@@ -1,10 +1,10 @@
 /**
  * Reactive driver lists from the local DB (offline-first).
  *
- * `useDrivers` returns every driver. `useAssignableDrivers` returns the drivers the current
- * driver may assign to in decentralized mode: the spec's `can_assign_to` is a single driver-id
- * on the current user's own driver record (CLAUDE.md §"Role & Assignment Mode"), so we resolve
- * that id against the drivers list. Dispatcher "assign to anyone" is handled in M3.
+ * `useDrivers` returns every driver. `useAssignableDrivers` returns the drivers the current user
+ * may assign a job to: dispatchers/admins may assign to anyone (US-032/US-033); decentralized
+ * drivers may assign only within their own record's `can_assign_to` (a single driver-id —
+ * CLAUDE.md §"Role & Assignment Mode"), resolved against the drivers list.
  */
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { driversListQuery } from '../database/queries/drivers';
@@ -25,8 +25,12 @@ export interface AssignableDrivers {
 
 export function useAssignableDrivers(): AssignableDrivers {
   const all = useDrivers();
-  const { driverId } = useRole();
+  const { driverId, isDispatcher } = useRole();
 
+  // Dispatchers/admins may assign any job to any driver (US-032/US-033).
+  if (isDispatcher) return { drivers: all, canAssign: all.length > 0 };
+
+  // Decentralized drivers may assign only within their own record's can_assign_to.
   const me = all.find((d) => d.id === driverId);
   const target = me?.canAssignTo ?? null;
   const drivers = target != null ? all.filter((d) => d.id === target) : [];

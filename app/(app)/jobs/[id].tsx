@@ -44,7 +44,7 @@ export default function JobDetailScreen() {
   const assign = useAssignDriver();
   const { drivers: assignableDrivers, canAssign } = useAssignableDrivers();
   const currentUser = useCurrentUser();
-  const { isDriver, isDecentralized, driverId } = useRole();
+  const { isDriver, isDispatcher, isDecentralized, driverId } = useRole();
   const { failed } = useOutbox();
   const retry = useRetryOutboxItem();
   const discard = useDiscardOutboxItem();
@@ -54,8 +54,9 @@ export default function JobDetailScreen() {
 
   const currency = settings?.currencySymbol ?? '';
   const failedItem = failed.find((item) => item.payload.id === jobId);
-  const showAssignment = isDriver && isDecentralized;
-  const canClaim = showAssignment && job?.driverId == null && driverId != null;
+  // Dispatchers always manage assignment; decentralized drivers manage their own pool.
+  const showAssignment = isDispatcher || (isDriver && isDecentralized);
+  const canClaim = isDriver && isDecentralized && job?.driverId == null && driverId != null;
   const mutating = update.isPending || assign.isPending;
 
   const handleSelectStatus = (status: StatusType) => {

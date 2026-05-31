@@ -3,11 +3,16 @@ import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { JobList } from '../../../components/jobs/JobList';
+import { JobFilterSheet } from '../../../components/jobs/JobFilterSheet';
 import { OfflineBanner } from '../../../components/sync/OfflineBanner';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { useJobs, type JobScope } from '../../../hooks/useJobs';
+import { useJobFilters } from '../../../hooks/useJobFilters';
 import { useRole } from '../../../hooks/useRole';
 import { useOutbox } from '../../../hooks/useOutbox';
+import { useStatusTypes } from '../../../hooks/useStatusTypes';
+import { useDrivers } from '../../../hooks/useDrivers';
+import { applyJobFilters, countActiveFilters } from '../../../utils/jobFilter';
 import { COLOURS, SPACING, TYPOGRAPHY } from '../../../constants';
 
 type DriverTab = 'available' | 'mine';
@@ -15,6 +20,9 @@ type DriverTab = 'available' | 'mine';
 export default function JobsScreen() {
   const { isDispatcher, isDriver, isDecentralized, driverId } = useRole();
   const { stateByJob } = useOutbox();
+  const statuses = useStatusTypes();
+  const drivers = useDrivers();
+  const { filters, setFilters, clear } = useJobFilters();
 
   // Decentralized drivers get Available / My Jobs tabs (spec §6.4). Everyone else sees one list:
   // dispatchers see all jobs; centralized drivers see the server-filtered list.
@@ -23,6 +31,10 @@ export default function JobsScreen() {
   const scope: JobScope = showTabs ? tab : 'all';
 
   const { jobs, dbError, isSyncing, syncError, refresh } = useJobs(scope, driverId);
+  const [filterVisible, setFilterVisible] = useState(false);
+
+  const visibleJobs = applyJobFilters(jobs, filters);
+  const activeFilters = countActiveFilters(filters);
   const showSpinner = jobs.length === 0 && isSyncing && !syncError;
 
   return (
@@ -31,9 +43,21 @@ export default function JobsScreen() {
 
       <View style={styles.header}>
         <Text style={styles.title}>Jobs</Text>
-        <Pressable onPress={() => router.push('/home')} hitSlop={8}>
-          <Text style={styles.link}>Profile</Text>
-        </Pressable>
+        <View style={styles.headerLinks}>
+          {isDispatcher ? (
+            <>
+              <Pressable onPress={() => router.push('/drivers')} hitSlop={8}>
+                <Text style={styles.link}>Drivers</Text>
+              </Pressable>
+              <Pressable onPress={() => router.push('/customers')} hitSlop={8}>
+                <Text style={styles.link}>Customers</Text>
+              </Pressable>
+            </>
+          ) : null}
+          <Pressable onPress={() => router.push('/home')} hitSlop={8}>
+            <Text style={styles.link}>Profile</Text>
+          </Pressable>
+        </View>
       </View>
 
       {showTabs ? (
@@ -51,24 +75,57 @@ export default function JobsScreen() {
         </View>
       ) : null}
 
-      {dbError ? (
-        <EmptyState title="Couldn’t load jobs" subtitle={dbError.message} />
-      ) : showSpinner ? (
-        <View style={styles.centre}>
-          <ActivityIndicator size="large" color={COLOURS.primary} />
-        </View>
-      ) : (
-        <JobList
-          jobs={jobs}
-          onSelect={(id) => router.push(`/jobs/${id}`)}
-          refreshing={isSyncing}
-          onRefresh={refresh}
-          showDriver={isDispatcher}
-          outboxStateByJob={stateByJob}
-          emptyTitle={emptyTitle(scope)}
-          emptySubtitle="Pull down to refresh."
-        />
-      )}
+      <View style={styles.listArea}>
+        {dbError ? (
+          <EmptyState title="Couldn’t load jobs" subtitle={dbError.message} />
+        ) : showSpinner ? (
+          <View style={styles.centre}>
+            <ActivityIndicator size="large" color={COLOURS.primary} />
+          </View>
+        ) : (
+          <JobList
+            jobs={visibleJobs}
+            onSelect={(id) => router.push(`/jobs/${id}`)}
+            refreshing={isSyncing}
+            onRefresh={refresh}
+            showDriver={isDispatcher}
+            outboxStateByJob={stateByJob}
+            emptyTitle={activeFilters > 0 ? 'No jobs match your filters' : emptyTitle(scope)}
+            emptySubtitle={activeFilters > 0 ? 'Adjust or clear the filters.' : 'Pull down to refresh.'}
+          />
+        )}
+      </View>
+
+      <View style={styles.toolbar}>
+        <Pressable testID="jobs-filter" style={styles.toolbarButton} onPress={() => setFilterVisible(true)} accessibilityRole="button">
+          <Text style={styles.toolbarText}>Filter</Text>
+          {activeFilters > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{activeFilters}</Text>
+            </View>
+          ) : null}
+        </Pressable>
+        <Pressable testID="jobs-refresh" style={styles.toolbarButton} onPress={refresh} accessibilityRole="button">
+          <Text style={styles.toolbarText}>Refresh</Text>
+        </Pressable>
+      </View>
+
+      <JobFilterSheet
+        visible={filterVisible}
+        filters={filters}
+        statuses={statuses}
+        drivers={drivers}
+        showDriverFilter={isDispatcher}
+        onApply={(next) => {
+          setFilters(next);
+          setFilterVisible(false);
+        }}
+        onClear={() => {
+          clear();
+          setFilterVisible(false);
+        }}
+        onClose={() => setFilterVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -112,6 +169,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
   },
+  headerLinks: { flexDirection: 'row', gap: SPACING.md },
   title: { ...TYPOGRAPHY.title, color: COLOURS.text },
   link: { ...TYPOGRAPHY.body, color: COLOURS.primary },
   tabs: { flexDirection: 'row', paddingHorizontal: SPACING.md, gap: SPACING.sm, marginBottom: SPACING.xs },
@@ -125,7 +183,33 @@ const styles = StyleSheet.create({
   tabActive: { borderBottomColor: COLOURS.primary },
   tabLabel: { ...TYPOGRAPHY.body, color: COLOURS.textMuted },
   tabLabelActive: { color: COLOURS.primary, fontWeight: '600' },
+  listArea: { flex: 1 },
   centre: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   syncError: { backgroundColor: COLOURS.surface, paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs },
   syncErrorText: { ...TYPOGRAPHY.caption, color: COLOURS.danger },
+  toolbar: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: COLOURS.border,
+    backgroundColor: COLOURS.background,
+  },
+  toolbarButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    paddingVertical: SPACING.md,
+  },
+  toolbarText: { ...TYPOGRAPHY.body, color: COLOURS.primary, fontWeight: '600' },
+  badge: {
+    minWidth: 20,
+    paddingHorizontal: 6,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: COLOURS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { ...TYPOGRAPHY.label, color: COLOURS.background },
 });
