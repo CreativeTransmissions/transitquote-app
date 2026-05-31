@@ -131,14 +131,26 @@ Decentralized (US-011, US-012, US-019 · AC: Driver–Decentralized)
 > calendar UI is a polish follow-up. **Address/city:** customer detail shows contact + job history;
 > the spec's "full address" isn't in the `/customers` wire shape (only on job-detail stops).
 
-## Milestone 4 — Notifications & polish
+## Milestone 4 — Notifications & polish  (code complete; passes tsc · eslint · unit tests — on-device run pending)
 
 (US-018, US-037, US-038)
-- [ ] Polling-based local notifications: diff incoming sync vs local DB → `expo-notifications`
-  for new assignment / status change (spec §10 Option B).
-- [ ] Full sync-status UI: syncing spinner, outbox count badge, failed-item warning + retry/discard (§11.9).
-- [ ] Multi-site: keyed configs in secure-store, switch from Profile, active-site header (§12).
-- [ ] Profile/Settings screen (user, driver details, site URL, logout → `rest_logout` + clear DB).
+- [x] Polling-based local notification **detection**: `detectJobChanges` diffs the previous local
+  snapshot vs the freshly pulled jobs (new assignment to me / my-job status change / new-job for
+  dispatch) — pure + unit-tested; wired into `pullJobs` via `getAllJobs` + `getCurrentUserRow`
+  (spec §10 Option B).
+- [~] **Native notification firing — DEFERRED.** `expo-notifications` is a native module needing a
+  dev-client rebuild + on-device verify, blocked by the emulator (same stance as the M2 map). The
+  presentation seam (`services/notifications/notifier.ts`) is in place and called by the sync; today
+  it records intent in an in-memory log. Swap the no-op for `Notifications.scheduleNotificationAsync`
+  once the emulator is unblocked. (US-018/037/038.)
+- [x] Sync-status UI: `SyncStatusIndicator` (syncing spinner + outbox pending/failed count badges,
+  spec §11.9) in the jobs header; global `isSyncing` flag in `connectivityStore`. Failed-item
+  retry/discard already lands on the job card + detail (M1).
+- [x] Multi-site: keyed configs already in secure-store; `listSites`/`switchSite` added to
+  `authStore`, `useSites` hook (switch clears local DB then re-points the session), switcher +
+  prominent active-site header in Profile (§12).
+- [x] Profile/Settings screen (replaces the placeholder home): user (name/role/mode), driver details
+  (phone/email/availability), active site + switcher, logout (→ `rest_logout` + clear DB) with confirm.
 
 ## Milestone 5 — Hardening & release
 

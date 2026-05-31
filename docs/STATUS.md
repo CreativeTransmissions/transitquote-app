@@ -13,7 +13,7 @@ Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROAD
 | **M1 — Walking skeleton** | ✅ Code complete | Full vertical slice built & unit-tested. **Not yet run on a device end-to-end** (see Maestro blocker). |
 | **M2 — Driver experience** | ✅ Code complete | Centralized list/detail; decentralized Available/My-Jobs tabs + claim/assign; status update; tap-to-call/email; "Open in Maps" deep-link. **Embedded route map deferred** (native dep, see M5); per-stop contact not in API. On-device run pending. |
 | **M3 — Dispatcher experience** | ✅ Code complete | All-jobs list + bottom toolbar; filter sheet (status/date/driver, persisted); assign/reassign from detail; drivers list/detail (job counts); customers list (search)/detail (job history). Date entry is typed fields (no native picker); customer "full address" not in API. On-device run pending. |
-| **M4 — Notifications & polish** | ⬜ Not started | Polling local notifications, full sync UI, multi-site switch. |
+| **M4 — Notifications & polish** | ✅ Code complete | Notification **detection** engine (diff sync vs DB) wired into sync; sync-status indicator (spinner + pending/failed badges); multi-site switching + Profile/Settings screen. **Native notification firing deferred** (expo-notifications native dep, blocked by emulator). On-device run pending. |
 | **M5 — Hardening & release** | 🟡 Partial | Maestro E2E scaffolded (below); error boundaries, perf, EAS builds outstanding. |
 
 ---
@@ -40,6 +40,13 @@ Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROAD
 - **Drivers** list (availability + assigned-job count) and detail (contact, can-assign-to, their jobs).
 - **Customers** list (search name/email/phone) and detail (contact + job history). New `customers` table + migration `0001`, `pullCustomers` in the sync engine. All dispatcher-only routes guarded.
 - **Deferred/again:** typed `YYYY-MM-DD` date fields (no native calendar dep yet); customer "full address" isn't in the `/customers` API.
+
+**Notifications & polish (M4):**
+- Polling-based local notification **detection** (`detectJobChanges`, unit-tested): diffs the prior local snapshot vs freshly pulled jobs for new-assignment / status-change / new-job, wired into `pullJobs`.
+- **Sync-status indicator** in the jobs header (syncing spinner + outbox pending/failed count badges, §11.9).
+- **Multi-site switching**: `listSites`/`switchSite` + `useSites` (switch clears the local DB, re-points the session); switcher + prominent active-site header in the new Profile/Settings screen.
+- **Profile/Settings** screen: user, driver details, active site, site switcher, confirmed logout.
+- **Deferred by choice:** native `expo-notifications` firing (native dep + on-device verify, blocked by emulator) — detection + a presentation seam are in place; one-function swap when unblocked.
 
 **Maestro E2E (M5 scaffold):**
 - Maestro **2.6.0** installed natively on Windows; runner topology decided (native Windows, no WSL — see [`SMOKE_TESTING.md`](./SMOKE_TESTING.md)).
@@ -84,6 +91,6 @@ Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROAD
 
 ## Suggested next steps
 
-- **Resume feature work (recommended):** M4 notifications & polish (polling local notifications, full sync-status UI, multi-site switching, Profile/Settings) — reuses the M1–M3 engine; doesn't depend on the emulator.
-- **Or finish E2E:** build the rootable AVD per `SMOKE_TESTING.md` to get the first green smoke + offline run; once green, verify the unconfirmed live paths (centralized `/jobs` filtering, `update_assigned` happy path).
-- **Follow-ups:** bundle JS in a release APK so E2E doesn't need Metro; add the M2/M3 deferrals (embedded map, native date picker) when the emulator is unblocked.
+- **Finish E2E / unblock the emulator (now the critical path):** build the rootable AVD per `SMOKE_TESTING.md` for the first green smoke + offline run. Unblocking this also clears the deferred native work (notification firing, embedded map, native date picker) and lets the unconfirmed live paths (centralized `/jobs` filtering, `update_assigned` happy path) be verified.
+- **Or start M5 hardening:** route-level error boundaries, performance pass, EAS builds (iOS preview / Android apk) — mostly emulator-independent.
+- **Follow-ups:** bundle JS in a release APK so E2E doesn't need Metro; wire `expo-notifications` into the notifier seam; swap typed date fields for a native picker; add the embedded route map.

@@ -66,10 +66,11 @@ bottom toolbar · driver assignment from detail · drivers list/detail · custom
 (with search + job history). Two minor deferrals: typed date fields instead of a native calendar
 picker, and customer "full address" (not in the `/customers` API). See BACKLOG.
 
-## Milestone 4 — Notifications & polish
+## Milestone 4 — Notifications & polish  ·  _code complete (on-device run pending)_
 
-Polling-based local notifications (spec Option B — new assignment / status change detection
-falls out of the sync cycle) · full sync-status UI (syncing spinner, outbox badge, failed-item
+Polling-based local notification **detection** (spec Option B — new assignment / status change
+falls out of the sync cycle, pure + tested; native `expo-notifications` firing deferred behind a
+seam, blocked by the emulator) · full sync-status UI (syncing spinner, outbox badge, failed-item
 retry/discard) · multi-site switching in Profile.
 
 ## Milestone 5 — Hardening & release
