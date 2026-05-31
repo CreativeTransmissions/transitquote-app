@@ -109,15 +109,27 @@ Decentralized (US-011, US-012, US-019 · AC: Driver–Decentralized)
 - [x] Assign within `can_assign_to` (`useAssignableDrivers` + `DriverPicker`); server 4xx/`success:false`
   surfaces as a failed outbox item on the job (retry/discard). _Happy path needs a live run — see below._
 
-## Milestone 3 — Dispatcher
+## Milestone 3 — Dispatcher  (code complete; passes tsc · eslint · 60 unit tests — on-device run pending)
 
 (US-030–US-036 · AC: Dispatcher)
-- [ ] All-jobs list (no role filter); assigned-driver shown per card.
-- [ ] Bottom toolbar (filter + refresh + active-filter badge).
-- [ ] Filter sheet: status multi-select, date range, driver single-select; persist filters locally (§6.4).
-- [ ] Driver assignment from job detail (assign/reassign) → `update_assigned`.
-- [ ] Drivers list + detail (assigned active jobs count, their job list).
-- [ ] Customers list (search name/email/phone) + detail (address, contact, job history).
+- [x] All-jobs list (dispatcher sees every job); assigned-driver shown per card (`showDriver`).
+- [x] Bottom toolbar (filter + refresh + active-filter badge via `countActiveFilters`).
+- [x] Filter sheet (`JobFilterSheet`): status multi-select chips, scheduled-date range, driver
+  single-select (dispatcher only); applied client-side over the local DB (`applyJobFilters`,
+  unit-tested). Persisted locally in AsyncStorage (`useJobFilters`) so last-used restores next launch.
+- [x] Driver assignment/reassign from job detail → `update_assigned` (`useAssignableDrivers` now
+  returns the full list for dispatchers; reuses the M2 outbox path + `DriverPicker`). _Live happy
+  path still unverified — see Open Questions._
+- [x] Drivers list (`DriverCard`, availability + assigned-job count via `useDriverJobCounts`) +
+  detail (contact tap-to-call/email, can-assign-to, their assigned-jobs list). Dispatcher-only route guard.
+- [x] Customers list (search name/email/phone — `filterCustomers`, unit-tested) + detail (contact,
+  job history from local jobs). New `customers` table + migration `0001_lush_lifeguard`; `pullCustomers`
+  added to the sync engine. Dispatcher-only route guard.
+
+> **Date pickers:** the filter sheet takes the date range as typed `YYYY-MM-DD` fields (no native
+> calendar widget) to avoid adding a date-picker native dep before the emulator is unblocked. A
+> calendar UI is a polish follow-up. **Address/city:** customer detail shows contact + job history;
+> the spec's "full address" isn't in the `/customers` wire shape (only on job-detail stops).
 
 ## Milestone 4 — Notifications & polish
 

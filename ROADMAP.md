@@ -59,11 +59,12 @@ deferral: the **embedded** route map (react-native-maps) is deferred to M5 in fa
 Maps" deep-link — it needs a native rebuild + on-device verify, blocked by the emulator. Per-stop
 contact (US-016) isn't in the API; customer-level tap-to-call/email shipped instead. See BACKLOG.
 
-## Milestone 3 — Dispatcher experience
+## Milestone 3 — Dispatcher experience  ·  _code complete (on-device run pending)_
 
 All-jobs list · filter sheet (status multi-select, date range, driver) with persisted filters ·
 bottom toolbar · driver assignment from detail · drivers list/detail · customers list/detail
-(with search + job history).
+(with search + job history). Two minor deferrals: typed date fields instead of a native calendar
+picker, and customer "full address" (not in the `/customers` API). See BACKLOG.
 
 ## Milestone 4 — Notifications & polish
 
