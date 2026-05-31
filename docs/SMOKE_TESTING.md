@@ -64,12 +64,60 @@ simplest setup, and the one in use on this machine.
 
 ---
 
+## Reaching the DDEV test site from the emulator (the unblock)
+
+**The problem.** `*.ddev.site` is a real public domain that resolves to `127.0.0.1`. Inside the
+emulator that points at the **emulator's own loopback** (nothing listening there), so the app can't
+reach the API. You can't simply swap in `10.0.2.2` (the host alias) either, because DDEV routes by
+**Host header** and rejects a mismatched host (verified: wrong host → 404).
+
+**The fix — `adb reverse` (no root, recommended).** `adb reverse` forwards a port on the
+**emulator's** `127.0.0.1` to the **host's** `127.0.0.1`. Because the app already resolves the DDEV
+name to `127.0.0.1`, requests land on the host's DDEV router with the correct hostname **and** Host
+header — no hosts-file edit, no rootable AVD.
+
+```powershell
+./scripts/emulator-bridge.ps1     # boots Pixel_9 if needed, then sets the reverse ports
+# equivalent manual step, with the emulator running:
+adb reverse tcp:443 tcp:443
+adb reverse tcp:80  tcp:80
+```
+> `adb reverse` is cleared on emulator reboot / adb restart — re-run the script each session.
+
+**HTTPS trust (mkcert).** DDEV serves TLS with a **mkcert** certificate, which Android (API 24+)
+won't trust by default. Two pieces make `https://` work in **debug** builds:
+1. The `withDevNetworkSecurity` config plugin (in `app.json`) emits a `network_security_config.xml`
+   with `<debug-overrides>` trusting **system + user CAs** (and a bundled CA if present). It only
+   affects debuggable builds; release TLS is untouched. It re-applies on every `expo prebuild`.
+2. The mkcert root CA must be available to the app, via **either**:
+   - **Install on the emulator** (no repo changes): get the CA (`mkcert -CAROOT` → `rootCA.pem`, or
+     export DDEV's CA), `adb push` it, then add it via *Settings → Security → Encryption &
+     credentials → Install a certificate → CA certificate*. The plugin's `user` trust anchor covers it.
+   - **Bundle for CI/determinism**: drop the CA at `certs/ddev-rootCA.pem` (gitignored) and
+     `expo prebuild` — the plugin copies it to `res/raw` and trusts it directly.
+
+> ⚠️ **mkcert is not currently installed on this machine** and no `certs/ddev-rootCA.pem` exists, so
+> the CA must be obtained once before the first HTTPS run. (Plain `http://` via `adb reverse tcp:80`
+> needs no CA, if DDEV serves the API without a redirect to https.)
+
+**Fallback — rootable AVD + hosts edit.** Only if `adb reverse` can't be used. Needs `sdkmanager`
+(not on PATH here), a non-Play-store image (`sdkmanager "system-images;android-37;google_apis;x86_64"`,
+~1.5 GB), a fresh AVD booted with `-writable-system`, then `adb root && adb remount` and add
+`10.0.2.2  tq-pro-teams-php8.ddev.site` to `/system/etc/hosts`. The current `Pixel_9` AVD is a
+**Play-store image** (`tag.id=google_apis_playstore`), which is non-rootable — hence the fallback
+needs a new AVD.
+
+---
+
 ## Per-run loop
 
-1. **Boot the emulator** (if not already running):
+1. **Boot the emulator + bridge** (if not already running):
    ```powershell
+   ./scripts/emulator-bridge.ps1          # boots Pixel_9, sets adb reverse, prints the maestro line
+   # or manually:
    & "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe" -avd Pixel_9
-   adb devices   # should list emulator-5554
+   adb devices                            # should list emulator-5554
+   adb reverse tcp:443 tcp:443; adb reverse tcp:80 tcp:80
    ```
 
 2. **Build + install the app:**
@@ -107,8 +155,8 @@ emulator (1st toggle → offline, 2nd → online).
 
 ## Notes & gotchas
 
-- **DDEV TLS:** the test site uses a local self-signed cert. The app's axios client must trust it in
-  dev, or point `SITE_URL` at the DDEV `http://` origin if the API is reachable without TLS.
+- **DDEV reachability + TLS:** the emulator can't reach `*.ddev.site` without `adb reverse`, and
+  HTTPS needs the mkcert CA trusted — see "Reaching the DDEV test site from the emulator" above.
 - **Secrets:** keep them in your shell/`.env` (gitignored), CI secrets, or EAS env — never in
   `.maestro\*.yaml`. The flows only reference `${...}` placeholders.
 - **Element targeting:** flows match by `testID` (`id:`) or visible text. When adding UI we target in

@@ -58,12 +58,16 @@ Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROAD
 
 ## Blockers / open items
 
-1. **🔴 Maestro E2E not yet green (one blocker).** The app is installed, but the `Pixel_9` AVD is a
-   **non-rootable Play-store image**, so `/system/etc/hosts` can't be edited. The emulator resolves the
-   DDEV hostname to `127.0.0.1` (needs `10.0.2.2`), and DDEV strictly requires the correct Host header
-   (verified: wrong host → 404). **Fix:** create a **rootable AVD** (`google_apis` image) — requires
-   installing Android `cmdline-tools` + a ~1.5 GB system image first, then boot `-writable-system`, edit
-   hosts, run flows over `http://`. Full recipe in [`SMOKE_TESTING.md`](./SMOKE_TESTING.md). _Deferred by choice._
+1. **🟡 Maestro E2E not yet green (unblock prepared, not yet run).** The emulator resolves
+   `*.ddev.site` → `127.0.0.1` (its own loopback) and DDEV rejects a wrong Host header, so the app
+   couldn't reach the API. **Unblock shipped (no root needed):** `adb reverse tcp:443/:80` forwards
+   the emulator loopback to the host's DDEV router with the hostname intact — automated by
+   [`scripts/emulator-bridge.ps1`](../scripts/emulator-bridge.ps1). HTTPS trust is handled by the
+   `withDevNetworkSecurity` config plugin (`<debug-overrides>` trusting system + user + optional
+   bundled CA). **Remaining manual step:** obtain the mkcert root CA once (it is **not** installed on
+   this machine) and either install it on the emulator or drop it at `certs/ddev-rootCA.pem`; then
+   `expo run:android` + `maestro test`. Recipe in [`SMOKE_TESTING.md`](./SMOKE_TESTING.md). The
+   rootable-AVD + hosts edit remains documented as a fallback only.
 
 2. **🟡 `update_assigned` server bugs (reported, not ours).** JSON body crashes the server (needs
    form-encoding); `driver_id` must be a `drivers.id`; happy path unconfirmed (only test driver is
@@ -75,8 +79,9 @@ Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROAD
 4. **🟡 Driver user with no driver record.** The `api-driver` test user's `wp_user_id` isn't in the
    drivers list, so derived `current_user.driver_id` is null — decide the "My Jobs" fallback. (BACKLOG.)
 
-5. **🟢 Local-dev TLS (mkcert + Avast).** Worked around for builds (truststore) and for E2E (use `http://`).
-   An HTTPS E2E run would need the mkcert CA bundled via a debug-only `networkSecurityConfig`.
+5. **🟢 Local-dev TLS (mkcert + Avast).** Builds worked around via the JDK truststore (Avast). E2E
+   HTTPS now has the `withDevNetworkSecurity` debug `networkSecurityConfig` plugin in place — it just
+   needs the mkcert CA supplied once (see blocker 1). `http://` via `adb reverse tcp:80` needs no CA.
 
 ---
 
