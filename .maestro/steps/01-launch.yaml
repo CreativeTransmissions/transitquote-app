@@ -1,0 +1,6 @@
+# LADDER STEP 1 — app launches and the first screen renders.
+# No network, no auth, no creds. If this fails, the build/bundle is broken (see SMOKE_TESTING.md).
+# Run: maestro test .maestro/steps/01-launch.yaml
+appId: com.transitteam.app
+---
+- runFlow: ../subflows/launch.yaml

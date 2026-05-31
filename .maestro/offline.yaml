@@ -20,13 +20,9 @@
 #   ⚠️ If this flow aborts while offline, manually re-enable the network (or reboot the emulator).
 #
 #   This mutates a test job's status on the live DDEV site. Credentials come from -e env vars.
+# ⚠️ No `env:` block: in Maestro 2.6.0 an in-flow `env: { VAR: "" }` default OVERRIDES the `-e`
+# value (the "" wins) → `${VAR}` resolves empty, nothing is typed, silent false-green. Pass via `-e`.
 appId: com.transitteam.app
-env:
-  SITE_URL: ""
-  CLIENT_ID: ""
-  CLIENT_SECRET: ""
-  TQ_USERNAME: ""
-  TQ_PASSWORD: ""
 ---
 # Authenticate ONLINE so the local DB is seeded with jobs first (assumes start = online).
 - runFlow: subflows/auth.yaml

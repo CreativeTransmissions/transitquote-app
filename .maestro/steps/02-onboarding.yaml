@@ -1,0 +1,14 @@
+# LADDER STEP 2 — launch → complete onboarding → login screen renders.
+# Verifies the onboarding form + navigation. Site URL/creds are entered but NOT yet used against
+# the API (the API call happens at login, step 3), so no DDEV bridge is required for this step.
+# Run: maestro test -e SITE_URL=... -e CLIENT_ID=... -e CLIENT_SECRET=... .maestro/steps/02-onboarding.yaml
+#
+# Required -e vars: SITE_URL, CLIENT_ID, CLIENT_SECRET.
+# ⚠️ Do NOT add an `env:` block with empty defaults here: in Maestro 2.6.0 an in-flow
+# `env: { SITE_URL: "" }` default OVERRIDES the `-e` CLI value (the "" wins), so `${SITE_URL}`
+# resolves to empty and nothing gets typed — a silent false-green (`assertVisible: ""` always
+# passes). Pass values only via `-e`. (Diagnosed 2026-05-31.)
+appId: com.transitteam.app
+---
+- runFlow: ../subflows/launch.yaml
+- runFlow: ../subflows/onboarding.yaml

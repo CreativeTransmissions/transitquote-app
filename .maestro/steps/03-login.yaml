@@ -1,0 +1,11 @@
+# LADDER STEP 3 — launch → onboarding → sign in → jobs list renders.
+# First step that hits the live API (two-step OAuth + GET /configuration seeds the DB).
+# REQUIRES the DDEV bridge: adb reverse (tcp:443/:80) + mkcert CA trusted (see SMOKE_TESTING.md).
+# Run: maestro test -e SITE_URL=... -e CLIENT_ID=... -e CLIENT_SECRET=... \
+#        -e TQ_USERNAME=api-driver -e TQ_PASSWORD=... .maestro/steps/03-login.yaml
+# Required -e vars: SITE_URL, CLIENT_ID, CLIENT_SECRET, TQ_USERNAME, TQ_PASSWORD.
+# ⚠️ No `env:` block: in Maestro 2.6.0 an in-flow `env: { VAR: "" }` default OVERRIDES the `-e`
+# value (the "" wins) → `${VAR}` resolves empty, nothing is typed, silent false-green. Pass via `-e`.
+appId: com.transitteam.app
+---
+- runFlow: ../subflows/auth.yaml

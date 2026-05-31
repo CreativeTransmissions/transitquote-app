@@ -1,0 +1,21 @@
+# LADDER STEP 4 — auth → open the first job → job detail renders (read path + per-job hydration).
+# REQUIRES the DDEV bridge (login + detail both hit the API). Does NOT mutate any data.
+# Run: maestro test -e SITE_URL=... -e CLIENT_ID=... -e CLIENT_SECRET=... \
+#        -e TQ_USERNAME=api-driver -e TQ_PASSWORD=... .maestro/steps/04-job-detail.yaml
+# Required -e vars: SITE_URL, CLIENT_ID, CLIENT_SECRET, TQ_USERNAME, TQ_PASSWORD.
+# ⚠️ No `env:` block: in Maestro 2.6.0 an in-flow `env: { VAR: "" }` default OVERRIDES the `-e`
+# value (the "" wins) → `${VAR}` resolves empty, nothing is typed, silent false-green. Pass via `-e`.
+appId: com.transitteam.app
+---
+- runFlow: ../subflows/auth.yaml
+
+# Open the first job card.
+- tapOn:
+    id: "job-card-.*"
+    index: 0
+
+# Job detail rendered: the back affordance + the status-update button are present.
+- assertVisible:
+    id: "job-back"
+- assertVisible:
+    id: "job-update-status"

@@ -1,0 +1,9 @@
+# Building block: fresh launch with cleared state → onboarding screen renders.
+# The base of the cumulative test ladder (steps/). No network/creds needed.
+appId: com.transitteam.app
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Connect your site"
+- assertVisible:
+    id: "onboarding-site-url"

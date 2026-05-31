@@ -200,6 +200,20 @@ emulator (1st toggle → offline, 2nd → online).
 
 ## Notes & gotchas
 
+- **⚠️ Never put an `env:` block with empty defaults in a flow.** In Maestro 2.6.0, an in-flow
+  `env: { SITE_URL: "" }` default **overrides** the `-e` CLI value (the `""` wins), so `${SITE_URL}`
+  resolves to empty, **nothing gets typed**, and `assertVisible: "${SITE_URL}"` becomes
+  `assertVisible: ""` which **passes trivially** — a silent false-green that looks like an input bug.
+  Pass values ONLY via `-e`; document required vars in a comment, not an `env:` block.
+  (Diagnosed 2026-05-31 — this was the real cause of "text isn't being entered".)
+- **⚠️ Maestro can leave the device's IME on its own non-rendering keyboard** after an aborted run,
+  so you can no longer type (manually or via a flow) and text silently fails to appear. Fix:
+  `adb shell ime reset` (restores the default keyboard). Run it at the start of a session if input
+  misbehaves; consider adding it to the per-run loop.
+- **Soft keyboard obscures lower fields.** The auth forms centre their content, so with the keyboard
+  open the lower fields (Client Secret, Password) sit under it; tapping an obscured field doesn't
+  focus it and the next `inputText` leaks into the field above. The subflows therefore `hideKeyboard`
+  between fields and settle (`waitForAnimationToEnd`) before submitting.
 - **DDEV reachability + TLS:** the emulator can't reach `*.ddev.site` without `adb reverse`, and
   HTTPS needs the mkcert CA trusted — see "Reaching the DDEV test site from the emulator" above.
 - **Secrets:** keep them in your shell, a gitignored env file, CI secrets, or EAS env — never in
@@ -229,5 +243,11 @@ covered by the `.api-samples/` ignore) holding `SITE_URL`/`CLIENT_ID`/`CLIENT_SE
 
 - ✅ App **builds, installs, and renders** on the `Pixel_9` emulator (embedded-bundle debug APK).
 - ✅ `minimal.yaml` passes (launch + first-screen asserts, exit 0).
-- ⏳ `smoke.yaml` / `offline.yaml` — the bundle blocker that broke them is fixed; re-run on the
-  embedded build and confirm `COMPLETED` on every step before marking them green.
+- ✅ **`steps/01-launch.yaml`** — launch + onboarding renders (exit 0).
+- ✅ **`steps/02-onboarding.yaml`** — onboarding form → login screen, exit 0, verified reproducible.
+  Required the env-block fix + IME reset + hideKeyboard-between-fields (see Notes & gotchas).
+  Run with `-e SITE_URL=… -e CLIENT_ID=… -e CLIENT_SECRET=…` (dummy values are fine — onboarding
+  only validates+saves locally, no API call until login/step 3).
+- ⏳ **`steps/03-login.yaml`** and beyond (04/05, `smoke.yaml`, `offline.yaml`) — first rungs that hit
+  the API. Need real `-e TQ_USERNAME`/`TQ_PASSWORD` (+ client creds) + the DDEV bridge (adb reverse +
+  mkcert CA). Env-block fix already applied; run one rung at a time and confirm `COMPLETED` + exit 0.

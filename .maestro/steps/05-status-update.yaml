@@ -1,0 +1,29 @@
+# LADDER STEP 5 — auth → open job → update status (full write round-trip) → back to the list.
+# REQUIRES the DDEV bridge. ⚠️ MUTATES a test job's status on the live DDEV site (POST update_job_status).
+# This is the complete smoke happy path, reached one rung at a time.
+# Run: maestro test -e SITE_URL=... -e CLIENT_ID=... -e CLIENT_SECRET=... \
+#        -e TQ_USERNAME=api-driver -e TQ_PASSWORD=... .maestro/steps/05-status-update.yaml
+# Required -e vars: SITE_URL, CLIENT_ID, CLIENT_SECRET, TQ_USERNAME, TQ_PASSWORD.
+# ⚠️ No `env:` block: in Maestro 2.6.0 an in-flow `env: { VAR: "" }` default OVERRIDES the `-e`
+# value (the "" wins) → `${VAR}` resolves empty, nothing is typed, silent false-green. Pass via `-e`.
+appId: com.transitteam.app
+---
+- runFlow: ../subflows/auth.yaml
+
+# Open the first job and update its status (confirm dialog is native — tapped by text).
+- tapOn:
+    id: "job-card-.*"
+    index: 0
+- assertVisible:
+    id: "job-update-status"
+- tapOn:
+    id: "job-update-status"
+- tapOn:
+    id: "status-option-.*"
+    index: 1
+- tapOn: "Confirm"
+
+# Back to the list.
+- tapOn:
+    id: "job-back"
+- assertVisible: "Jobs"

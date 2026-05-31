@@ -7,14 +7,10 @@
 #     -e TQ_USERNAME=api-driver -e TQ_PASSWORD=... \
 #     .maestro/smoke.yaml
 # NEVER hardcode credentials here — they are passed via -e (env) at runtime.
+# ⚠️ No `env:` block: in Maestro 2.6.0 an in-flow `env: { VAR: "" }` default OVERRIDES the `-e`
+# value (the "" wins) → `${VAR}` resolves empty, nothing is typed, silent false-green. Pass via `-e`.
 # NOTE: this mutates a test job's status on the live DDEV site.
 appId: com.transitteam.app
-env:
-  SITE_URL: ""
-  CLIENT_ID: ""
-  CLIENT_SECRET: ""
-  TQ_USERNAME: ""
-  TQ_PASSWORD: ""
 ---
 # Onboarding → login → jobs list (shared with offline.yaml).
 - runFlow: subflows/auth.yaml

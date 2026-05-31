@@ -1,0 +1,32 @@
+# Building block: sign in → /configuration seeds the local DB → lands on the jobs list.
+# PRECONDITION: the login screen is showing (run subflows/onboarding.yaml first).
+# Needs env: TQ_USERNAME, TQ_PASSWORD (inherited from the calling flow).
+# Needs the DDEV bridge (adb reverse + mkcert trust) — this is the first step that hits the API.
+#
+# Same input-robustness as onboarding (the login screen shows the SAME focus/keyboard race):
+#  - tap → waitForAnimationToEnd BEFORE inputText, so keystrokes aren't dropped.
+#  - hideKeyboard AFTER each field, BEFORE tapping the next one: with the keyboard open the lower
+#    field can sit under it, so tapping it doesn't focus and the next inputText leaks upward. Hiding
+#    the keyboard first keeps every field tappable. (See onboarding.yaml for the full diagnosis.)
+#  - assertVisible after the (visible) username = read-back that it landed. Password is masked → not
+#    asserted; if it failed to land the login API call fails and the "Jobs" assert below catches it.
+appId: com.transitteam.app
+---
+- tapOn:
+    id: "login-username"
+- waitForAnimationToEnd
+- inputText: "${TQ_USERNAME}"
+- assertVisible: "${TQ_USERNAME}"
+- hideKeyboard
+
+- tapOn:
+    id: "login-password"
+- waitForAnimationToEnd
+- inputText: "${TQ_PASSWORD}"
+- hideKeyboard
+
+- tapOn:
+    id: "login-submit"
+
+# Authenticated landing: the jobs list (seeded into the local DB).
+- assertVisible: "Jobs"

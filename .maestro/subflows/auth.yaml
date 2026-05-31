@@ -1,36 +1,9 @@
-# Reusable auth path: fresh launch → onboarding → login → jobs list visible.
-# Invoked via `runFlow` by smoke.yaml and offline.yaml; env vars are inherited from the caller.
+# Reusable full auth path: fresh launch → onboarding → login → jobs list visible.
+# Composed from the granular building blocks so the test ladder (steps/) and the end-to-end
+# flows (smoke.yaml / offline.yaml) share one source of truth. Invoked via `runFlow`.
+# Env vars (SITE_URL, CLIENT_ID, CLIENT_SECRET, TQ_USERNAME, TQ_PASSWORD) are inherited from the caller.
 appId: com.transitteam.app
 ---
-- launchApp:
-    clearState: true
-
-# --- Onboarding (shown on first launch / cleared state) ---
-- assertVisible: "Connect your site"
-- tapOn:
-    id: "onboarding-site-url"
-- inputText: "${SITE_URL}"
-- tapOn:
-    id: "onboarding-client-id"
-- inputText: "${CLIENT_ID}"
-- tapOn:
-    id: "onboarding-client-secret"
-- inputText: "${CLIENT_SECRET}"
-- hideKeyboard
-- tapOn:
-    id: "onboarding-submit"
-
-# --- Login ---
-- assertVisible: "Sign in"
-- tapOn:
-    id: "login-username"
-- inputText: "${TQ_USERNAME}"
-- tapOn:
-    id: "login-password"
-- inputText: "${TQ_PASSWORD}"
-- hideKeyboard
-- tapOn:
-    id: "login-submit"
-
-# --- Authenticated landing: jobs list (seeded into the local DB) ---
-- assertVisible: "Jobs"
+- runFlow: launch.yaml
+- runFlow: onboarding.yaml
+- runFlow: login.yaml
