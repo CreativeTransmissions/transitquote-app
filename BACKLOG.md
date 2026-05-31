@@ -63,7 +63,9 @@ _All M1-blocking questions resolved 2026-05-30 against the live test site — se
 - [x] `services/apiClient.ts` — axios instance, base URL + Bearer from `authStore`, 401 → `clearSession`, PHP-warning-stripping `transformResponse`.
 - [x] `authStore` — token + (multi-site) config in **expo-secure-store**; `hydrate()` restores across restart.
 - [x] `services/api/{configuration,jobs,customers}.ts` — typed read endpoints + (unverified) write endpoints.
-- [x] Onboarding screen — site URL + client_id/secret → `saveSiteConfig` (`useOnboarding`).
+- [x] Onboarding screen — per-company site URL + client_id/secret → `saveSiteConfig` (`useOnboarding`).
+  _(Multi-tenant entry point: each customer enters their own WordPress URL on first run. URL
+  reachability validation is a HIGH-priority hardening follow-up — see Open Questions.)_
 - [x] Login screen — real form, error surfacing via `getApiErrorMessage`, role-based home redirect (`useLogin`).
 - [x] `GET /configuration` → seed reference tables + `current_user` into local DB (`seedConfiguration` + `mapConfiguration`). Verified against real payload.
 - [x] `useRole()` — derives role from `roles` array + assignment mode from DB (reactive via `useLiveQuery`).
