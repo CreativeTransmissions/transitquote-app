@@ -10,12 +10,14 @@ import type {
   JobDetail,
   ConfigurationData,
   Driver,
+  Customer,
 } from '../types/api';
 import { toInt, toFloat, toBool, toDateOrNull, toStr } from '../utils/coerce';
 import type {
   JobInsert,
   JobDetailRow,
   DriverRow,
+  CustomerInsert,
   TeamSettingsRow,
   CurrentUserRow,
 } from './schema';
@@ -81,6 +83,19 @@ export function mapJobDetail(detail: JobDetail, hydratedAt: string): {
     hydratedAt,
   };
   return { job, detail: detailRow };
+}
+
+export function mapCustomer(customer: Customer): CustomerInsert {
+  return {
+    id: toInt(customer.id)!,
+    wpUserId: toInt(customer.wp_user_id),
+    firstName: toStr(customer.first_name),
+    lastName: toStr(customer.last_name),
+    email: toStr(customer.email),
+    phone: toStr(customer.phone),
+    created: toDateOrNull(customer.created),
+    modified: toDateOrNull(customer.modified),
+  };
 }
 
 export function mapDriver(driver: Driver): DriverRow {

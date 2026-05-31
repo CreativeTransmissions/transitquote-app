@@ -7,8 +7,10 @@
  * `replaceJobs` overwrites local rows with the pulled server state.
  */
 import { getJobs, getJobDetail } from '../../services/api/jobs';
-import { mapJob, mapJobDetail } from '../mappers';
+import { getCustomers } from '../../services/api/customers';
+import { mapJob, mapJobDetail, mapCustomer } from '../mappers';
 import { replaceJobs, upsertJobWithDetail } from '../queries/jobs';
+import { replaceCustomers } from '../queries/customers';
 import { setLastSynced } from '../queries/syncMeta';
 
 /** Pull the job list and reconcile it into the local DB. */
@@ -23,4 +25,11 @@ export async function pullJobDetail(id: number): Promise<void> {
   const detail = await getJobDetail(id);
   const mapped = mapJobDetail(detail, new Date().toISOString());
   upsertJobWithDetail(mapped.job, mapped.detail);
+}
+
+/** Pull the customers list and reconcile it into the local DB (dispatcher/admin — spec §6.8). */
+export async function pullCustomers(): Promise<void> {
+  const list = await getCustomers();
+  replaceCustomers(list.map(mapCustomer));
+  setLastSynced('customers', new Date().toISOString());
 }

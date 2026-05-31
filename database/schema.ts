@@ -120,6 +120,18 @@ export const currentUser = sqliteTable('current_user', {
   driverId: integer('driver_id'),
 });
 
+// Customers (from GET /customers — same wire shape as the nested job-detail customer).
+export const customers = sqliteTable('customers', {
+  id: integer('id').primaryKey(),
+  wpUserId: integer('wp_user_id'),
+  firstName: text('first_name'),
+  lastName: text('last_name'),
+  email: text('email'),
+  phone: text('phone'),
+  created: text('created'),
+  modified: text('modified'),
+});
+
 // ─── Sync infrastructure ──────────────────────────────────────────────────────
 export const outbox = sqliteTable('outbox', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -152,6 +164,8 @@ export type JobRow = typeof jobs.$inferSelect;
 export type JobInsert = typeof jobs.$inferInsert;
 export type JobDetailRow = typeof jobDetails.$inferSelect;
 export type DriverRow = typeof drivers.$inferSelect;
+export type CustomerRow = typeof customers.$inferSelect;
+export type CustomerInsert = typeof customers.$inferInsert;
 export type TeamSettingsRow = typeof teamSettings.$inferSelect;
 export type CurrentUserRow = typeof currentUser.$inferSelect;
 export type OutboxRow = typeof outbox.$inferSelect;
