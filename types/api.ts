@@ -82,6 +82,21 @@ export interface ConfigurationData {
   payment_status_types: PaymentStatusType[];
   drivers: Driver[];
   user: CurrentUser;
+  /** Optional display/field-visibility config (added server-side; older sites may omit it). */
+  field_config?: FieldConfig;
+}
+
+/**
+ * Field-visibility / display config (plugin `field_config`). Only the fields the app consumes are
+ * typed. `date_format`/`time_format` are WordPress display formats in PHP `date()` syntax so the
+ * client can render dates/times to match the site (see docs/API_NOTES.md).
+ */
+export interface FieldConfig {
+  date_format?: string;
+  time_format?: string;
+  per_address_dates?: boolean;
+  /** Whether the booking form collects a time-of-day. When false, pickups are shown date-only. */
+  ask_for_time?: boolean;
 }
 
 /**
@@ -222,6 +237,18 @@ export interface Job {
   payment_type_name: string | null;
   payment_status_name: string | null;
   driver_name: string | null;
+  // Job-card summary fields resolved server-side (list only — see docs/API_NOTES.md §7).
+  /** Customer first name (the list otherwise only carries last_name). */
+  first_name: string;
+  /** Address of the pickup stop (journey_order 0); '' when the job has no stops. */
+  pickup_address: string;
+  /**
+   * Resolved pickup datetime (earliest valid per-stop time on per-address-date themes,
+   * else the job's delivery_time). Null when ASAP or unset. Zero-sentinel normalised away.
+   */
+  pickup_datetime: WireDate | null;
+  /** "1" when the pickup is an ASAP booking (per-address-date themes); pickup_datetime is null then. */
+  pickup_is_asap: WireBool;
 }
 
 /** Job as returned by the DETAIL endpoint (GET /jobs?id=N): base fields + nested data. */

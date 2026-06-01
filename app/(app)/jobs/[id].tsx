@@ -20,7 +20,8 @@ import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { useRole } from '../../../hooks/useRole';
 import { useOutbox } from '../../../hooks/useOutbox';
 import { useRetryOutboxItem, useDiscardOutboxItem } from '../../../hooks/useOutboxActions';
-import { fullName, formatDateTime, formatCurrency } from '../../../utils/formatters';
+import { fullName, formatCurrency } from '../../../utils/formatters';
+import { useDateFormat } from '../../../hooks/useDateFormat';
 import { toFloat } from '../../../utils/coerce';
 import { mailtoUrl, mapsDirectionsUrl, telUrl } from '../../../utils/links';
 import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../../constants';
@@ -39,6 +40,7 @@ export default function JobDetailScreen() {
   const jobId = Number(id);
   const { job, detail, isHydrating, error } = useJobDetail(jobId);
   const settings = useTeamSettings();
+  const { formatDateTimeSmart } = useDateFormat();
   const statuses = useStatusTypes();
   const update = useUpdateJobStatus();
   const assign = useAssignDriver();
@@ -138,7 +140,7 @@ export default function JobDetailScreen() {
 
           {job.description ? <Text style={styles.description}>{job.description}</Text> : null}
           {job.deliveryTime ? (
-            <Text style={styles.meta}>Scheduled: {formatDateTime(job.deliveryTime)}</Text>
+            <Text style={styles.meta}>Scheduled: {formatDateTimeSmart(job.deliveryTime)}</Text>
           ) : null}
 
           <View style={styles.actions}>

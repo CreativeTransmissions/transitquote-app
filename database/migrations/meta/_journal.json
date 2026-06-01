@@ -15,6 +15,27 @@
       "when": 1780229721832,
       "tag": "0001_unique_trish_tilby",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1780295196133,
+      "tag": "0002_chunky_robin_chapel",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1780297604648,
+      "tag": "0003_remarkable_wild_child",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1780310111216,
+      "tag": "0004_fancy_adam_warlock",
+      "breakpoints": true
     }
   ]
 }

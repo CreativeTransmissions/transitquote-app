@@ -105,6 +105,13 @@ Keys: `team_settings, services, vehicles, status_types, payment_status_types, dr
 - **`GET /jobs?id={id}`** returns one job with nested **`customer`, `journey`, `stops[]`, `quote`**,
   plus display-only `job_date[]` and `payment[]` (each an array of `{label, value}` pairs).
 - → The sync engine **must hydrate detail per job** via the `?id=` call; the list never has it.
+- **Job-card summary fields (list only).** To render the job list offline without hydrating every
+  detail, the list endpoint also resolves four extra fields per job server-side (see the plugin's
+  `JOB_FIELDS.md`): `first_name` (customer), `pickup_address` (first stop), `pickup_datetime`, and
+  `pickup_is_asap` (`"1"`/`"0"`). The pickup time mirrors the booking theme: on per-address-date
+  themes ("Light 3"/"Light Per Address") it's the earliest valid stop `collection_date`, or ASAP
+  when the pickup stop is ASAP; otherwise it's the job's global `delivery_time`. These map to the
+  `customerFirstName`/`pickupAddress`/`pickupDatetime`/`pickupIsAsap` columns on the `jobs` table.
 
 ## 8. Role access (confirmed)
 

@@ -44,6 +44,10 @@ export function mapJob(job: Job): JobInsert {
     paymentTypeName: job.payment_type_name,
     paymentStatusName: job.payment_status_name,
     customerLastName: toStr(job.last_name),
+    customerFirstName: toStr(job.first_name),
+    pickupAddress: toStr(job.pickup_address),
+    pickupDatetime: toDateOrNull(job.pickup_datetime),
+    pickupIsAsap: toBool(job.pickup_is_asap),
     created: toDateOrNull(job.created),
     modified: toDateOrNull(job.modified),
   };
@@ -124,6 +128,7 @@ export interface MappedConfiguration {
 
 export function mapConfiguration(config: ConfigurationData): MappedConfiguration {
   const ts = config.team_settings;
+  const fc = config.field_config;
   const drivers = config.drivers.map(mapDriver);
 
   // The user object has no driver_id — derive it by matching the user's wp_user_id against
@@ -145,6 +150,11 @@ export function mapConfiguration(config: ConfigurationData): MappedConfiguration
       mapApiKey: toStr(ts.api_key),
       startLat: toStr(ts.start_lat),
       startLng: toStr(ts.start_lng),
+      // WordPress display formats — fall back to WP defaults when the site omits field_config.
+      dateFormat: fc?.date_format ?? 'F j, Y',
+      timeFormat: fc?.time_format ?? 'g:i a',
+      // Default to true when unknown: a real time-of-day still renders; midnight is shown date-only.
+      askForTime: fc?.ask_for_time ?? true,
     },
     currentUser: {
       id: 1,

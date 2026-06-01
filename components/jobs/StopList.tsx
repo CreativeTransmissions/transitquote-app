@@ -7,7 +7,7 @@
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { COLOURS, SPACING, TYPOGRAPHY } from '../../constants';
-import { formatDateTime } from '../../utils/formatters';
+import { useDateFormat } from '../../hooks/useDateFormat';
 import type { Stop } from '../../types/api';
 
 interface StopListProps {
@@ -16,10 +16,11 @@ interface StopListProps {
 }
 
 export function StopList({ stops, onOpenStop }: StopListProps) {
+  const { formatDateTimeSmart } = useDateFormat();
   return (
     <View>
       {stops.map((stop, index) => {
-        const scheduled = formatDateTime(stop.collection_date);
+        const scheduled = formatDateTimeSmart(stop.collection_date);
         return (
           <Pressable
             key={stop.id ?? index}

@@ -15,6 +15,12 @@ appId: com.transitteam.app
 # Onboarding → login → jobs list (shared with offline.yaml).
 - runFlow: subflows/auth.yaml
 
+# --- Regression: the job card surfaces customer (surname first), pickup time, and pickup address ---
+- assertVisible:
+    id: "job-customer-.*"
+- assertVisible:
+    id: "job-pickup-address-.*"
+
 # --- Open the first job ---
 - tapOn:
     id: "job-card-.*"

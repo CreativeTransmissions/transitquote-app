@@ -1,0 +1,1 @@
+ALTER TABLE `team_settings` ADD `ask_for_time` integer;

@@ -87,6 +87,10 @@ describe('mapJob', () => {
     payment_type_name: 'WooCommerce',
     payment_status_name: 'Approved',
     driver_name: null,
+    first_name: 'Test',
+    pickup_address: '1 High Street, London',
+    pickup_datetime: '2026-05-12 09:30:00',
+    pickup_is_asap: '0',
   };
 
   it('coerces strings to typed columns', () => {
@@ -109,6 +113,20 @@ describe('mapJob', () => {
     expect(row.statusName).toBe('Assigned');
     expect(row.customerLastName).toBe('Customer');
   });
+
+  it('maps the job-card summary fields (first name, pickup address/time, ASAP)', () => {
+    const row = mapJob(job);
+    expect(row.customerFirstName).toBe('Test');
+    expect(row.pickupAddress).toBe('1 High Street, London');
+    expect(row.pickupDatetime).toBe('2026-05-12 09:30:00');
+    expect(row.pickupIsAsap).toBe(false);
+  });
+
+  it('treats an ASAP pickup as a boolean flag with no datetime', () => {
+    const row = mapJob({ ...job, pickup_is_asap: '1', pickup_datetime: null });
+    expect(row.pickupIsAsap).toBe(true);
+    expect(row.pickupDatetime).toBeNull();
+  });
 });
 
 describe('mapConfiguration', () => {
@@ -129,6 +147,7 @@ describe('mapConfiguration', () => {
     ],
     drivers: [driver432],
     user,
+    field_config: { date_format: 'F j, Y', time_format: 'g:i a', per_address_dates: true, ask_for_time: true },
   };
 
   it('maps the assignment mode from job_assignment and currency from the id field', () => {
@@ -137,6 +156,25 @@ describe('mapConfiguration', () => {
     expect(m.teamSettings.currencyId).toBe('18');
     expect(m.teamSettings.currencySymbol).toBe('£');
     expect(m.teamSettings.mapApiKey).toBe('MAPS_KEY');
+  });
+
+  it('captures the WordPress date/time formats and ask_for_time from field_config', () => {
+    const m = mapConfiguration(config);
+    expect(m.teamSettings.dateFormat).toBe('F j, Y');
+    expect(m.teamSettings.timeFormat).toBe('g:i a');
+    expect(m.teamSettings.askForTime).toBe(true);
+  });
+
+  it('captures ask_for_time = false when the form does not collect a time', () => {
+    const m = mapConfiguration({ ...config, field_config: { ...config.field_config, ask_for_time: false } });
+    expect(m.teamSettings.askForTime).toBe(false);
+  });
+
+  it('falls back to WP default formats and ask_for_time=true when field_config is absent', () => {
+    const m = mapConfiguration({ ...config, field_config: undefined });
+    expect(m.teamSettings.dateFormat).toBe('F j, Y');
+    expect(m.teamSettings.timeFormat).toBe('g:i a');
+    expect(m.teamSettings.askForTime).toBe(true);
   });
 
   it('flattens the id-keyed status_types object into an array', () => {

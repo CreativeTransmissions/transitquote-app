@@ -1,0 +1,22 @@
+# Regression — the job list card shows the fields from the 2026-06 feedback:
+#   customer name (surname first), pickup time (ASAP-aware), and pickup address.
+# Drives the real app against the live DDEV site (same setup as smoke.yaml — see docs/SMOKE_TESTING.md).
+# Run:
+#   maestro test \
+#     -e SITE_URL=https://tq-pro-teams-php8.ddev.site \
+#     -e CLIENT_ID=... -e CLIENT_SECRET=... \
+#     -e TQ_USERNAME=api-dispatch -e TQ_PASSWORD=... \
+#     .maestro/job-card-fields.yaml
+# NEVER hardcode credentials here — pass via -e (env). No `env:` block (see smoke.yaml note).
+appId: com.transitteam.app
+---
+# Onboarding → login → jobs list visible.
+- runFlow: subflows/auth.yaml
+
+# At least one card renders each of the three feedback fields (testIDs are suffixed with the job id).
+- assertVisible:
+    id: "job-customer-.*"
+- assertVisible:
+    id: "job-pickup-time-.*"
+- assertVisible:
+    id: "job-pickup-address-.*"

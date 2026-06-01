@@ -136,13 +136,26 @@ const m0001 = `CREATE TABLE \`customers\` (
 );
 `;
 
+// Verbatim copy of 0002_chunky_robin_chapel.sql (adds the job-card summary columns — list view).
+const m0002 = `ALTER TABLE \`jobs\` ADD \`customer_first_name\` text;--> statement-breakpoint
+ALTER TABLE \`jobs\` ADD \`pickup_address\` text;--> statement-breakpoint
+ALTER TABLE \`jobs\` ADD \`pickup_datetime\` text;--> statement-breakpoint
+ALTER TABLE \`jobs\` ADD \`pickup_is_asap\` integer;`;
+
+// Verbatim copy of 0003_remarkable_wild_child.sql (adds WP date/time display formats).
+const m0003 = `ALTER TABLE \`team_settings\` ADD \`date_format\` text;--> statement-breakpoint
+ALTER TABLE \`team_settings\` ADD \`time_format\` text;`;
+
+// Verbatim copy of 0004_fancy_adam_warlock.sql (adds ask_for_time → date-only pickups).
+const m0004 = `ALTER TABLE \`team_settings\` ADD \`ask_for_time\` integer;`;
+
 // Shape consumed by the Expo migrator (drizzle-orm/expo-sqlite/migrator).
 const bundle: {
   journal: typeof journal;
   migrations: Record<string, string>;
 } = {
   journal,
-  migrations: { m0000, m0001 },
+  migrations: { m0000, m0001, m0002, m0003, m0004 },
 };
 
 export default bundle;

@@ -42,6 +42,11 @@ export const jobs = sqliteTable('jobs', {
   paymentTypeName: text('payment_type_name'),
   paymentStatusName: text('payment_status_name'),
   customerLastName: text('customer_last_name'),
+  // Job-card summary fields resolved server-side on the list endpoint.
+  customerFirstName: text('customer_first_name'),
+  pickupAddress: text('pickup_address'),
+  pickupDatetime: text('pickup_datetime'), // resolved pickup time, or null (ASAP/unset)
+  pickupIsAsap: integer('pickup_is_asap', { mode: 'boolean' }),
   created: text('created'),
   modified: text('modified'),
 });
@@ -109,6 +114,11 @@ export const teamSettings = sqliteTable('team_settings', {
   mapApiKey: text('map_api_key'),
   startLat: text('start_lat'),
   startLng: text('start_lng'),
+  // WordPress display formats (PHP date() syntax) so the app renders dates/times to match the site.
+  dateFormat: text('date_format'),
+  timeFormat: text('time_format'),
+  // Whether the booking form collects a time-of-day; false → pickups shown date-only.
+  askForTime: integer('ask_for_time', { mode: 'boolean' }),
 });
 
 export const currentUser = sqliteTable('current_user', {
