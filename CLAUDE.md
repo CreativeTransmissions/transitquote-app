@@ -32,7 +32,8 @@ Native mobile companion for courier companies using TransitTeam (a WordPress dis
 - expo-secure-store — OAuth2 tokens and client credentials
 - expo-notifications — push notifications
 - expo-network — connectivity detection
-- react-native-maps — job route maps
+- expo-linking — "Open in Maps" deep-links for routes/stops (the embedded `react-native-maps`
+  view was removed from scope — routes open in the device's native Google Maps; see spec §6.5B/§14)
 
 ---
 
@@ -138,7 +139,7 @@ app/                          ← Expo Router routes
     profile.tsx
 
 components/
-  jobs/                       ← JobCard, JobStatusBadge, JobFilterSheet, RouteMap, StopList
+  jobs/                       ← JobCard, JobStatusBadge, JobFilterSheet, StopList (no RouteMap — embedded map out of scope; "Open in Maps" deep-link instead)
   drivers/                    ← DriverCard, DriverBadge, DriverPicker
   customers/                  ← CustomerCard
   shared/                     ← Button, Badge, BottomSheet, EmptyState, ErrorBoundary
@@ -418,6 +419,7 @@ Do not implement — these are explicitly deferred in the spec (§14):
 - Photo proof of delivery (no file upload endpoint)
 - Live GPS tracking (no location reporting endpoint)
 - Per-stop status updates (AJAX only, not REST)
+- Embedded in-app route map (`react-native-maps`) — removed; use the "Open in Maps" deep-link
 - Driver-to-driver messaging
 - Invoice / payment processing
 - Driver earnings / reporting

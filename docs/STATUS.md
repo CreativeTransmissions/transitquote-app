@@ -11,7 +11,7 @@ Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROAD
 |---|---|---|
 | **M0 — Foundation & de-risking** | ✅ Done | Stack reconciled, DB engine chosen (ADR-001), tooling green, live API access + creds obtained, all open questions resolved. |
 | **M1 — Walking skeleton** | ✅ Code complete | Full vertical slice built & unit-tested. **Not yet run on a device end-to-end** (see Maestro blocker). |
-| **M2 — Driver experience** | ✅ Code complete | Centralized list/detail; decentralized Available/My-Jobs tabs + claim/assign; status update; tap-to-call/email; "Open in Maps" deep-link. **Embedded route map deferred** (native dep, see M5); per-stop contact not in API. On-device run pending. |
+| **M2 — Driver experience** | ✅ Code complete | Centralized list/detail; decentralized Available/My-Jobs tabs + claim/assign; status update; tap-to-call/email; "Open in Maps" deep-link. **Embedded route map removed from scope** (superseded by the deep-link); per-stop contact not in API. On-device run pending. |
 | **M3 — Dispatcher experience** | ✅ Code complete | All-jobs list + bottom toolbar; filter sheet (status/date/driver, persisted); assign/reassign from detail; drivers list/detail (job counts); customers list (search)/detail (job history). Date entry is typed fields (no native picker); customer "full address" not in API. On-device run pending. |
 | **M4 — Notifications & polish** | ✅ Done | Notification **detection** engine (diff sync vs DB) wired into sync; sync-status indicator (spinner + pending/failed badges); multi-site switching + Profile/Settings screen. **Native notification firing now LIVE** (expo-notifications 56.0.15; expo-doctor 21/21) — **verified end-to-end on the emulator** (permission prompt → grant → `job-updates` channel → no first-sync storm → an out-of-band status change fired one notification). |
 | **M5 — Hardening & release** | 🟡 Mostly done | Route-level error boundaries (root/`(app)`/`(auth)`, RTL-tested); **Maestro E2E all-green on device**; **perf pass done** (zero-latency offline launch verified; first-sync progress + cancel); **EAS config finalized + local release APK verified** — only the account-gated EAS *cloud* builds remain (needs `eas login` + Apple creds). |
@@ -31,7 +31,7 @@ Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROAD
 - Decentralized **Available / My Jobs** tabs (DB-filtered: unassigned vs assigned-to-me); centralized/dispatcher single list.
 - **Claim** (assign-to-self) and **Assign driver** (filtered to `can_assign_to` via `DriverPicker`) — optimistic write through the outbox, server rejection surfaces as a failed item with retry/discard.
 - Job detail: ordered **StopList**, **"Open in Maps"** deep-link (route + per-stop), tap-to-call/email customer, currency-formatted pricing breakdown, status picker.
-- **Deferred by choice:** embedded react-native-maps (native dep + on-device verify, blocked by emulator). **Not in API:** per-stop contact name/phone (US-016).
+- **Removed from scope:** embedded react-native-maps — the route-level + per-stop "Open in Maps" deep-link is the final solution (US-014/US-015); avoids a native dep + per-tenant Maps API-key management. **Not in API:** per-stop contact name/phone (US-016).
 
 **Dispatcher experience (M3):**
 - All-jobs list with a **bottom toolbar** (filter + refresh) and an **active-filter badge**.
@@ -97,6 +97,6 @@ Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROAD
 
 ## Suggested next steps
 
-- **Finish E2E / unblock the emulator (now the critical path):** build the rootable AVD per `SMOKE_TESTING.md` for the first green smoke + offline run. Unblocking this also clears the deferred native work (notification firing, embedded map, native date picker) and lets the unconfirmed live paths (centralized `/jobs` filtering, `update_assigned` happy path) be verified.
+- **Finish E2E / unblock the emulator (now the critical path):** build the rootable AVD per `SMOKE_TESTING.md` for the first green smoke + offline run. Unblocking this also clears the deferred native work (notification firing, native date picker) and lets the unconfirmed live paths (centralized `/jobs` filtering, `update_assigned` happy path) be verified.
 - **Or start M5 hardening:** route-level error boundaries, performance pass, EAS builds (iOS preview / Android apk) — mostly emulator-independent.
-- **Follow-ups:** bundle JS in a release APK so E2E doesn't need Metro; wire `expo-notifications` into the notifier seam; swap typed date fields for a native picker; add the embedded route map.
+- **Follow-ups:** bundle JS in a release APK so E2E doesn't need Metro; wire `expo-notifications` into the notifier seam; swap typed date fields for a native picker. _(Embedded route map removed from scope — see M2.)_

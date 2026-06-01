@@ -78,7 +78,7 @@ OAuth 2.0 authorization-code flow — **two steps** (verified live; see [`docs/A
 ### 4.1 Driver
 - Views their own jobs (centralized) or all available jobs (decentralized)
 - Receives push notifications for newly assigned jobs
-- Opens job details: customer info, stops, route map, pricing
+- Opens job details: customer info, stops, route (open in native maps), pricing
 - Updates job status at each stage
 - Can self-assign from the open job pool (decentralized mode only)
 - Cannot see customer list, cannot assign others
@@ -229,8 +229,11 @@ Filter state should persist across sessions (the web version stores filters per 
 
 #### B — Route Summary
 - Stops list in order: each stop shows address, visit type (Pickup/Delivery), contact name, contact phone, scheduled date/time
-- Interactive map showing all stops connected as a route (Google Maps — the API key is supplied in `team_settings.api_key`; see [`docs/API_NOTES.md`](./docs/API_NOTES.md))
-- Map link button → opens native Maps app with full route
+- ~~Interactive map showing all stops connected as a route~~ **REMOVED FROM SPEC.** The embedded
+  map (`react-native-maps`) is not implemented. Locations and routes open in the device's native
+  Google Maps via external links instead (see the map-link buttons below). Rationale: avoids a
+  native dependency + per-tenant Google Maps API-key management; the deep-link covers US-014/US-015.
+- Map link button → opens native Maps app with the full route (and per-stop tap → that location)
 - Total distance and estimated time (from journey data)
 
 #### C — Customer
@@ -339,8 +342,8 @@ Filter state should persist across sessions (the web version stores filters per 
 | US-011 | Driver (decentralized) | See all available (unassigned) jobs | I can claim jobs that suit my location or schedule |
 | US-012 | Driver | Claim an available job | It becomes mine to complete |
 | US-013 | Driver | See full job details | I know where to go, who to collect from, and what to deliver |
-| US-014 | Driver | See all stops on a map | I can plan my route efficiently |
-| US-015 | Driver | Tap the map to open native navigation | I get turn-by-turn directions to each stop |
+| US-014 | Driver | See all stops as a route I can open in maps | I can plan my route efficiently _(via external Google Maps link — embedded map removed from scope, see §6.5B / §14)_ |
+| US-015 | Driver | Tap a stop/route to open native navigation | I get turn-by-turn directions to each stop |
 | US-016 | Driver | See contact name and phone for each stop | I can call ahead or communicate with customers |
 | US-017 | Driver | Update the job status | Dispatch knows where each job is in real time |
 | US-018 | Driver | Receive a push notification when a job is assigned to me | I know immediately without checking the app |
@@ -535,7 +538,7 @@ App
     │   │   ├── [Decentralized only] Available Jobs list
     │   │   ├── My Jobs list
     │   │   └── Job Detail
-    │   │       ├── Route Map
+    │   │       ├── Route Summary (stops + "Open in Maps" link — no embedded map)
     │   │       └── Status Update sheet
     │   └── Tab: Profile
     │
@@ -543,7 +546,7 @@ App
         ├── Tab: Jobs
         │   ├── All Jobs list (filterable)
         │   └── Job Detail
-        │       ├── Route Map
+        │       ├── Route Summary (stops + "Open in Maps" link — no embedded map)
         │       ├── Driver Assignment
         │       └── Status Update sheet
         ├── Tab: Drivers
@@ -712,7 +715,7 @@ A conflict occurs when the same job has been modified both locally (in the outbo
 |---------|------------------|
 | View job list | Full list from local DB |
 | View job detail | Full detail from local DB including stops, customer, pricing |
-| View map (static route) | Works if map tiles were cached during last online session |
+| Open route/stop in maps | Deep-link is built from locally-stored coordinates; the native Google Maps app handles online/offline itself (no embedded map in-app) |
 | Filter job list | Fully local — no network needed |
 | Update job status | Queued to outbox; applied to local DB immediately (optimistic update); synced when online |
 | Assign / claim job | Queued to outbox; applied optimistically; synced when online |
@@ -792,6 +795,10 @@ The following are not required for the initial release but are noted for the pro
 - **Per-stop status updates** — the API supports `update_job_location_status` but this is an admin AJAX endpoint, not a REST endpoint; would need to be added to the API plugin
 - **Invoice / payment processing**
 - **Driver earnings / reporting**
+- **Embedded in-app route map** — removed from scope. Routes and stop locations open in the
+  device's native Google Maps via external links (US-014/US-015 satisfied by the deep-link); an
+  embedded `react-native-maps` view would add a native dependency and per-tenant API-key
+  management for no functional gain over the external link.
 
 ---
 
@@ -809,7 +816,7 @@ The following are not required for the initial release but are noted for the pro
 - [ ] Tapping a job opens full job detail
 - [ ] Job detail shows all stops with addresses, visit type, contact details
 - [ ] Job detail shows full pricing breakdown
-- [ ] Driver can tap the map link to open native navigation
+- [ ] Driver can tap the map link to open the route/stop in native maps navigation (external link; no embedded map)
 - [ ] Driver can update job status via a status picker
 - [ ] Status update is reflected immediately in the UI
 

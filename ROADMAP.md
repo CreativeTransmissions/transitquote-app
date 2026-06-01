@@ -54,10 +54,10 @@ syncs on reconnect.
 ## Milestone 2 — Driver experience  ·  _code complete (on-device run pending)_
 
 Centralized job list · job detail (stops, pricing, native-maps deep link) · status update picker.
-Decentralized: Available/My Jobs tabs · claim job · assign within `can_assign_to`. Done bar one
-deferral: the **embedded** route map (react-native-maps) is deferred to M5 in favour of an "Open in
-Maps" deep-link — it needs a native rebuild + on-device verify, blocked by the emulator. Per-stop
-contact (US-016) isn't in the API; customer-level tap-to-call/email shipped instead. See BACKLOG.
+Decentralized: Available/My Jobs tabs · claim job · assign within `can_assign_to`. The **embedded**
+route map (react-native-maps) was **removed from scope** — the "Open in Maps" deep-link (route +
+per-stop, no native dep, works offline) is the final solution for US-014/US-015. Per-stop contact
+(US-016) isn't in the API; customer-level tap-to-call/email shipped instead. See BACKLOG.
 
 ## Milestone 3 — Dispatcher experience  ·  _code complete (on-device run pending)_
 
@@ -78,8 +78,8 @@ retry/discard) · multi-site switching in Profile.
 Error boundaries at route level ✅ · Maestro E2E (login, list, status update, offline) ✅ green on
 device · performance pass (zero-latency launch ✅; first-sync progress + cancel ✅) · EAS builds —
 config + local release APK ✅, **cloud builds pending owner's `eas login` + Apple credentials** ·
-store assets present. The two deferred native features remain: embedded RouteMap (M2) and — now
-shipped — native notification firing (M4, ✅ verified on device).
+store assets present. Native notification firing (M4) is ✅ verified on device. The embedded
+RouteMap (M2) was **removed from scope** — superseded by the "Open in Maps" deep-link.
 
 ---
 

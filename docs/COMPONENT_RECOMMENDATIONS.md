@@ -44,12 +44,12 @@ Legend: **Now** = install in M0/M1 · **When** = install at the milestone that n
 | **Date range pickers** (filter §6.4) | @react-native-community/datetimepicker | 9.1.0 | native pickers; Expo-bundled, New-Arch ready. | M3 |
 | **Form state/validation** (onboarding, login, filters) | react-hook-form + zod | ^7 / ^3 | minimal re-renders, typed schemas; zod can also validate API responses (CLAUDE.md "validate on receipt"). Pure JS — no native concerns. | M1 |
 
-### Maps (Job detail Route Map §6.5B)
+### Maps (Job detail Route Summary §6.5B)
 
 | Concern | Pick | Version | Why | When |
 |---|---|---|---|---|
-| **Map view** | react-native-maps | 1.27.2 | spec-named; Expo-bundled. Needs a config-plugin entry + Google Maps API key (Android) — **see Open Question on provider/keys in BACKLOG**. | M2 |
-| **Native nav deep link** | `expo-linking` (already installed) | ~56.0.13 | "open in Maps app" (US-015) is just a `geo:`/`maps://` URL — no extra lib. | M2 |
+| ~~Map view~~ **REMOVED** | ~~react-native-maps~~ | — | Embedded map removed from scope: a native dep + per-tenant Google Maps API-key management for no gain over the deep-link. Routes open in the device's native Google Maps instead. | — |
+| **Native nav deep link** | `expo-linking` (already installed) | ~56.0.13 | "open in Maps app" (US-014/US-015) is just a Google Maps `https://`/`geo:` URL — no extra lib. **This is the route/location solution.** | ✅ M2 |
 
 ### Notifications & background (spec §10 Option B)
 
@@ -87,8 +87,8 @@ Legend: **Now** = install in M0/M1 · **When** = install at the milestone that n
 npx expo install @shopify/flash-list react-native-gesture-handler react-native-reanimated
 npm install react-hook-form zod
 
-# M2 — maps + sheets + svg
-npx expo install react-native-maps react-native-svg @react-native-community/datetimepicker
+# M2 — sheets + svg (react-native-maps removed from scope — deep-link only)
+npx expo install react-native-svg @react-native-community/datetimepicker
 npm install @gorhom/bottom-sheet
 
 # M4 — notifications + background
