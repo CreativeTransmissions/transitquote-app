@@ -1,6 +1,6 @@
 /** Driver list row: name, contact, availability badge, and assigned-job count (spec §6.6). */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
+import { CARD, CARD_PRESSED, COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
 import { fullName } from '../../utils/formatters';
 import type { DriverRow } from '../../database/schema';
 
@@ -42,15 +42,8 @@ export function DriverCard({ driver, jobCount, onPress }: DriverCardProps) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: COLOURS.background,
-    borderWidth: 1,
-    borderColor: COLOURS.border,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    gap: SPACING.xs,
-  },
-  pressed: { backgroundColor: COLOURS.surface },
+  card: { ...CARD },
+  pressed: { ...CARD_PRESSED },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.sm },
   name: { ...TYPOGRAPHY.subheading, color: COLOURS.text, flexShrink: 1 },
   badge: { paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: RADIUS.sm },

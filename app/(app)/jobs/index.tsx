@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { JobList } from '../../../components/jobs/JobList';
 import { JobFilterSheet } from '../../../components/jobs/JobFilterSheet';
 import { OfflineBanner } from '../../../components/sync/OfflineBanner';
@@ -15,7 +16,7 @@ import { useOutbox } from '../../../hooks/useOutbox';
 import { useStatusTypes } from '../../../hooks/useStatusTypes';
 import { useDrivers } from '../../../hooks/useDrivers';
 import { applyJobFilters, countActiveFilters } from '../../../utils/jobFilter';
-import { COLOURS, SPACING, TYPOGRAPHY } from '../../../constants';
+import { COLOURS, GRADIENTS, SPACING, TYPOGRAPHY } from '../../../constants';
 
 type DriverTab = 'available' | 'mine';
 
@@ -41,6 +42,7 @@ export default function JobsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <LinearGradient colors={GRADIENTS.screen} style={StyleSheet.absoluteFill} pointerEvents="none" />
       <OfflineBanner />
 
       <View style={styles.header}>

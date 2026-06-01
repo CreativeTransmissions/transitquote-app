@@ -1,13 +1,14 @@
 import { Redirect, router } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { DriverCard } from '../../../components/drivers/DriverCard';
 import { OfflineBanner } from '../../../components/sync/OfflineBanner';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { useDrivers } from '../../../hooks/useDrivers';
 import { useDriverJobCounts } from '../../../hooks/useDriverJobCounts';
 import { useRole } from '../../../hooks/useRole';
-import { COLOURS, SPACING, TYPOGRAPHY } from '../../../constants';
+import { COLOURS, GRADIENTS, SPACING, TYPOGRAPHY } from '../../../constants';
 
 export default function DriversScreen() {
   const { role, isDispatcher } = useRole();
@@ -21,6 +22,7 @@ export default function DriversScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <LinearGradient colors={GRADIENTS.screen} style={StyleSheet.absoluteFill} pointerEvents="none" />
       <OfflineBanner />
       <View style={styles.header}>
         <Pressable testID="drivers-back" onPress={() => router.back()} hitSlop={8}>

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BootGate } from '../components/shared/BootGate';
 
@@ -18,6 +19,8 @@ const queryClient = new QueryClient({
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
+      {/* Dark icons — every screen has a light background at the top (CLAUDE.md: contrast). */}
+      <StatusBar style="dark" />
       <QueryClientProvider client={queryClient}>
         <BootGate>
           <Stack screenOptions={{ headerShown: false }} />

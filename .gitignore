@@ -42,3 +42,8 @@ yarn-error.*
 
 # Captured live API sample payloads (contain secrets — never commit)
 .api-samples/
+
+# Local debug / verification artifacts (DB dumps, UI dumps, screenshots, APK backups)
+.dbg/
+/shots/
+*.apk

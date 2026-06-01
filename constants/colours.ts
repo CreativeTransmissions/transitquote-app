@@ -28,6 +28,7 @@ export const GRADIENTS = {
   dark: ['#0D1D14', '#1A3322'], // dark hero / header
   card: ['#FFFFFF', '#F2F5F4'], // subtle card lift
   surface: ['#F8FDF9', '#FFFFFF'], // screen background wash
+  screen: ['#EAF6EE', '#FFFFFF'], // very light green → white wash behind list cards
 } as const;
 
 // Job status colours are resolved at runtime from configuration.status_types (per-site,

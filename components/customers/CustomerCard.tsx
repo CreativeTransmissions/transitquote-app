@@ -1,6 +1,6 @@
 /** Customer list row: name + contact (spec §6.8). */
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
+import { CARD, CARD_PRESSED, COLOURS, TYPOGRAPHY } from '../../constants';
 import { fullName } from '../../utils/formatters';
 import type { CustomerRow } from '../../database/schema';
 
@@ -33,15 +33,8 @@ export function CustomerCard({ customer, onPress }: CustomerCardProps) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: COLOURS.background,
-    borderWidth: 1,
-    borderColor: COLOURS.border,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    gap: SPACING.xs,
-  },
-  pressed: { backgroundColor: COLOURS.surface },
+  card: { ...CARD },
+  pressed: { ...CARD_PRESSED },
   name: { ...TYPOGRAPHY.subheading, color: COLOURS.text },
   contact: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted },
 });

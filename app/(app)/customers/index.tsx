@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Redirect, router } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { CustomerCard } from '../../../components/customers/CustomerCard';
 import { TextField } from '../../../components/shared/TextField';
 import { OfflineBanner } from '../../../components/sync/OfflineBanner';
@@ -9,7 +10,7 @@ import { EmptyState } from '../../../components/shared/EmptyState';
 import { useCustomers } from '../../../hooks/useCustomers';
 import { useRole } from '../../../hooks/useRole';
 import { filterCustomers } from '../../../utils/customerSearch';
-import { COLOURS, SPACING, TYPOGRAPHY } from '../../../constants';
+import { COLOURS, GRADIENTS, SPACING, TYPOGRAPHY } from '../../../constants';
 
 export default function CustomersScreen() {
   const { role, isDispatcher } = useRole();
@@ -24,6 +25,7 @@ export default function CustomersScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <LinearGradient colors={GRADIENTS.screen} style={StyleSheet.absoluteFill} pointerEvents="none" />
       <OfflineBanner />
       <View style={styles.header}>
         <Pressable testID="customers-back" onPress={() => router.back()} hitSlop={8}>
