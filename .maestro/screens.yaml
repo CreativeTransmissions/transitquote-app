@@ -1,0 +1,83 @@
+# Screenshot tour of every view on the new theme. Drives the real app against the live DDEV site.
+# Run: maestro test -e SITE_URL=.. -e CLIENT_ID=.. -e CLIENT_SECRET=.. -e TQ_USERNAME=.. -e TQ_PASSWORD=.. .maestro/screens.yaml
+# NO `env:` block here — in Maestro 2.6 it would override the -e values (see smoke.yaml).
+# Input robustness (tap → waitForAnimationToEnd → inputText → blank-tap to dismiss keyboard) mirrors
+# subflows/onboarding.yaml + login.yaml; do not use hideKeyboard (BACK press exits the app here).
+appId: com.transitteam.app
+---
+- clearState
+- launchApp
+
+# 01 — Onboarding (empty)
+- assertVisible:
+    id: "onboarding-site-url"
+- takeScreenshot: shots/01-onboarding
+
+# Fill onboarding → login
+- tapOn:
+    id: "onboarding-site-url"
+- waitForAnimationToEnd
+- inputText: "${SITE_URL}"
+- tapOn:
+    point: "50%,8%"
+- tapOn:
+    id: "onboarding-client-id"
+- waitForAnimationToEnd
+- inputText: "${CLIENT_ID}"
+- tapOn:
+    point: "50%,8%"
+- tapOn:
+    id: "onboarding-client-secret"
+- waitForAnimationToEnd
+- inputText: "${CLIENT_SECRET}"
+- tapOn:
+    point: "50%,8%"
+- waitForAnimationToEnd
+- tapOn:
+    id: "onboarding-submit"
+
+# 02 — Login (the gradient hero)
+- assertVisible: "Sign in"
+- takeScreenshot: shots/02-login
+
+# Sign in → jobs list
+- tapOn:
+    id: "login-username"
+- waitForAnimationToEnd
+- inputText: "${TQ_USERNAME}"
+- tapOn:
+    point: "50%,8%"
+- tapOn:
+    id: "login-password"
+- waitForAnimationToEnd
+- inputText: "${TQ_PASSWORD}"
+- tapOn:
+    point: "50%,8%"
+- waitForAnimationToEnd
+- tapOn:
+    id: "login-submit"
+
+# 03 — Jobs list
+- assertVisible: "Jobs"
+- waitForAnimationToEnd
+- takeScreenshot: shots/03-jobs-list
+
+# 04 — Job detail
+- tapOn:
+    id: "job-card-.*"
+    index: 0
+- assertVisible:
+    id: "job-update-status"
+- waitForAnimationToEnd
+- takeScreenshot: shots/04-job-detail
+- tapOn:
+    id: "job-back"
+- assertVisible: "Jobs"
+
+# NOTE: api-driver is a pure DRIVER account — the Drivers/Customers links are dispatcher-only and
+# not rendered, so those views are not reachable with the stored credentials.
+
+# 05 — Profile
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- takeScreenshot: shots/05-profile

@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/shared/Button';
 import { TextField } from '../../components/shared/TextField';
 import { useLogin } from '../../hooks/useLogin';
 import { useAuthStore } from '../../stores/authStore';
 import { getApiErrorMessage } from '../../services/apiError';
-import { COLOURS, SPACING, TYPOGRAPHY } from '../../constants';
+import { COLOURS, GRADIENTS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -29,12 +30,22 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.title}>Sign in</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {siteUrl ?? ''}
-          </Text>
+          <LinearGradient
+            colors={GRADIENTS.dark}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.hero}
+          >
+            <Text style={styles.brand}>TransitTeam</Text>
+            <Text style={styles.heroSubtitle} numberOfLines={1}>
+              {siteUrl ?? ''}
+            </Text>
+          </LinearGradient>
 
-          <TextField
+          <View style={styles.form}>
+            <Text style={styles.title}>Sign in</Text>
+
+            <TextField
             testID="login-username"
             label="Username"
             value={username}
@@ -60,13 +71,14 @@ export default function LoginScreen() {
 
           <Button testID="login-submit" label="Sign in" onPress={handleSubmit} loading={loginMutation.isPending} />
 
-          <Pressable
-            onPress={() => router.replace('/onboarding')}
-            disabled={loginMutation.isPending}
-            style={styles.changeSite}
-          >
-            <Text style={styles.changeSiteText}>Change site</Text>
-          </Pressable>
+            <Pressable
+              onPress={() => router.replace('/onboarding')}
+              disabled={loginMutation.isPending}
+              style={styles.changeSite}
+            >
+              <Text style={styles.changeSiteText}>Change site</Text>
+            </Pressable>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -74,11 +86,26 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLOURS.background },
+  safe: { flex: 1, backgroundColor: COLOURS.surface },
   flex: { flex: 1 },
-  content: { padding: SPACING.lg, flexGrow: 1, justifyContent: 'center' },
-  title: { ...TYPOGRAPHY.title, color: COLOURS.text, marginBottom: SPACING.xs },
-  subtitle: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted, marginBottom: SPACING.lg },
+  content: { padding: SPACING.lg, flexGrow: 1, justifyContent: 'center', gap: SPACING.lg },
+  hero: {
+    borderRadius: RADIUS.lg,
+    paddingVertical: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
+    gap: SPACING.xs,
+    ...SHADOWS.md,
+  },
+  brand: { ...TYPOGRAPHY.title, color: COLOURS.textInverse },
+  heroSubtitle: { ...TYPOGRAPHY.caption, color: COLOURS.surfaceAlt },
+  form: {
+    backgroundColor: COLOURS.background,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    gap: SPACING.sm,
+    ...SHADOWS.sm,
+  },
+  title: { ...TYPOGRAPHY.heading, color: COLOURS.text, marginBottom: SPACING.xs },
   error: { ...TYPOGRAPHY.caption, color: COLOURS.danger, marginBottom: SPACING.md },
   changeSite: { marginTop: SPACING.lg, alignItems: 'center' },
   changeSiteText: { ...TYPOGRAPHY.body, color: COLOURS.primary },

@@ -1,7 +1,7 @@
 /** Job list row: reference, customer (surname first), pickup time + address, driver, sync state. */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { JobStatusBadge } from './JobStatusBadge';
-import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
+import { COLOURS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants';
 import { nameSurnameFirst } from '../../utils/formatters';
 import { useDateFormat } from '../../hooks/useDateFormat';
 import type { JobRow } from '../../database/schema';
@@ -72,13 +72,14 @@ export function JobCard({ job, showDriver = false, outboxState, onPress }: JobCa
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLOURS.background,
-    borderWidth: 1,
-    borderColor: COLOURS.border,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: COLOURS.primary,
     padding: SPACING.md,
     gap: SPACING.xs,
+    ...SHADOWS.sm,
   },
-  pressed: { backgroundColor: COLOURS.surface },
+  pressed: { backgroundColor: COLOURS.surfaceAlt, transform: [{ scale: 0.99 }] },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.sm },
   ref: { ...TYPOGRAPHY.subheading, color: COLOURS.text, flexShrink: 1 },
   customer: { ...TYPOGRAPHY.body, color: COLOURS.text },

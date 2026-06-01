@@ -1,0 +1,92 @@
+# Screenshot tour of the DISPATCHER-only views on the new theme (Drivers + Customers + details).
+# Run with the api-dispatch account:
+#   maestro test -e SITE_URL=.. -e CLIENT_ID=.. -e CLIENT_SECRET=.. \
+#     -e TQ_USERNAME=api-dispatch -e TQ_PASSWORD=dispatch123 .maestro/screens-dispatch.yaml
+# NO `env:` block (it would override -e). Input robustness mirrors subflows/*.yaml.
+appId: com.transitteam.app
+---
+- clearState
+- launchApp
+
+# Onboarding → login
+- assertVisible:
+    id: "onboarding-site-url"
+- tapOn:
+    id: "onboarding-site-url"
+- waitForAnimationToEnd
+- inputText: "${SITE_URL}"
+- tapOn:
+    point: "50%,8%"
+- tapOn:
+    id: "onboarding-client-id"
+- waitForAnimationToEnd
+- inputText: "${CLIENT_ID}"
+- tapOn:
+    point: "50%,8%"
+- tapOn:
+    id: "onboarding-client-secret"
+- waitForAnimationToEnd
+- inputText: "${CLIENT_SECRET}"
+- tapOn:
+    point: "50%,8%"
+- waitForAnimationToEnd
+- tapOn:
+    id: "onboarding-submit"
+
+# Login as dispatch
+- assertVisible: "Sign in"
+- tapOn:
+    id: "login-username"
+- waitForAnimationToEnd
+- inputText: "${TQ_USERNAME}"
+- tapOn:
+    point: "50%,8%"
+- tapOn:
+    id: "login-password"
+- waitForAnimationToEnd
+- inputText: "${TQ_PASSWORD}"
+- tapOn:
+    point: "50%,8%"
+- waitForAnimationToEnd
+- tapOn:
+    id: "login-submit"
+
+# 06 — Jobs list (dispatcher: shows Drivers / Customers nav links)
+- assertVisible: "Jobs"
+- waitForAnimationToEnd
+- takeScreenshot: shots/06-jobs-dispatch
+
+# 07 — Drivers list
+- tapOn: "Drivers"
+- extendedWaitUntil:
+    visible:
+      id: "drivers-back"
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: shots/07-drivers-list
+# 08 — Driver detail
+- tapOn:
+    id: "driver-card-.*"
+    index: 0
+- waitForAnimationToEnd
+- takeScreenshot: shots/08-driver-detail
+- tapOn:
+    id: "driver-back"
+- tapOn:
+    id: "drivers-back"
+- assertVisible: "Jobs"
+
+# 09 — Customers list
+- tapOn: "Customers"
+- extendedWaitUntil:
+    visible:
+      id: "customers-back"
+    timeout: 15000
+- waitForAnimationToEnd
+- takeScreenshot: shots/09-customers-list
+# 10 — Customer detail
+- tapOn:
+    id: "customer-card-.*"
+    index: 0
+- waitForAnimationToEnd
+- takeScreenshot: shots/10-customer-detail
