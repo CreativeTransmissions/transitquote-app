@@ -71,10 +71,13 @@ MySQL datetimes (`"2026-05-12 19:29:05"`), and frequently the zero sentinel
 <br /><b>Deprecated</b>: Creation of dynamic property TQ_API_Public::$team_plugin ...
 { "data": ... }
 ```
-This breaks `JSON.parse` / Axios's default parsing. **The server team is fixing this.**
-Until the fix ships, `apiClient` uses a defensive `transformResponse` that strips everything
-before the first `{` / `[`. `/customers` is already clean. Once the server fix lands, the strip
-becomes a harmless no-op and can be removed.
+This breaks `JSON.parse` / Axios's default parsing. `apiClient` uses a defensive
+`transformResponse` (`parseApiBody`) that strips everything before the first `{` / `[`.
+
+**FIXED 2026-06-01.** Verified live that `/configuration`, `/jobs`, and `/jobs/update_assigned`
+now return clean JSON (body starts with `{`, no warning prefix; `display_errors` deprecation noise
+also gone). The strip is now a no-op — **kept as a defensive guard** against a PHP-warning
+regression on any endpoint (it cost us once) rather than removed.
 
 ## 6. `GET /configuration` → `data`
 
@@ -143,6 +146,14 @@ are otherwise **inconsistent** with each other and with reads:
   successful assign couldn't be cleanly reverted to "unassigned". Shape implemented from the evidence; the
   happy path needs re-verification once an assignable driver exists. **Both bugs reported to the server team.**
 
+> **UPDATE 2026-06-01 — FIXED & happy path verified live.** The 500 was *not* a request-encoding
+> issue: form-encoded requests crashed too. Root cause was a PHP 8 incompatibility in the job
+> **formatter** — `class.tq-pro-job-formatter.php::format_value()` ran `urldecode($value)` on integer
+> fields (`urldecode()` requires a string in PHP 8). Fixed server-side (cast to string). Re-tested
+> `id=7&driver_id=432`: now **HTTP 200** → `{ "msg": "Job 7 updated to driver id: 432", "driver": {…},
+> "success": true }`. The form-encoding workaround in `services/api/jobs.ts` is harmless but no longer
+> strictly required; left in place. Bug #2 (`driver_id` must be `drivers.id`) still stands.
+
 Client handling (services/api/jobs.ts): `update_job_status` posts JSON; `update_assigned` posts
 form-urlencoded. A 200 with `success: false` is raised as `ApiActionError` → the outbox marks it
 **failed** (permanent, no retry).
@@ -152,4 +163,5 @@ form-urlencoded. A 200 with `success: false` is raised as `ApiActionError` → t
 - **Centralized server-side filtering:** the Driver and Dispatch `GET /jobs` returned
   byte-identical 41-job lists — the "filtered to this driver" behaviour was **not observed**.
   Confirm whether Centralized actually filters server-side, or the app must filter by `driver_id`.
-- **update_assigned happy path:** see §10 — needs an available driver to confirm a successful assignment.
+- ~~**update_assigned happy path:** see §10 — needs an available driver to confirm a successful assignment.~~
+  **RESOLVED 2026-06-01** — verified live (HTTP 200, `success: true`) after the server formatter fix. See §10.

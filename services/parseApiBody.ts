@@ -1,11 +1,13 @@
 /**
  * Parse a raw API response body, tolerating leading non-JSON noise.
  *
- * The TransitQuote backend currently prepends a PHP `Deprecated` warning (raw HTML) before the
+ * The TransitQuote backend used to prepend a PHP `Deprecated` warning (raw HTML) before the
  * JSON on /configuration and /jobs (docs/API_NOTES.md §5). This strips everything before the
  * first `{`/`[`, then JSON-parses. Kept dependency-free so it is unit-testable in isolation.
  *
- * TEMPORARY: the server team is fixing the warning; once shipped this is a no-op and may be removed.
+ * The server warnings were fixed 2026-06-01 (verified live: /configuration, /jobs, and the writes
+ * all return clean JSON), so this strip is now a no-op. KEPT as a defensive guard against a PHP
+ * warning regression on any endpoint — it cost us once. Safe to retire if that risk is accepted.
  */
 export function parseApiBody(raw: unknown): unknown {
   if (typeof raw !== 'string') return raw; // already parsed (or non-string)

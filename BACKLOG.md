@@ -38,9 +38,10 @@ _All M1-blocking questions resolved 2026-05-30 against the live test site — se
   `/configuration` > `drivers`, so derived `current_user.driver_id` is null. **Decided (M2):** "My Jobs"
   shows an **empty** list (and Claim is hidden) when `driver_id` is null — `myJobsQuery(-1)` matches
   nothing. Confirm this is the desired UX once a properly-linked driver user is available. _(US-010, US-011.)_
-- [ ] **Decentralized assignment happy path.** Claim/assign code is complete and queues through the
-  outbox, but the live `update_assigned` success path is unverified (the only test driver is
-  unavailable / has no driver record). Verify against a real assignable driver. _(US-012, US-019.)_
+- [x] **Decentralized assignment happy path.** **Verified live 2026-06-01** — after the server fixed
+  the `update_assigned` 500 (PHP 8 `urldecode()` on int fields in the job formatter; see
+  [`docs/API_NOTES.md`](./docs/API_NOTES.md) §10), an `id=7&driver_id=432` assignment returned
+  **HTTP 200 / `success: true`** and the app's queued outbox item flushed cleanly. _(US-012, US-019.)_
 
 ---
 
