@@ -6,6 +6,7 @@
 import { useEffect } from 'react';
 import { useDatabase } from './useDatabase';
 import { useAuthStore } from '../stores/authStore';
+import { configureNotifications, ensureNotificationPermission } from '../services/notifications/setup';
 
 export type BootStatus = 'booting' | 'error' | 'ready';
 
@@ -23,6 +24,16 @@ export function useAppBoot(): AppBoot {
   useEffect(() => {
     if (ready) void hydrate();
   }, [ready, hydrate]);
+
+  // Configure local notifications + request permission once the DB is ready. Fire-and-forget:
+  // notifications are non-critical, so this never gates or fails the boot (spec §10 Option B).
+  useEffect(() => {
+    if (!ready) return;
+    void (async () => {
+      await configureNotifications();
+      await ensureNotificationPermission();
+    })();
+  }, [ready]);
 
   if (error) return { status: 'error', error };
   if (!ready || authStatus === 'loading') return { status: 'booting', error: undefined };

@@ -12,7 +12,7 @@ import { mapJob, mapJobDetail, mapCustomer } from '../mappers';
 import { getAllJobs, replaceJobs, upsertJobWithDetail } from '../queries/jobs';
 import { replaceCustomers } from '../queries/customers';
 import { getCurrentUserRow } from '../queries/configuration';
-import { setLastSynced } from '../queries/syncMeta';
+import { getLastSynced, setLastSynced } from '../queries/syncMeta';
 import { detectJobChanges } from './changeDetector';
 import { presentJobNotifications } from '../../services/notifications/notifier';
 import { resolveRole } from '../../utils/roleGuards';
@@ -21,14 +21,20 @@ import { resolveRole } from '../../utils/roleGuards';
  * Pull the job list and reconcile it into the local DB. Before overwriting, snapshot the existing
  * rows and diff them against the incoming set to fire local notifications (spec §10 Option B).
  */
-export async function pullJobs(): Promise<void> {
-  const list = await getJobs();
+export async function pullJobs(signal?: AbortSignal): Promise<void> {
+  const list = await getJobs(signal);
   const next = list.map(mapJob);
+
+  // The first sync after login/clear establishes the baseline; every existing job would otherwise
+  // diff as "new" and fire a storm of notifications. Only notify against an existing baseline.
+  const isBaselineSync = getLastSynced('jobs') == null;
 
   // Diff against the current snapshot for notifications, then reconcile (server-wins).
   const prev = getAllJobs();
   replaceJobs(next);
   setLastSynced('jobs', new Date().toISOString());
+
+  if (isBaselineSync) return;
 
   const user = getCurrentUserRow();
   if (user) {
