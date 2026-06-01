@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { JobList } from '../../../components/jobs/JobList';
 import { JobFilterSheet } from '../../../components/jobs/JobFilterSheet';
 import { OfflineBanner } from '../../../components/sync/OfflineBanner';
 import { SyncStatusIndicator } from '../../../components/sync/SyncStatusIndicator';
+import { FirstSyncProgress } from '../../../components/sync/FirstSyncProgress';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { useJobs, type JobScope } from '../../../hooks/useJobs';
 import { useJobFilters } from '../../../hooks/useJobFilters';
@@ -31,7 +32,7 @@ export default function JobsScreen() {
   const [tab, setTab] = useState<DriverTab>('available');
   const scope: JobScope = showTabs ? tab : 'all';
 
-  const { jobs, dbError, isSyncing, syncError, refresh } = useJobs(scope, driverId);
+  const { jobs, dbError, isSyncing, syncError, refresh, cancelSync } = useJobs(scope, driverId);
   const [filterVisible, setFilterVisible] = useState(false);
 
   const visibleJobs = applyJobFilters(jobs, filters);
@@ -83,9 +84,7 @@ export default function JobsScreen() {
         {dbError ? (
           <EmptyState title="Couldn’t load jobs" subtitle={dbError.message} />
         ) : showSpinner ? (
-          <View style={styles.centre}>
-            <ActivityIndicator size="large" color={COLOURS.primary} />
-          </View>
+          <FirstSyncProgress onCancel={cancelSync} />
         ) : (
           <JobList
             jobs={visibleJobs}
@@ -189,7 +188,6 @@ const styles = StyleSheet.create({
   tabLabel: { ...TYPOGRAPHY.body, color: COLOURS.textMuted },
   tabLabelActive: { color: COLOURS.primary, fontWeight: '600' },
   listArea: { flex: 1 },
-  centre: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   syncError: { backgroundColor: COLOURS.surface, paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs },
   syncErrorText: { ...TYPOGRAPHY.caption, color: COLOURS.danger },
   toolbar: {

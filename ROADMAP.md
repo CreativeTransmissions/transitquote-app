@@ -73,10 +73,13 @@ falls out of the sync cycle, pure + tested; native `expo-notifications` firing d
 seam, blocked by the emulator) · full sync-status UI (syncing spinner, outbox badge, failed-item
 retry/discard) · multi-site switching in Profile.
 
-## Milestone 5 — Hardening & release
+## Milestone 5 — Hardening & release  ·  _mostly done_
 
-Error boundaries at route level · Maestro E2E (login, list, status update, offline) ·
-performance pass (zero-latency launch) · EAS builds (iOS preview, Android apk) · store assets.
+Error boundaries at route level ✅ · Maestro E2E (login, list, status update, offline) ✅ green on
+device · performance pass (zero-latency launch ✅; first-sync progress + cancel ✅) · EAS builds —
+config + local release APK ✅, **cloud builds pending owner's `eas login` + Apple credentials** ·
+store assets present. The two deferred native features remain: embedded RouteMap (M2) and — now
+shipped — native notification firing (M4, ✅ verified on device).
 
 ---
 

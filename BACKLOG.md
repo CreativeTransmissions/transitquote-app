@@ -140,11 +140,14 @@ Decentralized (US-011, US-012, US-019 · AC: Driver–Decentralized)
   snapshot vs the freshly pulled jobs (new assignment to me / my-job status change / new-job for
   dispatch) — pure + unit-tested; wired into `pullJobs` via `getAllJobs` + `getCurrentUserRow`
   (spec §10 Option B).
-- [~] **Native notification firing — DEFERRED.** `expo-notifications` is a native module needing a
-  dev-client rebuild + on-device verify, blocked by the emulator (same stance as the M2 map). The
-  presentation seam (`services/notifications/notifier.ts`) is in place and called by the sync; today
-  it records intent in an in-memory log. Swap the no-op for `Notifications.scheduleNotificationAsync`
-  once the emulator is unblocked. (US-018/037/038.)
+- [x] **Native notification firing.** `expo-notifications` 56.0.15 added (expo-doctor 21/21, New-Arch
+  OK). `services/notifications/setup.ts` owns the foreground handler + `job-updates` Android channel +
+  permission flow (not-asked|denied|granted); `notifier.ts` fires via `scheduleNotificationAsync`
+  (channel-aware trigger) only when granted, still logging intent in-memory otherwise. First/baseline
+  sync suppressed in `pullJobs` (else 41 jobs → 41-notification storm). Wired into boot (`useAppBoot`).
+  **Verified on emulator end-to-end:** permission prompt → grant → channel created → no storm on login →
+  an out-of-band status change fired exactly one "Job status updated / Job … is now Assigned."
+  notification. 4 unit tests (granted/denied/error/log). (US-018/037/038.)
 - [x] Sync-status UI: `SyncStatusIndicator` (syncing spinner + outbox pending/failed count badges,
   spec §11.9) in the jobs header; global `isSyncing` flag in `connectivityStore`. Failed-item
   retry/discard already lands on the job card + detail (M1).
@@ -156,11 +159,25 @@ Decentralized (US-011, US-012, US-019 · AC: Driver–Decentralized)
 
 ## Milestone 5 — Hardening & release
 
-- [ ] Route-level error boundaries (CLAUDE.md).
-- [~] Maestro E2E: login · job list · status update · offline mode (scaffold + smoke flow done;
-  on-emulator run pending — see `docs/SMOKE_TESTING.md`). _Supersedes Detox._
-- [ ] Performance: zero-network-latency launch (AC: Performance); first-sync progress + cancel.
-- [ ] EAS builds: iOS preview (.ipa), Android apk; store listing assets.
+- [x] Route-level error boundaries (CLAUDE.md). `RouteErrorBoundary` (functional — uses Expo
+  Router's `ErrorBoundary` export convention, so no class component) re-exported from the root,
+  `(app)`, and `(auth)` layouts. Safe-area-aware fallback with the thrown message + retry. First
+  RTL component test in the repo (`components/shared/__tests__/RouteErrorBoundary.test.tsx`).
+- [x] Maestro E2E: login · job list · status update · offline mode — **all flows green on the
+  emulator** (`minimal`, `smoke`, `offline`, steps 01–05). Re-verified 2026-06-01 after the M5 route
+  changes. _Supersedes Detox._ See `docs/SMOKE_TESTING.md`.
+- [x] Performance: **zero-network-latency launch verified on device** (offline cold launch renders the
+  jobs list instantly from the local DB — no spinner, no network wait). First-sync **progress + cancel**:
+  `FirstSyncProgress` overlay (shown only while the DB is empty + the initial pull is in flight) with a
+  Cancel that aborts the request via `AbortSignal` (plumbed `getJobs`→`pullJobs`→`useSyncJobs`); a
+  user-cancel is swallowed (`axios.isCancel`) so it never surfaces as a sync error. RTL-tested.
+- [~] EAS builds. `eas.json` finalized: **preview** → Android `apk` + iOS device `.ipa` (ad-hoc,
+  internal); **production** → Android `app-bundle` (.aab). Store assets (icon/adaptive/splash/favicon)
+  present in `assets/`. **Local release pipeline verified** — `assembleRelease` produces a signed,
+  Hermes-bundled, minified release APK that installs and launches on the emulator. **Remaining (NOT
+  emulator-blocked — needs accounts):** the actual EAS *cloud* builds require an interactive
+  `eas login` + `eas init` (writes `projectId`) and, for iOS, Apple Developer credentials. Run:
+  `eas build -p android --profile preview` / `eas build -p ios --profile preview`.
 
 ---
 

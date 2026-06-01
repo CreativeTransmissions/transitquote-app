@@ -25,6 +25,8 @@ export interface UseJobsResult {
   isSyncing: boolean;
   syncError: Error | null;
   refresh: () => void;
+  /** Abort an in-flight sync — used by the first-sync progress UI's Cancel action. */
+  cancelSync: () => void;
 }
 
 export function useJobs(scope: JobScope = 'all', driverId: number | null = null): UseJobsResult {
@@ -38,18 +40,19 @@ export function useJobs(scope: JobScope = 'all', driverId: number | null = null)
   const { data, error } = useLiveQuery(query, [scope, driverId]);
   const isOnline = useConnectivity();
   const sync = useSyncJobs();
-  const syncMutate = sync.mutate;
+  const syncStart = sync.sync;
 
   useEffect(() => {
-    if (isOnline) syncMutate();
-  }, [isOnline, syncMutate]);
+    if (isOnline) syncStart();
+  }, [isOnline, syncStart]);
 
   return {
     jobs: data,
     dbError: error,
     isOnline,
-    isSyncing: sync.isPending,
+    isSyncing: sync.isSyncing,
     syncError: sync.error,
-    refresh: () => syncMutate(),
+    refresh: syncStart,
+    cancelSync: sync.cancel,
   };
 }

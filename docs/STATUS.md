@@ -1,4 +1,4 @@
-# Project Status — 2026-05-31
+# Project Status — 2026-06-01
 
 Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROADMAP.md) (milestones),
 [`BACKLOG.md`](../BACKLOG.md) (task list), [`docs/`](.) (decisions & guides).
@@ -13,8 +13,8 @@ Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROAD
 | **M1 — Walking skeleton** | ✅ Code complete | Full vertical slice built & unit-tested. **Not yet run on a device end-to-end** (see Maestro blocker). |
 | **M2 — Driver experience** | ✅ Code complete | Centralized list/detail; decentralized Available/My-Jobs tabs + claim/assign; status update; tap-to-call/email; "Open in Maps" deep-link. **Embedded route map deferred** (native dep, see M5); per-stop contact not in API. On-device run pending. |
 | **M3 — Dispatcher experience** | ✅ Code complete | All-jobs list + bottom toolbar; filter sheet (status/date/driver, persisted); assign/reassign from detail; drivers list/detail (job counts); customers list (search)/detail (job history). Date entry is typed fields (no native picker); customer "full address" not in API. On-device run pending. |
-| **M4 — Notifications & polish** | ✅ Code complete | Notification **detection** engine (diff sync vs DB) wired into sync; sync-status indicator (spinner + pending/failed badges); multi-site switching + Profile/Settings screen. **Native notification firing deferred** (expo-notifications native dep, blocked by emulator). On-device run pending. |
-| **M5 — Hardening & release** | 🟡 Partial | Maestro E2E scaffolded (below); error boundaries, perf, EAS builds outstanding. |
+| **M4 — Notifications & polish** | ✅ Done | Notification **detection** engine (diff sync vs DB) wired into sync; sync-status indicator (spinner + pending/failed badges); multi-site switching + Profile/Settings screen. **Native notification firing now LIVE** (expo-notifications 56.0.15; expo-doctor 21/21) — **verified end-to-end on the emulator** (permission prompt → grant → `job-updates` channel → no first-sync storm → an out-of-band status change fired one notification). |
+| **M5 — Hardening & release** | 🟡 Mostly done | Route-level error boundaries (root/`(app)`/`(auth)`, RTL-tested); **Maestro E2E all-green on device**; **perf pass done** (zero-latency offline launch verified; first-sync progress + cancel); **EAS config finalized + local release APK verified** — only the account-gated EAS *cloud* builds remain (needs `eas login` + Apple creds). |
 
 ---
 
@@ -58,16 +58,11 @@ Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROAD
 
 ## Blockers / open items
 
-1. **🟡 Maestro E2E not yet green (unblock prepared, not yet run).** The emulator resolves
-   `*.ddev.site` → `127.0.0.1` (its own loopback) and DDEV rejects a wrong Host header, so the app
-   couldn't reach the API. **Unblock shipped (no root needed):** `adb reverse tcp:443/:80` forwards
-   the emulator loopback to the host's DDEV router with the hostname intact — automated by
-   [`scripts/emulator-bridge.ps1`](../scripts/emulator-bridge.ps1). HTTPS trust is handled by the
-   `withDevNetworkSecurity` config plugin (`<debug-overrides>` trusting system + user + optional
-   bundled CA). **Remaining manual step:** obtain the mkcert root CA once (it is **not** installed on
-   this machine) and either install it on the emulator or drop it at `certs/ddev-rootCA.pem`; then
-   `expo run:android` + `maestro test`. Recipe in [`SMOKE_TESTING.md`](./SMOKE_TESTING.md). The
-   rootable-AVD + hosts edit remains documented as a fallback only.
+1. **🟢 RESOLVED — Maestro E2E green on the emulator.** Avast was disabled (2026-06-01), which
+   unblocked the DDEV path; the emulator reaches the API via the DNS responder (`*.ddev.site →
+   10.0.2.2`) + `-dns-server`, and `withDevNetworkSecurity` trusts the mkcert CA. All flows pass
+   (`minimal`, `smoke`, `offline`, steps 01–05), re-verified after the M5 route changes. The native
+   notification firing + perf + local release APK were all verified in the same on-device session.
 
 2. **🟡 `update_assigned` server bugs (reported, not ours).** JSON body crashes the server (needs
    form-encoding); `driver_id` must be a `drivers.id`; happy path unconfirmed (only test driver is
@@ -79,9 +74,15 @@ Snapshot of where TransitTeam Mobile stands. Living docs: [`ROADMAP.md`](../ROAD
 4. **🟡 Driver user with no driver record.** The `api-driver` test user's `wp_user_id` isn't in the
    drivers list, so derived `current_user.driver_id` is null — decide the "My Jobs" fallback. (BACKLOG.)
 
-5. **🟢 Local-dev TLS (mkcert + Avast).** Builds worked around via the JDK truststore (Avast). E2E
-   HTTPS now has the `withDevNetworkSecurity` debug `networkSecurityConfig` plugin in place — it just
-   needs the mkcert CA supplied once (see blocker 1). `http://` via `adb reverse tcp:80` needs no CA.
+5. **🟢 Local-dev TLS (mkcert + Avast).** Resolved by disabling Avast for the session; Gradle/SDK TLS
+   and the emulator DDEV path both work. The `withDevNetworkSecurity` debug `networkSecurityConfig`
+   plugin trusts the mkcert CA. Re-enable Avast when not running E2E.
+
+6. **🟡 EAS *cloud* builds — account-gated (not emulator-related).** `eas.json` is finalized (preview:
+   Android apk + iOS .ipa; production: .aab) and the **local** release pipeline is verified
+   (`assembleRelease` → installable, Hermes-bundled APK). The cloud builds still need an interactive
+   `eas login` + `eas init` (to write `extra.eas.projectId`) and Apple Developer credentials for the
+   iOS `.ipa`. These require the owner's accounts — can't be run autonomously.
 
 ---
 

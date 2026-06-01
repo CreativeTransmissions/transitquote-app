@@ -5,8 +5,8 @@ import type { ApiResponse, Job, JobDetail, WriteResponse } from '../../types/api
 
 const PATH = '/wp-json/transitquote/v1/jobs';
 
-export async function getJobs(): Promise<Job[]> {
-  const res = await apiClient.get<ApiResponse<Job[]>>(PATH);
+export async function getJobs(signal?: AbortSignal): Promise<Job[]> {
+  const res = await apiClient.get<ApiResponse<Job[]>>(PATH, { signal });
   if (!res.data?.success) throw new Error('Failed to load jobs');
   return res.data.data;
 }
