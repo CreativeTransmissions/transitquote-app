@@ -21,12 +21,13 @@ async function openUrl(url: string | null): Promise<void> {
 export default function CustomerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const customerId = Number(id);
-  const { isDispatcher } = useRole();
+  const { role, isDispatcher } = useRole();
   const { customers } = useCustomers();
   const jobs = useCustomerJobs(customerId);
   const { stateByJob } = useOutbox();
 
-  if (!isDispatcher) return <Redirect href="/jobs" />;
+  // Don't redirect while the role query is still hydrating (role === null) — see drivers/index.tsx.
+  if (role !== null && !isDispatcher) return <Redirect href="/jobs" />;
 
   const customer = customers.find((c) => c.id === customerId) ?? null;
   const phone = telUrl(customer?.phone);

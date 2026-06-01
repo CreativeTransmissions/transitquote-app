@@ -98,9 +98,10 @@ Centralized (US-010, US-013–US-017 · AC: Driver–Centralized)
   deep link via `utils/links.ts` (`mapsDirectionsUrl`, unit-tested) — route-level + per-stop (US-014, US-015).
 - [x] Pricing breakdown (basic/distance/time/surcharge/tax/total) with currency + tax label from
   config (`formatCurrency`); status picker → `update_job_status`.
-- [~] **RouteMap (embedded react-native-maps) — DEFERRED.** Shipped the "Open in Maps" deep-link
-  instead (no native dep, works offline). Embedded map needs a native rebuild + on-device verify,
-  blocked by the emulator (see M5). Do when the emulator is unblocked. (US-014.)
+- [x] **RouteMap (embedded react-native-maps) — REMOVED FROM SCOPE (2026-06-01).** The "Open in
+  Maps" deep-link (route-level + per-stop, no native dep, works offline) is the final solution for
+  US-014/US-015. The embedded map will **not** be built — it adds a native dependency + per-tenant
+  Google Maps API-key management for no gain over the external link. Spec updated (§6.5B, §14).
 - [ ] **Per-stop contact name/phone (US-016) — NOT in the API.** The live stop payload has address +
   visit type + date only; no per-stop contact. Customer-level phone/email tap-to-call/email shipped
   instead. Revisit if the server adds per-stop contacts.
@@ -127,6 +128,16 @@ Decentralized (US-011, US-012, US-019 · AC: Driver–Decentralized)
 - [x] Customers list (search name/email/phone — `filterCustomers`, unit-tested) + detail (contact,
   job history from local jobs). New `customers` table + migration `0001_lush_lifeguard`; `pullCustomers`
   added to the sync engine. Dispatcher-only route guard.
+- [x] **Bug — dispatcher route guard redirected on first render (fixed 2026-06-01).** Drivers &
+  Customers `index` + `[id]` screens did `if (!isDispatcher) return <Redirect href="/jobs" />`, but
+  `useRole()` derives the role from a Drizzle `useLiveQuery` that returns **empty on first render** —
+  so on mount `role` was momentarily `null` → `isDispatcher` false → the screen bounced straight back
+  to `/jobs`, making **Drivers/Customers unreachable for dispatchers** (the header links appeared but
+  did nothing). Fixed by guarding on `role !== null && !isDispatcher` (don't redirect while the role
+  query is still hydrating) across all four screens; aligns with the "handle loading explicitly" rule.
+  Found via the new-theme screenshot tour (`.maestro/screens-dispatch.yaml`). Regression tests added
+  (`app/(app)/{drivers,customers}/__tests__/index.test.tsx`): role-loading window does not redirect;
+  loaded driver does; dispatcher renders — verified red against the old guard. _(US-030, US-035.)_
 
 > **Date pickers:** the filter sheet takes the date range as typed `YYYY-MM-DD` fields (no native
 > calendar widget) to avoid adding a date-picker native dep before the emulator is unblocked. A

@@ -12,11 +12,13 @@ import { filterCustomers } from '../../../utils/customerSearch';
 import { COLOURS, SPACING, TYPOGRAPHY } from '../../../constants';
 
 export default function CustomersScreen() {
-  const { isDispatcher } = useRole();
+  const { role, isDispatcher } = useRole();
   const { customers, dbError, isSyncing, refresh } = useCustomers();
   const [query, setQuery] = useState('');
 
-  if (!isDispatcher) return <Redirect href="/jobs" />;
+  // role is null until the reactive role query hydrates — don't redirect during that first-render
+  // loading window, or a real dispatcher gets bounced back to /jobs (see drivers/index.tsx).
+  if (role !== null && !isDispatcher) return <Redirect href="/jobs" />;
 
   const visible = filterCustomers(customers, query);
 

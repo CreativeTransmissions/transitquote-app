@@ -10,12 +10,14 @@ import { useRole } from '../../../hooks/useRole';
 import { COLOURS, SPACING, TYPOGRAPHY } from '../../../constants';
 
 export default function DriversScreen() {
-  const { isDispatcher } = useRole();
+  const { role, isDispatcher } = useRole();
   const drivers = useDrivers();
   const counts = useDriverJobCounts();
 
   // Drivers list is dispatcher/admin-only (spec §6.6); guard the route for non-dispatchers.
-  if (!isDispatcher) return <Redirect href="/jobs" />;
+  // role is null until the reactive role query (useLiveQuery) hydrates — don't redirect during
+  // that first-render loading window, or a real dispatcher gets bounced straight back to /jobs.
+  if (role !== null && !isDispatcher) return <Redirect href="/jobs" />;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
