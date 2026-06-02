@@ -190,6 +190,23 @@ Decentralized (US-011, US-012, US-019 · AC: Driver–Decentralized)
   emulator-blocked — needs accounts):** the actual EAS *cloud* builds require an interactive
   `eas login` + `eas init` (writes `projectId`) and, for iOS, Apple Developer credentials. Run:
   `eas build -p android --profile preview` / `eas build -p ios --profile preview`.
+- [ ] **Harden `parseApiBody` against injected error/warning noise.** `services/parseApiBody.ts`
+  strips noise by slicing from the **first `{`/`[`** — fragile: it assumes the first bracket begins
+  the JSON envelope. On 2026-06-02 the `GET /jobs?id=` endpoint regressed (PHP `$journey_order`
+  deprecation **+** a `wpdberror` SQL block, "Unknown column …quote_surcharges.quote_surcharges.id"),
+  and because the SQL error text contains `[Unknown column …]`, `parseApiBody` sliced at that `[`
+  and `JSON.parse` threw → **every job detail rendered empty** (no Route/Customer/Pricing/Payment),
+  silently (no user-visible error). Fixed server-side (verified live 2026-06-02) — but the client
+  guard should be robust regardless: locate the `{"data"`/`{"code"` envelope (or the first `{` that
+  parses to end-of-string), and/or strip known WP error/deprecation HTML blocks first. Add a
+  regression test using the exact broken payload. _(Defence-in-depth; the server has regressed PHP
+  warnings into REST JSON more than once — see `docs/API_NOTES.md` §5.)_
+- [ ] **Reconcile the "warning-strip is a no-op" claim in the docs.** `docs/API_NOTES.md` §5 and the
+  `CLAUDE.md` API Layer note state the PHP-warning prefix was fixed 2026-06-01 and the strip "is now
+  a no-op." That was **false for the `/jobs?id=` path**, which still emitted a deprecation + SQL error
+  until the 2026-06-02 server fix. Add a one-line note that the detail endpoint regressed and was
+  re-fixed 2026-06-02, so the assumption that "the body is always clean JSON" stays honest. Pairs with
+  the `parseApiBody` hardening above.
 
 ---
 
