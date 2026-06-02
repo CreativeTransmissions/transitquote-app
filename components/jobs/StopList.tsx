@@ -1,9 +1,11 @@
 /**
- * Ordered list of a job's stops (spec §6.5 B). Presentational only — each stop is tappable to
- * open that location in the native maps app via the `onOpenStop` callback the screen provides.
+ * Ordered list of a job's stops (spec §6.5 B). Presentational only — each stop row is tappable to
+ * open that location in the native maps app via the `onOpenStop` callback the screen provides, and
+ * a stop's contact phone is tappable to dial via `onCallStop` (the screen owns the `tel:` link).
  *
- * NOTE: the live API's stop payload carries address + visit type + scheduled date, but NOT a
- * per-stop contact name/phone (US-016) — that field isn't in the wire shape. See BACKLOG.
+ * Per-stop contact (US-016) IS in the wire shape — `contact_name`/`contact_phone` were added
+ * server-side (re-verified live 2026-06-02; see docs/API_NOTES.md §11). They may be `""` for a
+ * given stop, in which case the contact line / call affordance is hidden.
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { COLOURS, SPACING, TYPOGRAPHY } from '../../constants';
@@ -13,14 +15,19 @@ import type { Stop } from '../../types/api';
 interface StopListProps {
   stops: Stop[];
   onOpenStop?: (stop: Stop) => void;
+  onCallStop?: (stop: Stop) => void;
 }
 
-export function StopList({ stops, onOpenStop }: StopListProps) {
+export function StopList({ stops, onOpenStop, onCallStop }: StopListProps) {
   const { formatDateTimeSmart } = useDateFormat();
   return (
     <View>
       {stops.map((stop, index) => {
         const scheduled = formatDateTimeSmart(stop.collection_date);
+        const contactName = stop.contact_name?.trim();
+        const contactPhone = stop.contact_phone?.trim();
+        const note = stop.note?.trim();
+        const canCall = !!contactPhone && !!onCallStop;
         return (
           <Pressable
             key={stop.id ?? index}
@@ -35,6 +42,23 @@ export function StopList({ stops, onOpenStop }: StopListProps) {
             <View style={styles.body}>
               <Text style={styles.type}>{stop.visit_type || `Stop ${index + 1}`}</Text>
               <Text style={styles.address}>{stop.address || '—'}</Text>
+              {contactName || contactPhone ? (
+                canCall ? (
+                  <Pressable
+                    testID={`stop-${index}-call`}
+                    accessibilityRole="link"
+                    onPress={() => onCallStop?.(stop)}
+                    hitSlop={6}
+                  >
+                    <Text style={styles.contactLink}>
+                      {[contactName, contactPhone].filter(Boolean).join(' · ')}
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <Text style={styles.contact}>{[contactName, contactPhone].filter(Boolean).join(' · ')}</Text>
+                )
+              ) : null}
+              {note ? <Text style={styles.note}>{note}</Text> : null}
               {scheduled ? <Text style={styles.meta}>{scheduled}</Text> : null}
             </View>
             {onOpenStop ? <Text style={styles.chevron}>›</Text> : null}
@@ -60,6 +84,9 @@ const styles = StyleSheet.create({
   body: { flex: 1, gap: 2 },
   type: { ...TYPOGRAPHY.label, color: COLOURS.primary, textTransform: 'capitalize' },
   address: { ...TYPOGRAPHY.body, color: COLOURS.text },
+  contact: { ...TYPOGRAPHY.caption, color: COLOURS.text },
+  contactLink: { ...TYPOGRAPHY.caption, color: COLOURS.primary },
+  note: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted, fontStyle: 'italic' },
   meta: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted },
   chevron: { ...TYPOGRAPHY.subheading, color: COLOURS.textMuted },
 });

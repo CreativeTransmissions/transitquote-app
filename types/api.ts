@@ -330,6 +330,16 @@ export interface Stop {
   time_type: string;
   datetime_type: string | null;
   visit_type: string;
+  /**
+   * Per-stop contact (added server-side; re-verified live 2026-06-02 — see docs/API_NOTES.md §11).
+   * From the `wp_..._journeys_locations` join, so they may be `""` when not entered for a stop.
+   */
+  contact_name: string;
+  contact_phone: string;
+  /** Free-text delivery note for the stop; `""` when none. */
+  note: string;
+  /** Stop ordering within the journey (`"0"`-based); the API returns stops already ordered by it. */
+  journey_order: string;
 }
 
 export interface Quote {

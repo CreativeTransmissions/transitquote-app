@@ -103,9 +103,17 @@ Centralized (US-010, US-013–US-017 · AC: Driver–Centralized)
   Maps" deep-link (route-level + per-stop, no native dep, works offline) is the final solution for
   US-014/US-015. The embedded map will **not** be built — it adds a native dependency + per-tenant
   Google Maps API-key management for no gain over the external link. Spec updated (§6.5B, §14).
-- [ ] **Per-stop contact name/phone (US-016) — NOT in the API.** The live stop payload has address +
-  visit type + date only; no per-stop contact. Customer-level phone/email tap-to-call/email shipped
-  instead. Revisit if the server adds per-stop contacts.
+- [x] **Per-stop contact name/phone (US-016) — DONE (API re-verified + shipped 2026-06-02).** The
+  server added it: `GET /jobs?id=` stops now carry `contact_name`, `contact_phone` (and `note`,
+  `journey_order`, `stop_appartment_no`) — confirmed in the raw SQL (`jl.contact_name`,
+  `jl.contact_phone` from `wp_tq_pro4_journeys_locations`), populated on **69 of 85 stops** across the
+  41 test jobs (e.g. job 8 → "John Smith" / "07700111222"). Added the fields to the `Stop` interface
+  (`types/api.ts`); `StopList` now renders per-stop contact + note, with the phone tappable to dial
+  via a new `onCallStop` callback wired through Job Detail (`telUrl`, reusing the existing `openUrl`).
+  The detail blob already persisted the full stop JSON, so no sync/DB change was needed. 7 RTL tests
+  added (`components/jobs/__tests__/StopList.test.tsx`); tsc · eslint · 123 unit tests green. The
+  customer-level tap-to-call stays as the job-level fallback. (Stops carry no email, so per-stop is
+  call-only.)
 
 Decentralized (US-011, US-012, US-019 · AC: Driver–Decentralized)
 - [x] Available / My Jobs tabs (`useJobs(scope, driverId)` → `availableJobsQuery`/`myJobsQuery`).
@@ -190,23 +198,28 @@ Decentralized (US-011, US-012, US-019 · AC: Driver–Decentralized)
   emulator-blocked — needs accounts):** the actual EAS *cloud* builds require an interactive
   `eas login` + `eas init` (writes `projectId`) and, for iOS, Apple Developer credentials. Run:
   `eas build -p android --profile preview` / `eas build -p ios --profile preview`.
-- [ ] **Harden `parseApiBody` against injected error/warning noise.** `services/parseApiBody.ts`
-  strips noise by slicing from the **first `{`/`[`** — fragile: it assumes the first bracket begins
+- [x] **Harden `parseApiBody` against injected error/warning noise (2026-06-02).** `services/parseApiBody.ts`
+  used to strip noise by slicing from the **first `{`/`[`** — fragile: it assumed the first bracket began
   the JSON envelope. On 2026-06-02 the `GET /jobs?id=` endpoint regressed (PHP `$journey_order`
   deprecation **+** a `wpdberror` SQL block, "Unknown column …quote_surcharges.quote_surcharges.id"),
   and because the SQL error text contains `[Unknown column …]`, `parseApiBody` sliced at that `[`
   and `JSON.parse` threw → **every job detail rendered empty** (no Route/Customer/Pricing/Payment),
-  silently (no user-visible error). Fixed server-side (verified live 2026-06-02) — but the client
-  guard should be robust regardless: locate the `{"data"`/`{"code"` envelope (or the first `{` that
-  parses to end-of-string), and/or strip known WP error/deprecation HTML blocks first. Add a
-  regression test using the exact broken payload. _(Defence-in-depth; the server has regressed PHP
-  warnings into REST JSON more than once — see `docs/API_NOTES.md` §5.)_
-- [ ] **Reconcile the "warning-strip is a no-op" claim in the docs.** `docs/API_NOTES.md` §5 and the
-  `CLAUDE.md` API Layer note state the PHP-warning prefix was fixed 2026-06-01 and the strip "is now
-  a no-op." That was **false for the `/jobs?id=` path**, which still emitted a deprecation + SQL error
-  until the 2026-06-02 server fix. Add a one-line note that the detail endpoint regressed and was
-  re-fixed 2026-06-02, so the assumption that "the body is always clean JSON" stays honest. Pairs with
-  the `parseApiBody` hardening above.
+  silently (no user-visible error). Fixed server-side (verified live 2026-06-02). **Client now robust
+  too:** since the real REST envelope is always the *trailing* JSON value, `parseApiBody` scans each
+  `{`/`[` candidate left→right and returns the first slice that JSON-parses to end-of-string — noise
+  brackets (e.g. the `[Unknown column …]` SQL block) fail to parse and are skipped. Clean bodies keep
+  the single-parse fast path; a genuinely malformed envelope still throws. Regression tests added with
+  the exact broken payload shape (`services/__tests__/parseApiBody.test.ts`, 9 tests green; tsc clean).
+  _(Defence-in-depth; the server has regressed PHP warnings into REST JSON more than once — see
+  `docs/API_NOTES.md` §5.)_
+- [x] **Reconcile the "warning-strip is a no-op" claim in the docs (2026-06-02).** `docs/API_NOTES.md`
+  §5 and the `CLAUDE.md` API Layer note previously stated the PHP-warning prefix was fixed 2026-06-01
+  and the strip "is now a no-op" — **false for the `/jobs?id=` path**, which emitted a `$journey_order`
+  deprecation + `wpdberror` SQL block until the 2026-06-02 server fix. Reconciled: §5 is now a dated
+  timeline (2026-06-01 fix → 2026-06-02 detail-endpoint regression → same-day re-fix + client harden)
+  and reframes `parseApiBody` as **permanent defence-in-depth**, not a temporary workaround; the
+  CLAUDE.md note and the `apiClient.ts`/`parseApiBody.ts` header comments were corrected to match
+  ("do NOT assume the body is always clean JSON"). Pairs with the `parseApiBody` hardening above.
 
 ---
 

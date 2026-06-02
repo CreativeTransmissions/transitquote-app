@@ -31,4 +31,31 @@ describe('parseApiBody', () => {
   it('returns the raw text when no JSON is present', () => {
     expect(parseApiBody('not json at all')).toBe('not json at all');
   });
+
+  // Regression — the 2026-06-02 `GET /jobs?id=` outage (docs/API_NOTES.md §5). A PHP
+  // `$journey_order` deprecation AND a `wpdberror` SQL block were prepended to the envelope. The
+  // SQL error text contains a stray `[` (`[Unknown column …]`) that sits BEFORE the real
+  // `{"data"…}`, so the old "slice at the first bracket" sliced into the SQL error and threw —
+  // every job detail rendered empty. The scan must skip the noise bracket and find the envelope.
+  it('finds the trailing envelope past a wpdberror SQL block whose text contains a stray "["', () => {
+    const raw =
+      '<br />\n<b>Deprecated</b>:  Creation of dynamic property TQ_API_Public::$journey_order is deprecated in <b>/var/www/html/.../class-transitquote-api-public.php</b> on line <b>823</b><br />\n' +
+      "<br />\n<b>WordPress database error:</b> [Unknown column 'wp_4xj.quote_surcharges.quote_surcharges.id' in 'field list'] for query SELECT quote_surcharges.quote_surcharges.id FROM wp_4xj_tq_quote_surcharges<br />\n" +
+      '{"data":{"job":{"id":"7","job_ref":"TQ-7"}},"success":true}';
+    expect(parseApiBody(raw)).toEqual({
+      data: { job: { id: '7', job_ref: 'TQ-7' } },
+      success: true,
+    });
+  });
+
+  it('finds a trailing ARRAY envelope even when leading noise contains a stray bracket', () => {
+    const raw =
+      "<br />\n<b>WordPress database error:</b> [Unknown column 'x.id'] for query SELECT x.id<br />\n" +
+      '[{"id":"1"},{"id":"2"}]';
+    expect(parseApiBody(raw)).toEqual([{ id: '1' }, { id: '2' }]);
+  });
+
+  it('throws on leading noise followed by a genuinely malformed envelope (surfaces the error)', () => {
+    expect(() => parseApiBody('<b>Deprecated</b>: noise<br />\n{"data":{,}')).toThrow();
+  });
 });

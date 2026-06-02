@@ -64,20 +64,40 @@ Ids, money, counts, and booleans all arrive as **strings**, and fields may be `n
 MySQL datetimes (`"2026-05-12 19:29:05"`), and frequently the zero sentinel
 `"0000-00-00 00:00:00"`. Guard for the sentinel before parsing with dayjs (treat as null).
 
-## 5. ⚠️ PHP `Deprecated` warning prepended to JSON (temporary)
+## 5. ⚠️ PHP warnings/errors leaked into JSON bodies (recurring — guard stays)
 
-`/configuration` and `/jobs` currently emit a PHP notice as raw HTML *before* the JSON body:
+The backend has **repeatedly** emitted PHP output as raw HTML *before* the JSON body, e.g.:
 ```
 <br /><b>Deprecated</b>: Creation of dynamic property TQ_API_Public::$team_plugin ...
 { "data": ... }
 ```
 This breaks `JSON.parse` / Axios's default parsing. `apiClient` uses a defensive
-`transformResponse` (`parseApiBody`) that strips everything before the first `{` / `[`.
+`transformResponse` (`parseApiBody`) to recover the real envelope.
 
-**FIXED 2026-06-01.** Verified live that `/configuration`, `/jobs`, and `/jobs/update_assigned`
-now return clean JSON (body starts with `{`, no warning prefix; `display_errors` deprecation noise
-also gone). The strip is now a no-op — **kept as a defensive guard** against a PHP-warning
-regression on any endpoint (it cost us once) rather than removed.
+**Timeline — do NOT assume "the body is always clean JSON":**
+- **2026-06-01:** the `$team_plugin` `Deprecated` warning was fixed server-side. Verified live that
+  `/configuration`, `/jobs`, and `/jobs/update_assigned` returned clean JSON (body starts with `{`).
+  At that point the strip looked like a no-op on those paths.
+- **2026-06-02 — REGRESSION on `GET /jobs?id=`.** The detail endpoint leaked a `$journey_order`
+  deprecation **plus** a `wpdberror` SQL block ("Unknown column …quote_surcharges.quote_surcharges.id").
+  So the "no-op" claim was **false for the detail path** — it was never universally clean. Worse, the
+  SQL error text contains a stray `[` (`[Unknown column …]`) *before* the real `{"data"…}`, which
+  defeated the old "slice at the first `{`/`[`" logic → `JSON.parse` threw → every job detail rendered
+  empty, silently. Fixed server-side (verified live 2026-06-02).
+- **Client hardened 2026-06-02.** `parseApiBody` no longer slices at the first bracket; it scans for
+  the *trailing* JSON envelope (the value that parses to end-of-string), skipping noise brackets. See
+  the regression test in `services/__tests__/parseApiBody.test.ts`.
+- **Still leaking on some jobs (observed live 2026-06-02).** A full sweep of all 41 test jobs found
+  **jobs `id=57` and `id=114`** still return a `Warning: Trying to access array offset on false` **plus**
+  a malformed stops query (`... journey_id =   order by journey_order asc` — empty `journey_id`) before
+  the JSON. Distinct from the quote_surcharges bug above; affects only jobs with no journey. The
+  hardened `parseApiBody` recovers a valid envelope for both (the old first-bracket slice would have
+  rendered their detail empty). **Reported to the server team 2026-06-02** (empty-journey job builds a
+  malformed stops query + leaks the warning into REST JSON); the client is no longer at its mercy.
+
+The server has regressed PHP noise into REST JSON more than once, so `parseApiBody` is **kept as
+permanent defence-in-depth**, not a temporary workaround. Treat any "it's clean now" observation as
+per-endpoint and point-in-time.
 
 ## 6. `GET /configuration` → `data`
 

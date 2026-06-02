@@ -94,6 +94,10 @@ export default function JobDetailScreen() {
     void openUrl(mapsDirectionsUrl([stop]));
   };
 
+  const handleCallStop = (stop: Stop) => {
+    void openUrl(telUrl(stop.contact_phone));
+  };
+
   const routeUrl = detail?.stops?.length ? mapsDirectionsUrl(detail.stops) : null;
   const customerPhone = telUrl(detail?.customer?.phone);
   const customerEmail = mailtoUrl(detail?.customer?.email);
@@ -187,7 +191,7 @@ export default function JobDetailScreen() {
                   value={[detail.journey.distance, detail.journey.time].filter(Boolean).join(' · ') || '—'}
                 />
               ) : null}
-              <StopList stops={detail.stops} onOpenStop={handleOpenStop} />
+              <StopList stops={detail.stops} onOpenStop={handleOpenStop} onCallStop={handleCallStop} />
               {routeUrl ? (
                 <View style={styles.mapButton}>
                   <Button testID="job-open-maps" label="Open route in Maps" variant="secondary" onPress={() => openUrl(routeUrl)} />
