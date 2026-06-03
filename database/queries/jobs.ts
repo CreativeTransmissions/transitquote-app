@@ -2,9 +2,10 @@
  * Job read/write queries against the local DB. Read queries return Drizzle builders for
  * `useLiveQuery` (reactive). Writes are synchronous transactions (expo-sqlite).
  */
-import { desc, eq, isNull, notInArray } from 'drizzle-orm';
+import { desc, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '../client';
 import { jobs, jobDetails, type JobInsert, type JobDetailRow, type JobRow } from '../schema';
+import { planJobPrune } from './jobPrune';
 
 /** Reactive: all jobs, newest first. */
 export function jobsListQuery() {
@@ -40,16 +41,18 @@ export function jobDetailByIdQuery(id: number) {
  * Replace the jobs table with a freshly pulled list: upsert each present job and prune any that
  * the server no longer returns (and their detail rows). Upserts only touch list-provided columns,
  * so a previously hydrated detail's job fields are preserved where the list omits them.
+ *
+ * Pruning computes the removed ids in JS and deletes them in bounded chunks (planJobPrune) rather
+ * than a `NOT IN (…all surviving ids…)` clause, which would exceed SQLite's variable limit (and
+ * crash the whole pull) for tenants with >999 jobs. Surviving jobs' hydrated detail rows are kept.
  */
 export function replaceJobs(rows: JobInsert[]): void {
   db.transaction((tx) => {
-    const ids = rows.map((r) => r.id).filter((id): id is number => id != null);
-    if (ids.length) {
-      tx.delete(jobDetails).where(notInArray(jobDetails.jobId, ids)).run();
-      tx.delete(jobs).where(notInArray(jobs.id, ids)).run();
-    } else {
-      tx.delete(jobDetails).run();
-      tx.delete(jobs).run();
+    const nextIds = rows.map((r) => r.id).filter((id): id is number => id != null);
+    const existing = tx.select({ id: jobs.id }).from(jobs).all().map((r) => r.id);
+    for (const chunk of planJobPrune(existing, nextIds)) {
+      tx.delete(jobDetails).where(inArray(jobDetails.jobId, chunk)).run();
+      tx.delete(jobs).where(inArray(jobs.id, chunk)).run();
     }
     for (const row of rows) {
       tx.insert(jobs).values(row).onConflictDoUpdate({ target: jobs.id, set: row }).run();
