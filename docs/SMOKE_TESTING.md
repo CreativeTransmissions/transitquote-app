@@ -295,3 +295,37 @@ covered by the `.api-samples/` ignore) holding `SITE_URL`/`CLIENT_ID`/`CLIENT_SE
 >    the driver connection. `adb kill-server && adb start-server` sometimes clears it; the reliable
 >    fix is `taskkill /PID <java.exe> /F` (the app itself launches fine via `adb shell monkey`, which
 >    proves it's a Maestro-side wedge, not an app crash). Then re-run.
+
+## New flows (2026-06-03) — authored, pending an emulator run
+
+These were added to close the recommended E2E gaps. YAML validated (all 17 `.maestro` flows parse);
+they have **not** yet been executed here (no emulator was running at authoring time). Run them with
+the per-run loop above.
+
+- **`roles.yaml`** — role-based UI hiding (CLAUDE.md §4 + Testing Standards): a **driver** must NOT
+  see the dispatcher-only Drivers/Customers links. Deterministic. Run with **api-driver**.
+- **`assign-driver.yaml`** — dispatcher assigns a driver from job detail (Assign → pick → confirm).
+  Deterministic. Run with **api-dispatch**. ⚠️ MUTATES a job's assignment on the live DDEV site.
+
+## E2E coverage gaps — NOT auto-testable from Maestro alone
+
+These three recommended scenarios can't be made deterministic with Maestro + the live site alone,
+because each needs a precondition Maestro can't create. Documented here rather than shipped as
+fragile/false-green flows. Each is covered at the unit/integration level (see the Jest suite).
+
+- **Outbox failed → retry/discard** (SyncProblemsSheet / job-detail failed banner). Needs the server
+  to *reject* a queued action (4xx or 200+`success:false`) to produce a `failed` outbox row. There's
+  no reliable way to force a rejection from the UI on demand. *Unit-covered:* `outboxFlusher`
+  failure classification, `useOutboxActions` retry/discard, `SyncProblemsSheet` + job-detail banner.
+  To test manually: seed a `failed` outbox row (or point at a server stub that 4xx's the write),
+  then drive `sync-failed-badge → sync-problem-retry-* / -discard-*`.
+- **Multi-site switch.** Needs a **second real tenant** (URL + client creds + login). The add-a-site
+  path is login → "Change site" → onboarding, which is only reachable after logout — and logout
+  clears the *active* site's token, so a switch to the other site correctly lands on its login
+  screen (re-auth), not Jobs. Parameterise with a second `_2` env set if a second site is available.
+  *Unit-covered:* `useSites` (load / wipe-then-switch / no-op), `authStore` (`saveSiteConfig`,
+  `switchSite` token→status), home switcher rows.
+- **401 → forced re-login.** Needs an invalidated/expired access token to provoke a 401; the token
+  lives in the Android keystore (expo-secure-store) and can't be tampered with from Maestro.
+  *Unit-covered:* `apiClient` 401 interceptor → `clearSession`, and the `(app)` layout redirect to
+  `/login` when unauthenticated.

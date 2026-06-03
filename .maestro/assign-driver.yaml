@@ -1,0 +1,47 @@
+# Driver assignment (spec §6.5 E, US-032/033) — a DISPATCHER assigns a driver to a job from the
+# job detail screen: tap "Assign driver" → pick a driver from the sheet → confirm the native dialog.
+# The optimistic assignment applies locally and the outbox flushes it to the server.
+#
+# Run with the api-dispatch account (the Assign affordance is dispatcher / decentralized-driver only):
+#   maestro test \
+#     -e SITE_URL=https://tq-pro-teams-php8.ddev.site \
+#     -e CLIENT_ID=... -e CLIENT_SECRET=... \
+#     -e TQ_USERNAME=api-dispatch -e TQ_PASSWORD=dispatch123 \
+#     .maestro/assign-driver.yaml
+# NEVER hardcode credentials — pass via -e. No `env:` block (it would override -e; see smoke.yaml).
+# ⚠️ This MUTATES a test job's assignment on the live DDEV site.
+appId: com.transitteam.app
+---
+# Onboarding → login → jobs list (as dispatcher).
+- runFlow: subflows/auth.yaml
+- assertVisible: "Jobs"
+
+# Open the first job.
+- tapOn:
+    id: "job-card-.*"
+    index: 0
+- assertVisible:
+    id: "job-update-status"
+
+# Assignment section: open the driver picker (dispatcher always sees "Assign driver").
+- assertVisible:
+    id: "job-assign"
+- tapOn:
+    id: "job-assign"
+
+# Pick the first assignable driver from the sheet.
+- extendedWaitUntil:
+    visible:
+      id: "driver-option-.*"
+    timeout: 10000
+- tapOn:
+    id: "driver-option-.*"
+    index: 0
+
+# Confirm the native "Assign driver" dialog (dialogs are native — matched by button text).
+- tapOn: "Assign"
+
+# Back on detail, the optimistic assignment is reflected and queued (then synced). Return to the list.
+- tapOn:
+    id: "job-back"
+- assertVisible: "Jobs"

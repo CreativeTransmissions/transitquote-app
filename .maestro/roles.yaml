@@ -1,0 +1,24 @@
+# Role-based UI hiding (CLAUDE.md §4 + Testing Standards: "driver does NOT see dispatcher-only UI").
+# A DRIVER account must NOT see the dispatcher-only Drivers / Customers nav links on the jobs list;
+# Profile is always available. Deterministic — run with the api-driver account.
+#
+# Run (native Windows — emulator + adb + Maestro; see docs/SMOKE_TESTING.md for the full recipe):
+#   maestro test \
+#     -e SITE_URL=https://tq-pro-teams-php8.ddev.site \
+#     -e CLIENT_ID=... -e CLIENT_SECRET=... \
+#     -e TQ_USERNAME=api-driver -e TQ_PASSWORD=... \
+#     .maestro/roles.yaml
+# NEVER hardcode credentials — pass via -e. No `env:` block (in Maestro 2.6 it overrides -e; see smoke.yaml).
+appId: com.transitteam.app
+---
+# Onboarding → login → jobs list (as the driver account).
+- runFlow: subflows/auth.yaml
+
+# Assert the screen actually loaded BEFORE the negative checks, so an absent link can't be a
+# false-green from the page simply not having rendered.
+- assertVisible: "Jobs"
+- assertVisible: "Profile"
+
+# The dispatcher-only links must be absent for a driver (JobsScreen renders them only when isDispatcher).
+- assertNotVisible: "Drivers"
+- assertNotVisible: "Customers"
