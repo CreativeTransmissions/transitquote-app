@@ -33,7 +33,7 @@ async function dispatchAction(row: OutboxRow): Promise<void> {
   }
 }
 
-export async function flushOutbox(): Promise<void> {
+async function flushOnce(): Promise<void> {
   const items = getProcessable();
   for (const row of items) {
     markInProgress(row.id);
@@ -51,4 +51,32 @@ export async function flushOutbox(): Promise<void> {
       }
     }
   }
+}
+
+// Single-flight guard. flushOutbox is fired from several independent callers (foreground sync,
+// pull-to-refresh, connectivity-restore, after every write, manual retry). Without this, two
+// overlapping flushes both read the same `pending` rows via getProcessable() before either marks
+// them in_progress, and each `await dispatchAction(row)` — submitting non-idempotent actions
+// (e.g. ASSIGN_DRIVER) to the server twice. We coalesce concurrent calls onto the active run and,
+// if a caller asks again mid-flush, do exactly one more pass so items enqueued during the flush
+// (or freshly-pending retries) are still picked up without a separate trigger.
+let active: Promise<void> | null = null;
+let rerunRequested = false;
+
+export function flushOutbox(): Promise<void> {
+  if (active) {
+    rerunRequested = true;
+    return active;
+  }
+  active = (async () => {
+    try {
+      do {
+        rerunRequested = false;
+        await flushOnce();
+      } while (rerunRequested);
+    } finally {
+      active = null;
+    }
+  })();
+  return active;
 }
