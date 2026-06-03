@@ -10,6 +10,23 @@ module.exports = {
     'utils/**/*.{ts,tsx}',
     'services/**/*.{ts,tsx}',
     'database/**/*.{ts,tsx}',
+    'components/**/*.{ts,tsx}',
+    'stores/**/*.{ts,tsx}',
     '!**/index.ts',
   ],
+  // Test infrastructure and generated/native-only modules are not product code — exclude them so
+  // the report reflects real coverage (the testkit harness and manual mocks would otherwise count).
+  coveragePathIgnorePatterns: [
+    '/node_modules/',
+    '/database/testkit/',
+    '/__mocks__/',
+    '/database/migrations/',
+    '/database/client.ts', // native expo-sqlite connection; the testkit stands in for it under jest
+  ],
+  // Ratchet floor — keeps the well-covered core (utils, services, sync, query layer) from
+  // regressing. Raise these as the thinner areas (components, the remaining hooks, app routes)
+  // gain coverage; do not lower them.
+  coverageThreshold: {
+    global: { statements: 70, branches: 63, functions: 68, lines: 70 },
+  },
 };
