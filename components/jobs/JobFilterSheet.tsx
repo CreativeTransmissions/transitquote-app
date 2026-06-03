@@ -5,6 +5,7 @@
  */
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TextField } from '../shared/TextField';
 import { Button } from '../shared/Button';
 import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
@@ -35,6 +36,7 @@ export function JobFilterSheet({
   onClose,
 }: JobFilterSheetProps) {
   const [draft, setDraft] = useState<JobFilters>(filters);
+  const insets = useSafeAreaInsets();
 
   const toggleStatus = (id: number) => {
     setDraft((d) => ({
@@ -50,11 +52,12 @@ export function JobFilterSheet({
       visible={visible}
       transparent
       animationType="slide"
+      statusBarTranslucent
       onRequestClose={onClose}
       onShow={() => setDraft(filters)}
     >
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet}>
+        <Pressable style={[styles.sheet, { paddingBottom: SPACING.lg + insets.bottom }]}>
           <Text style={styles.title}>Filter jobs</Text>
           <ScrollView>
             <Text style={styles.section}>Status</Text>
