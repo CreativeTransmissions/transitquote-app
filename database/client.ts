@@ -17,3 +17,9 @@ const sqlite = openDatabaseSync(DATABASE_NAME, { enableChangeListener: true });
 export const db = drizzle(sqlite, { schema });
 
 export type DB = typeof db;
+
+/**
+ * The write surface shared by `db` and a transaction handle (`tx`). Query functions accept this so
+ * callers can pass either `db` (standalone) or a `tx` to enrol the write in a larger transaction.
+ */
+export type DbWriter = Pick<DB, 'update' | 'insert'>;

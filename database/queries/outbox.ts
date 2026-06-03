@@ -2,8 +2,8 @@
  * Outbox queue queries (offline writes). Pending/in_progress items are flushed by the
  * outboxFlusher; failed items are surfaced to the user for retry/discard. Synchronous (expo-sqlite).
  */
-import { eq, inArray } from 'drizzle-orm';
-import { db } from '../client';
+import { asc, eq, inArray } from 'drizzle-orm';
+import { db, type DbWriter } from '../client';
 import {
   outbox,
   type OutboxRow,
@@ -11,15 +11,30 @@ import {
   type OutboxActionPayload,
 } from '../schema';
 
-export function enqueueAction(actionType: OutboxActionType, payload: OutboxActionPayload): void {
-  db.insert(outbox)
+/** Enqueue an outbox action. Accepts an executor so it can enrol in a caller's transaction. */
+export function enqueueAction(
+  actionType: OutboxActionType,
+  payload: OutboxActionPayload,
+  exec: DbWriter = db,
+): void {
+  exec
+    .insert(outbox)
     .values({ actionType, payload, status: 'pending', attempts: 0, createdAt: new Date().toISOString() })
     .run();
 }
 
-/** Items eligible for a flush attempt: pending, plus in_progress left over from an interrupted run. */
+/**
+ * Items eligible for a flush attempt: pending, plus in_progress left over from an interrupted run.
+ * Ordered by id (insertion order) so queued actions on the same job flush FIFO — e.g. an ASSIGN
+ * before a later UPDATE_STATUS — rather than relying on incidental row order.
+ */
 export function getProcessable(): OutboxRow[] {
-  return db.select().from(outbox).where(inArray(outbox.status, ['pending', 'in_progress'])).all();
+  return db
+    .select()
+    .from(outbox)
+    .where(inArray(outbox.status, ['pending', 'in_progress']))
+    .orderBy(asc(outbox.id))
+    .all();
 }
 
 /**

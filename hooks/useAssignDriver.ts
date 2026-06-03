@@ -8,8 +8,7 @@
  * surfaces on the job as a failed outbox item; it is not retried.
  */
 import { useMutation, type UseMutationResult } from '@tanstack/react-query';
-import { applyOptimisticAssignment } from '../database/queries/jobs';
-import { enqueueAction } from '../database/queries/outbox';
+import { queueAssignment } from '../database/queries/writeActions';
 import { flushOutbox } from '../database/sync/outboxFlusher';
 
 export interface AssignDriverVars {
@@ -21,8 +20,7 @@ export interface AssignDriverVars {
 export function useAssignDriver(): UseMutationResult<void, Error, AssignDriverVars> {
   return useMutation<void, Error, AssignDriverVars>({
     mutationFn: async ({ jobId, driverId, driverName }) => {
-      applyOptimisticAssignment(jobId, driverId, driverName);
-      enqueueAction('ASSIGN_DRIVER', { id: jobId, driver_id: driverId });
+      queueAssignment(jobId, driverId, driverName); // optimistic write + outbox enqueue (atomic)
       await flushOutbox(); // best-effort; offline leaves the item pending for the next sync
     },
   });

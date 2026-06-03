@@ -3,7 +3,7 @@
  * `useLiveQuery` (reactive). Writes are synchronous transactions (expo-sqlite).
  */
 import { desc, eq, inArray, isNull } from 'drizzle-orm';
-import { db } from '../client';
+import { db, type DbWriter } from '../client';
 import { jobs, jobDetails, type JobInsert, type JobDetailRow, type JobRow } from '../schema';
 import { planJobPrune } from './jobPrune';
 
@@ -60,17 +60,32 @@ export function replaceJobs(rows: JobInsert[]): void {
   });
 }
 
-/** Optimistic local status change (applied immediately; reconciled by the next pull). */
-export function applyOptimisticStatus(jobId: number, statusTypeId: number, statusName: string | null): void {
-  db.update(jobs)
+/**
+ * Optimistic local status change (applied immediately; reconciled by the next pull). Accepts an
+ * executor so it can run standalone (`db`) or inside a transaction (`tx`) alongside the outbox write.
+ */
+export function applyOptimisticStatus(
+  jobId: number,
+  statusTypeId: number,
+  statusName: string | null,
+  exec: DbWriter = db,
+): void {
+  exec
+    .update(jobs)
     .set({ statusTypeId, statusName, modified: new Date().toISOString() })
     .where(eq(jobs.id, jobId))
     .run();
 }
 
 /** Optimistic local assignment change (applied immediately; reconciled by the next pull). */
-export function applyOptimisticAssignment(jobId: number, driverId: number, driverName: string | null): void {
-  db.update(jobs)
+export function applyOptimisticAssignment(
+  jobId: number,
+  driverId: number,
+  driverName: string | null,
+  exec: DbWriter = db,
+): void {
+  exec
+    .update(jobs)
     .set({ driverId, driverName, modified: new Date().toISOString() })
     .where(eq(jobs.id, jobId))
     .run();

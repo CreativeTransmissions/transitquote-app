@@ -4,8 +4,7 @@
  * The UI reflects the optimistic value immediately via the reactive job query.
  */
 import { useMutation, type UseMutationResult } from '@tanstack/react-query';
-import { applyOptimisticStatus } from '../database/queries/jobs';
-import { enqueueAction } from '../database/queries/outbox';
+import { queueStatusUpdate } from '../database/queries/writeActions';
 import { flushOutbox } from '../database/sync/outboxFlusher';
 
 export interface UpdateStatusVars {
@@ -17,8 +16,7 @@ export interface UpdateStatusVars {
 export function useUpdateJobStatus(): UseMutationResult<void, Error, UpdateStatusVars> {
   return useMutation<void, Error, UpdateStatusVars>({
     mutationFn: async ({ jobId, statusTypeId, statusName }) => {
-      applyOptimisticStatus(jobId, statusTypeId, statusName);
-      enqueueAction('UPDATE_STATUS', { id: jobId, status_type_id: statusTypeId });
+      queueStatusUpdate(jobId, statusTypeId, statusName); // optimistic write + outbox enqueue (atomic)
       await flushOutbox(); // best-effort; offline leaves the item pending for the next sync
     },
   });
