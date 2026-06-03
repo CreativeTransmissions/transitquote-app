@@ -4,6 +4,7 @@ import {
   jobs,
   jobDetails,
   drivers,
+  customers,
   services,
   vehicles,
   statusTypes,
@@ -19,6 +20,7 @@ export function clearLocalData(): void {
     tx.delete(jobDetails).run(); // child first (FK → jobs)
     tx.delete(jobs).run();
     tx.delete(drivers).run();
+    tx.delete(customers).run(); // customer PII must not survive logout / leak across a site switch
     tx.delete(services).run();
     tx.delete(vehicles).run();
     tx.delete(statusTypes).run();
