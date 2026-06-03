@@ -46,6 +46,11 @@ describe('formatDate / formatDateTime with WordPress formats', () => {
     expect(formatDate(null, dateFmt)).toBe('');
     expect(formatDateTime('', dateTimeFmt)).toBe('');
   });
+
+  it('returns empty string for the MySQL zero-date sentinel (not a bogus 1899 date)', () => {
+    expect(formatDate('0000-00-00 00:00:00', dateFmt)).toBe('');
+    expect(formatDateTime('0000-00-00 00:00:00', dateTimeFmt)).toBe('');
+  });
 });
 
 describe('smartDateTime (date-only when no time-of-day)', () => {

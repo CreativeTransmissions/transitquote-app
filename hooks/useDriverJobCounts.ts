@@ -1,13 +1,12 @@
 /** Reactive map of driver id → number of jobs currently assigned to them (spec §6.6/§6.7). */
+import { useMemo } from 'react';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { jobsListQuery } from '../database/queries/jobs';
+import { countJobsByDriver } from '../utils/jobCounts';
 
 export function useDriverJobCounts(): Map<number, number> {
   const { data } = useLiveQuery(jobsListQuery());
-
-  const counts = new Map<number, number>();
-  for (const job of data) {
-    if (job.driverId != null) counts.set(job.driverId, (counts.get(job.driverId) ?? 0) + 1);
-  }
-  return counts;
+  // Memoise so the returned Map keeps a stable reference across unrelated re-renders — otherwise
+  // every render produces a new Map and churns any memoized child / effect that depends on it.
+  return useMemo(() => countJobsByDriver(data), [data]);
 }

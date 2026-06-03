@@ -1,5 +1,6 @@
 /** Bottom-sheet modal listing assignable drivers for a job assignment (spec §6.5 E). */
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '../shared/EmptyState';
 import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
 import { fullName } from '../../utils/formatters';
@@ -14,10 +15,11 @@ interface DriverPickerProps {
 }
 
 export function DriverPicker({ visible, drivers, currentDriverId, onSelect, onClose }: DriverPickerProps) {
+  const insets = useSafeAreaInsets();
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet}>
+        <Pressable style={[styles.sheet, { paddingBottom: SPACING.lg + insets.bottom }]}>
           <Text style={styles.title}>Assign driver</Text>
           {drivers.length === 0 ? (
             <EmptyState title="No drivers available" subtitle="You don’t have permission to assign this job." />

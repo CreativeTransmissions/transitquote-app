@@ -1,5 +1,5 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { Alert, FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { JobCard } from '../../../components/jobs/JobCard';
 import { OfflineBanner } from '../../../components/sync/OfflineBanner';
@@ -9,13 +9,13 @@ import { useOutbox } from '../../../hooks/useOutbox';
 import { useRole } from '../../../hooks/useRole';
 import { fullName } from '../../../utils/formatters';
 import { mailtoUrl, telUrl } from '../../../utils/links';
+import { openLink } from '../../../utils/openLink';
 import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../../constants';
 
 async function openUrl(url: string | null): Promise<void> {
   if (!url) return;
-  const supported = await Linking.canOpenURL(url);
-  if (supported) await Linking.openURL(url);
-  else Alert.alert('Unable to open', 'No app available to handle this link.');
+  const opened = await openLink(url);
+  if (!opened) Alert.alert('Unable to open', 'No app available to handle this link.');
 }
 
 export default function CustomerDetailScreen() {

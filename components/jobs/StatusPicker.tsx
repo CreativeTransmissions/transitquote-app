@@ -1,5 +1,6 @@
 /** Bottom-sheet style modal listing the site's status types for a job status update. */
 import { Modal, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
 import type { StatusType } from '../../hooks/useStatusTypes';
 
@@ -12,10 +13,11 @@ interface StatusPickerProps {
 }
 
 export function StatusPicker({ visible, statuses, currentStatusId, onSelect, onClose }: StatusPickerProps) {
+  const insets = useSafeAreaInsets();
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet}>
+        <Pressable style={[styles.sheet, { paddingBottom: SPACING.lg + insets.bottom }]}>
           <Text style={styles.title}>Update status</Text>
           <ScrollView>
             {statuses.map((status) => {

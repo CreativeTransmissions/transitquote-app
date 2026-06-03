@@ -4,6 +4,7 @@
  * the "failed" sync badge (SyncStatusIndicator). Reuses the JobFilterSheet modal pattern.
  */
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useOutbox } from '../../hooks/useOutbox';
 import { useRetryOutboxItem, useDiscardOutboxItem } from '../../hooks/useOutboxActions';
@@ -21,14 +22,15 @@ export function SyncProblemsSheet({ visible, onClose }: SyncProblemsSheetProps) 
   const retry = useRetryOutboxItem();
   const discard = useDiscardOutboxItem();
   const { data: jobs } = useLiveQuery(jobsListQuery());
+  const insets = useSafeAreaInsets();
 
   const refById = new Map(jobs.map((j) => [j.id, j.jobRef]));
   const busy = retry.isPending || discard.isPending;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet}>
+        <Pressable style={[styles.sheet, { paddingBottom: SPACING.lg + insets.bottom }]}>
           <Text style={styles.title}>Sync problems</Text>
           <Text style={styles.subtitle}>
             These changes couldn’t be saved to the server. Retry once you’re back online, or discard to drop the change.

@@ -40,6 +40,8 @@ export function mapJob(job: Job): JobInsert {
     deliveryTime: toDateOrNull(job.delivery_time),
     weight: toFloat(job.weight),
     statusName: toStr(job.status_name),
+    // Kept nullable (NOT toStr): the UI relies on `driverName ?? 'Unassigned'`, so coercing null
+    // to '' here would render an unassigned job blank instead of "Unassigned".
     driverName: job.driver_name,
     paymentTypeName: job.payment_type_name,
     paymentStatusName: job.payment_status_name,

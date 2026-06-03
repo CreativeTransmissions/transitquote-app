@@ -71,4 +71,24 @@ describe('presentJobNotifications', () => {
     expect(() => presentJobNotifications(EVENTS)).not.toThrow();
     expect(getPresentedNotifications()).toHaveLength(2);
   });
+
+  it('collapses an oversized batch into a single summary OS notification', () => {
+    permissionMock.mockReturnValue('granted');
+    const many: JobChangeEvent[] = Array.from({ length: 12 }, (_, i) => ({
+      type: 'status',
+      jobId: i + 1,
+      jobRef: `MTS${i + 1}`,
+      title: 'Job status updated',
+      body: `Job MTS${i + 1} changed.`,
+    }));
+
+    presentJobNotifications(many);
+
+    // One summary fired, not 12 — but all 12 still recorded in the in-app log.
+    expect(scheduleMock).toHaveBeenCalledTimes(1);
+    expect(scheduleMock).toHaveBeenCalledWith(
+      expect.objectContaining({ content: expect.objectContaining({ title: 'Jobs updated', body: '12 jobs have updates.' }) }),
+    );
+    expect(getPresentedNotifications()).toHaveLength(12);
+  });
 });

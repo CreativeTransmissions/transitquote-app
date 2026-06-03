@@ -1,20 +1,19 @@
 /** Jobs API — list (flat), detail (nested via ?id=), and the status/assignment writes. */
 import { apiClient } from '../apiClient';
 import { ApiActionError } from '../apiError';
+import { unwrapData } from '../unwrapResponse';
 import type { ApiResponse, Job, JobDetail, WriteResponse } from '../../types/api';
 
 const PATH = '/wp-json/transitquote/v1/jobs';
 
 export async function getJobs(signal?: AbortSignal): Promise<Job[]> {
   const res = await apiClient.get<ApiResponse<Job[]>>(PATH, { signal });
-  if (!res.data?.success) throw new Error('Failed to load jobs');
-  return res.data.data;
+  return unwrapData(res.data, 'jobs', true);
 }
 
 export async function getJobDetail(id: number): Promise<JobDetail> {
   const res = await apiClient.get<ApiResponse<JobDetail>>(PATH, { params: { id } });
-  if (!res.data?.success) throw new Error('Failed to load job detail');
-  return res.data.data;
+  return unwrapData(res.data, 'job detail');
 }
 
 // Both writes take `id` (not job_id) and return a top-level `success` (docs/API_NOTES.md §10).

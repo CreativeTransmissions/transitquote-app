@@ -8,14 +8,18 @@ export const DEFAULT_DATETIME_FORMAT = 'DD MMM YYYY, HH:mm';
 // ISO 8601 only — never `new Date(string)` (CLAUDE.md). Returns '' for null/invalid input.
 // `fmt` is a dayjs format string; pass the site's WordPress format via useDateFormat to match it.
 export function formatDate(iso: string | null | undefined, fmt: string = DEFAULT_DATE_FORMAT): string {
-  if (!iso) return '';
-  const d = dayjs(iso);
+  // toDateOrNull guards the zero-date sentinel — dayjs("0000-00-00 00:00:00") is "valid" and would
+  // otherwise render a bogus 1899 date rather than ''.
+  const safe = toDateOrNull(iso);
+  if (!safe) return '';
+  const d = dayjs(safe);
   return d.isValid() ? d.format(fmt) : '';
 }
 
 export function formatDateTime(iso: string | null | undefined, fmt: string = DEFAULT_DATETIME_FORMAT): string {
-  if (!iso) return '';
-  const d = dayjs(iso);
+  const safe = toDateOrNull(iso);
+  if (!safe) return '';
+  const d = dayjs(safe);
   return d.isValid() ? d.format(fmt) : '';
 }
 
@@ -40,8 +44,9 @@ export function smartDateTime(
 }
 
 export function relativeFromNow(iso: string | null | undefined): string {
-  if (!iso) return '';
-  const d = dayjs(iso);
+  const safe = toDateOrNull(iso);
+  if (!safe) return '';
+  const d = dayjs(safe);
   if (!d.isValid()) return '';
   const mins = dayjs().diff(d, 'minute');
   if (mins < 1) return 'just now';
