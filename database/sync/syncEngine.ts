@@ -54,6 +54,7 @@ export async function pullJobs(signal?: AbortSignal): Promise<void> {
 
 /** Pull one job's full detail and upsert it (list never carries nested data). */
 export async function pullJobDetail(id: number): Promise<void> {
+  if (!Number.isFinite(id)) return; // e.g. Number(badRouteParam) === NaN — don't hit the API
   const detail = await getJobDetail(id);
   const mapped = mapJobDetail(detail, new Date().toISOString());
   upsertJobWithDetail(mapped.job, mapped.detail);
