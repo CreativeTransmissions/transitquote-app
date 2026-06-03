@@ -12,8 +12,10 @@ import { mapJob, mapJobDetail, mapCustomer } from '../mappers';
 import { getAllJobs, replaceJobs, upsertJobWithDetail } from '../queries/jobs';
 import { replaceCustomers } from '../queries/customers';
 import { getCurrentUserRow } from '../queries/configuration';
+import { getPendingJobMutations } from '../queries/outbox';
 import { getLastSynced, setLastSynced } from '../queries/syncMeta';
 import { detectJobChanges } from './changeDetector';
+import { reconcileOptimistic } from './reconcileOptimistic';
 import { presentJobNotifications } from '../../services/notifications/notifier';
 import { resolveRole } from '../../utils/roleGuards';
 
@@ -29,9 +31,13 @@ export async function pullJobs(signal?: AbortSignal): Promise<void> {
   // diff as "new" and fire a storm of notifications. Only notify against an existing baseline.
   const isBaselineSync = getLastSynced('jobs') == null;
 
-  // Diff against the current snapshot for notifications, then reconcile (server-wins).
+  // Diff against the current snapshot for notifications, then reconcile (server-wins) — except
+  // for jobs whose status/assignment change is still queued in the outbox: those keep their
+  // optimistic value so the pull doesn't visibly revert an action that hasn't synced yet.
   const prev = getAllJobs();
-  replaceJobs(next);
+  const prevById = new Map(prev.map((j) => [j.id, j]));
+  const reconciled = reconcileOptimistic(next, prevById, getPendingJobMutations());
+  replaceJobs(reconciled);
   setLastSynced('jobs', new Date().toISOString());
 
   if (isBaselineSync) return;

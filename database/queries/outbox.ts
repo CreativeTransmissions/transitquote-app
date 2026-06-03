@@ -22,6 +22,19 @@ export function getProcessable(): OutboxRow[] {
   return db.select().from(outbox).where(inArray(outbox.status, ['pending', 'in_progress'])).all();
 }
 
+/**
+ * Job ids with an un-synced (pending/in_progress) status or assignment change, and which action
+ * touched them. The sync engine uses this to avoid clobbering optimistic writes on pull.
+ */
+export function getPendingJobMutations(): { jobId: number; actionType: OutboxActionType }[] {
+  return db
+    .select({ status: outbox.status, actionType: outbox.actionType, payload: outbox.payload })
+    .from(outbox)
+    .where(inArray(outbox.status, ['pending', 'in_progress']))
+    .all()
+    .map((r) => ({ jobId: r.payload.id, actionType: r.actionType }));
+}
+
 /** Reactive: the whole outbox (UI derives pending count + failed items). */
 export function outboxQuery() {
   return db.select().from(outbox);
