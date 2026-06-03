@@ -58,4 +58,35 @@ describe('parseApiBody', () => {
   it('throws on leading noise followed by a genuinely malformed envelope (surfaces the error)', () => {
     expect(() => parseApiBody('<b>Deprecated</b>: noise<br />\n{"data":{,}')).toThrow();
   });
+
+  // PHP shutdown handlers run AFTER the response body is flushed, so noise can trail the envelope.
+  // JSON.parse rejects trailing non-whitespace, so a clean envelope + a trailing Deprecated line
+  // would otherwise crash every screen.
+  it('tolerates trailing PHP noise after a clean object envelope', () => {
+    const raw =
+      '{"data":{"ok":1},"success":true}\n<br />\n<b>Deprecated</b>: something on shutdown in <b>x.php</b><br />';
+    expect(parseApiBody(raw)).toEqual({ data: { ok: 1 }, success: true });
+  });
+
+  it('tolerates trailing noise after an array envelope', () => {
+    expect(parseApiBody('[{"id":"1"}]\nNotice: undefined index')).toEqual([{ id: '1' }]);
+  });
+
+  it('recovers the envelope when noise BOTH leads and trails it', () => {
+    const raw =
+      "<br />\n<b>WordPress database error:</b> [Unknown column 'x.id'] for query SELECT x.id<br />\n" +
+      '{"data":{"job":{"id":"7"}},"success":true}\n<br />\n<b>Deprecated</b>: trailing<br />';
+    expect(parseApiBody(raw)).toEqual({ data: { job: { id: '7' } }, success: true });
+  });
+
+  it('returns the trailing envelope, not a JSON-looking noise object before it', () => {
+    // A noise segment that happens to be valid JSON must not win over the real trailing envelope.
+    const raw = 'Notice {"not":"envelope"} junk\n{"data":1,"success":true}';
+    expect(parseApiBody(raw)).toEqual({ data: 1, success: true });
+  });
+
+  it('does not mis-parse a brace that appears inside a string value', () => {
+    const raw = '<b>Deprecated</b><br />\n{"data":{"note":"a } brace in a string"},"success":true}';
+    expect(parseApiBody(raw)).toEqual({ data: { note: 'a } brace in a string' }, success: true });
+  });
 });
