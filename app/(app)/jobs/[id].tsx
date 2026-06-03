@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { JobStatusBadge } from '../../../components/jobs/JobStatusBadge';
 import { StatusPicker } from '../../../components/jobs/StatusPicker';
@@ -24,15 +24,15 @@ import { fullName, formatCurrency } from '../../../utils/formatters';
 import { useDateFormat } from '../../../hooks/useDateFormat';
 import { toFloat } from '../../../utils/coerce';
 import { mailtoUrl, mapsDirectionsUrl, telUrl } from '../../../utils/links';
+import { openLink } from '../../../utils/openLink';
 import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../../constants';
 import type { DriverRow } from '../../../database/schema';
 import type { Stop } from '../../../types/api';
 
 async function openUrl(url: string | null): Promise<void> {
   if (!url) return;
-  const supported = await Linking.canOpenURL(url);
-  if (supported) await Linking.openURL(url);
-  else Alert.alert('Unable to open', 'No app available to handle this link.');
+  const opened = await openLink(url);
+  if (!opened) Alert.alert('Unable to open', 'No app available to handle this link.');
 }
 
 export default function JobDetailScreen() {
