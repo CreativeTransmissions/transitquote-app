@@ -19,9 +19,25 @@ import {
   jobDetailByIdQuery,
   applyOptimisticStatus,
   applyOptimisticAssignment,
-  upsertJobWithDetail,
+  getJobsNeedingDetail,
+  upsertJobDetailRow,
 } from '../jobs';
 import { jobs, jobDetails, type JobInsert, type JobDetailRow } from '../../schema';
+
+function detailRow(jobId: number, overrides: Partial<JobDetailRow> = {}): JobDetailRow {
+  return {
+    jobId,
+    customer: null,
+    journey: null,
+    stops: null,
+    quote: null,
+    jobDate: null,
+    payment: null,
+    hydratedAt: '2026-06-03 12:00:00',
+    jobModifiedAt: null,
+    ...overrides,
+  };
+}
 
 function job(id: number, overrides: Partial<JobInsert> = {}): JobInsert {
   return {
@@ -118,23 +134,80 @@ describe('optimistic writes', () => {
   });
 });
 
-describe('upsertJobWithDetail', () => {
-  it('writes the job and its detail blob together', () => {
-    const detail: JobDetailRow = {
-      jobId: 1,
-      customer: null,
-      journey: null,
-      stops: [{ address: '1 High St' }] as JobDetailRow['stops'],
-      quote: null,
-      jobDate: null,
-      payment: null,
-      hydratedAt: '2026-06-01 12:00:00',
-    };
-    upsertJobWithDetail(job(1), detail);
+describe('upsertJobDetailRow', () => {
+  beforeEach(() => replaceJobs([job(1, { statusTypeId: 1, statusName: 'Booked', driverId: null })]));
 
-    expect(getAllJobs()).toHaveLength(1);
+  it('writes the detail blob and the captured job_modified_at', () => {
+    const detail = detailRow(1, { stops: [{ address: '1 High St' }] as JobDetailRow['stops'] });
+    upsertJobDetailRow(detail, '2026-06-01 10:00:00');
+
     const [d] = db.select().from(jobDetails).all();
     expect(d.jobId).toBe(1);
     expect(d.stops).toEqual([{ address: '1 High St' }]);
+    expect(d.jobModifiedAt).toBe('2026-06-01 10:00:00');
+  });
+
+  it('NEVER touches the jobs row — status/assignment survive a detail write', () => {
+    // Server detail carries a stale status; an optimistic local change set the job to Delivered/42.
+    applyOptimisticStatus(1, 5, 'Delivered');
+    applyOptimisticAssignment(1, 42, 'Pat Driver');
+
+    upsertJobDetailRow(detailRow(1), '2026-06-01 10:00:00');
+
+    const [j] = getAllJobs();
+    expect(j.statusTypeId).toBe(5);
+    expect(j.statusName).toBe('Delivered');
+    expect(j.driverId).toBe(42);
+    expect(j.driverName).toBe('Pat Driver');
+  });
+
+  it('upserts: a second write replaces the blob in place', () => {
+    upsertJobDetailRow(detailRow(1, { hydratedAt: 'first' }), '2026-06-01 10:00:00');
+    upsertJobDetailRow(detailRow(1, { hydratedAt: 'second' }), '2026-06-02 10:00:00');
+
+    const rows = db.select().from(jobDetails).all();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].hydratedAt).toBe('second');
+    expect(rows[0].jobModifiedAt).toBe('2026-06-02 10:00:00');
+  });
+});
+
+describe('getJobsNeedingDetail', () => {
+  it('returns a job with no detail row (missing)', () => {
+    replaceJobs([job(1, { modified: '2026-06-01 10:00:00' })]);
+    expect(getJobsNeedingDetail().map((r) => r.id)).toEqual([1]);
+  });
+
+  it('returns a job whose modified advanced past the hydrated job_modified_at (stale)', () => {
+    replaceJobs([job(1, { modified: '2026-06-02 10:00:00' })]);
+    upsertJobDetailRow(detailRow(1), '2026-06-01 10:00:00'); // hydrated against the older modified
+    expect(getJobsNeedingDetail().map((r) => r.id)).toEqual([1]);
+  });
+
+  it('excludes an up-to-date job (hydrated at the current modified) — zero work in steady state', () => {
+    replaceJobs([job(1, { modified: '2026-06-02 10:00:00' })]);
+    upsertJobDetailRow(detailRow(1), '2026-06-02 10:00:00');
+    expect(getJobsNeedingDetail()).toEqual([]);
+  });
+
+  it('treats a pre-0005 row (null job_modified_at) as stale, re-hydrated once', () => {
+    replaceJobs([job(1, { modified: '2026-06-02 10:00:00' })]);
+    upsertJobDetailRow(detailRow(1), null); // legacy hydrated row, no marker
+    expect(getJobsNeedingDetail().map((r) => r.id)).toEqual([1]);
+  });
+
+  it('orders the current driver’s assigned jobs first, then the rest by newest', () => {
+    replaceJobs([
+      job(1, { driverId: 7, modified: '2026-06-01 10:00:00' }),
+      job(2, { driverId: null, modified: '2026-06-03 10:00:00' }),
+      job(3, { driverId: 7, modified: '2026-06-02 10:00:00' }),
+    ]);
+    // Assigned-to-7 first (newest-first within the group: 3 then 1), then others (2).
+    expect(getJobsNeedingDetail(7).map((r) => r.id)).toEqual([3, 1, 2]);
+  });
+
+  it('returns id + the captured modified so hydration can stamp job_modified_at', () => {
+    replaceJobs([job(1, { modified: '2026-06-01 10:00:00' })]);
+    expect(getJobsNeedingDetail()).toEqual([{ id: 1, modified: '2026-06-01 10:00:00' }]);
   });
 });

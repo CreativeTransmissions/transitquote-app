@@ -661,6 +661,17 @@ The initial sync may take a few seconds if there are many jobs. Show a progress 
 - Pull-to-refresh on any list: triggers an immediate sync of that data type
 - After any successful write (status update, driver assignment): immediately re-fetch affected job and update local DB
 
+**Detail hydration (so §11.7 "full detail offline" holds for _every_ job, not just visited ones):**
+- After the job-list pull completes, the sync engine bulk-fetches and persists each job's detail
+  (route/stops, customer, pricing, payment) into the local DB. The list paints as soon as the list
+  pull lands; detail hydration continues in the background and never blocks first paint.
+- It is **incremental** — only jobs whose detail is missing or whose `modified` advanced since the
+  last hydration are (re)fetched, so a steady-state sync issues zero detail requests — **bounded** in
+  concurrency, **abortable** (first-sync Cancel), and **partial-failure-tolerant** (one job's detail
+  failing is retried next sync, never aborting the run). Detail writes touch only the detail blob,
+  never the job's status/assignment (those are reconciled solely by the list pull, preserving pending
+  optimistic writes). First sync shows determinate progress ("Downloading job details… 42/120").
+
 **Background sync (app is in background):**
 - When the OS permits background execution, attempt to flush the outbox and pull any changes
 - Frequency is OS-dependent; do not rely on background sync for time-critical updates

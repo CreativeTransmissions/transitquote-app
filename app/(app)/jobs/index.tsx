@@ -13,6 +13,7 @@ import { useJobs, type JobScope } from '../../../hooks/useJobs';
 import { useJobFilters } from '../../../hooks/useJobFilters';
 import { useRole } from '../../../hooks/useRole';
 import { useOutbox } from '../../../hooks/useOutbox';
+import { useConnectivityStore } from '../../../stores/connectivityStore';
 import { useStatusTypes } from '../../../hooks/useStatusTypes';
 import { useDrivers } from '../../../hooks/useDrivers';
 import { applyJobFilters, countActiveFilters } from '../../../utils/jobFilter';
@@ -34,6 +35,7 @@ export default function JobsScreen() {
   const scope: JobScope = showTabs ? tab : 'all';
 
   const { jobs, dbError, isSyncing, syncError, refresh, cancelSync } = useJobs(scope, driverId);
+  const detailHydration = useConnectivityStore((s) => s.detailHydration);
   const [filterVisible, setFilterVisible] = useState(false);
 
   const visibleJobs = applyJobFilters(jobs, filters);
@@ -86,7 +88,7 @@ export default function JobsScreen() {
         {dbError ? (
           <EmptyState title="Couldn’t load jobs" subtitle={dbError.message} />
         ) : showSpinner ? (
-          <FirstSyncProgress onCancel={cancelSync} />
+          <FirstSyncProgress onCancel={cancelSync} progress={detailHydration} />
         ) : (
           <JobList
             jobs={visibleJobs}

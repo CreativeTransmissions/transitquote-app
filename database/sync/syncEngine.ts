@@ -6,10 +6,11 @@
  * writes go up before fresh data comes down. Conflict resolution is server-wins by construction:
  * `replaceJobs` overwrites local rows with the pulled server state.
  */
+import { isCancel } from 'axios';
 import { getJobs, getJobDetail } from '../../services/api/jobs';
 import { getCustomers } from '../../services/api/customers';
 import { mapJob, mapJobDetail, mapCustomer } from '../mappers';
-import { getAllJobs, replaceJobs, upsertJobWithDetail } from '../queries/jobs';
+import { getAllJobs, replaceJobs, getJobsNeedingDetail, upsertJobDetailRow } from '../queries/jobs';
 import { replaceCustomers } from '../queries/customers';
 import { getCurrentUserRow } from '../queries/configuration';
 import { getPendingJobMutations } from '../queries/outbox';
@@ -18,6 +19,7 @@ import { detectJobChanges } from './changeDetector';
 import { reconcileOptimistic } from './reconcileOptimistic';
 import { presentJobNotifications } from '../../services/notifications/notifier';
 import { resolveRole } from '../../utils/roleGuards';
+import { DETAIL_HYDRATION_CONCURRENCY, MAX_DETAIL_HYDRATION } from '../../constants';
 
 /**
  * Pull the job list and reconcile it into the local DB. Before overwriting, snapshot the existing
@@ -52,12 +54,75 @@ export async function pullJobs(signal?: AbortSignal): Promise<void> {
   }
 }
 
-/** Pull one job's full detail and upsert it (list never carries nested data). */
-export async function pullJobDetail(id: number): Promise<void> {
+/**
+ * Pull one job's full detail and persist the blob (list never carries nested data). Writes the
+ * `job_details` row ONLY — never the `jobs` row — so a per-screen refresh can't revert an optimistic
+ * status/assignment that's still queued in the outbox (that row is reconciled solely by `pullJobs`).
+ */
+export async function pullJobDetail(id: number, signal?: AbortSignal): Promise<void> {
   if (!Number.isFinite(id)) return; // e.g. Number(badRouteParam) === NaN — don't hit the API
-  const detail = await getJobDetail(id);
+  const detail = await getJobDetail(id, signal);
   const mapped = mapJobDetail(detail, new Date().toISOString());
-  upsertJobWithDetail(mapped.job, mapped.detail);
+  upsertJobDetailRow(mapped.detail, mapped.job.modified ?? null);
+}
+
+/**
+ * Bulk-hydrate the detail of every job that needs it, so opening ANY job offline shows full detail
+ * — not just jobs the user happened to open online (spec §11, offline-first; see
+ * docs/proposals/offline-bulk-detail-hydration.md). Runs AFTER `pullJobs` so the full id set and
+ * each job's `modified` are known. Properties:
+ *   - Incremental: only missing/stale jobs are fetched (steady state ⇒ zero requests).
+ *   - Bounded concurrency: a fixed worker pool over the work set (DETAIL_HYDRATION_CONCURRENCY).
+ *   - Partial-failure tolerant: one job's detail failing logs and continues; it stays "needing
+ *     detail" (its `job_modified_at` is untouched) and is retried next sync.
+ *   - Abortable: a user Cancel aborts in-flight requests; whatever was fetched stays persisted.
+ *   - Detail-only writes: never touches `jobs` status/assignment, so optimistic writes survive.
+ */
+export async function hydrateJobDetails(
+  signal?: AbortSignal,
+  onProgress?: (done: number, total: number) => void,
+): Promise<void> {
+  const driverId = getCurrentUserRow()?.driverId ?? null;
+  const work = getJobsNeedingDetail(driverId);
+
+  // Optional ceiling for pathological tenants — log when applied (no silent caps).
+  const capped =
+    MAX_DETAIL_HYDRATION > 0 && work.length > MAX_DETAIL_HYDRATION
+      ? work.slice(0, MAX_DETAIL_HYDRATION)
+      : work;
+  if (capped.length < work.length) {
+    console.warn(`[sync] detail hydration capped at ${capped.length}/${work.length} jobs this run`);
+  }
+
+  const total = capped.length;
+  let done = 0;
+  onProgress?.(done, total);
+  if (total === 0) return;
+
+  // Bounded worker pool over a shared cursor — each worker pulls the next id until the list is drained.
+  let cursor = 0;
+  const worker = async (): Promise<void> => {
+    while (!signal?.aborted) {
+      const index = cursor++;
+      if (index >= total) return;
+      const { id, modified } = capped[index];
+      try {
+        const detail = await getJobDetail(id, signal);
+        const mapped = mapJobDetail(detail, new Date().toISOString());
+        upsertJobDetailRow(mapped.detail, modified);
+      } catch (e) {
+        if (isCancel(e)) return; // aborted mid-flight — stop quietly, leave the job "needing detail"
+        // One bad detail (e.g. a wpdberror on ?id=) must not fail the whole run — log and continue.
+        console.warn(`[sync] detail hydration failed for job ${id}`, e);
+      } finally {
+        done += 1;
+        onProgress?.(done, total);
+      }
+    }
+  };
+
+  const poolSize = Math.min(DETAIL_HYDRATION_CONCURRENCY, total);
+  await Promise.all(Array.from({ length: poolSize }, () => worker()));
 }
 
 /** Pull the customers list and reconcile it into the local DB (dispatcher/admin — spec §6.8). */

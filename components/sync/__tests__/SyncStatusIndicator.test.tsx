@@ -4,10 +4,12 @@
  * hook are mocked; the problems sheet is stubbed to assert it opens.
  */
 let mockIsSyncing: boolean;
+let mockDetailHydration: { done: number; total: number } | null;
 let mockOutbox: { pendingCount: number; failed: { id: number }[] };
 
 jest.mock('../../../stores/connectivityStore', () => ({
-  useConnectivityStore: (sel: (s: unknown) => unknown) => sel({ isSyncing: mockIsSyncing }),
+  useConnectivityStore: (sel: (s: unknown) => unknown) =>
+    sel({ isSyncing: mockIsSyncing, detailHydration: mockDetailHydration }),
 }));
 jest.mock('../../../hooks/useOutbox', () => ({ useOutbox: () => mockOutbox }));
 jest.mock('../SyncProblemsSheet', () => {
@@ -24,6 +26,7 @@ import { SyncStatusIndicator } from '../SyncStatusIndicator';
 
 beforeEach(() => {
   mockIsSyncing = false;
+  mockDetailHydration = null;
   mockOutbox = { pendingCount: 0, failed: [] };
 });
 
@@ -37,6 +40,21 @@ describe('SyncStatusIndicator', () => {
     mockIsSyncing = true;
     render(<SyncStatusIndicator />);
     expect(screen.getByTestId('sync-status')).toBeTruthy();
+  });
+
+  it('shows determinate detail-hydration progress while the detail phase runs', () => {
+    mockIsSyncing = true;
+    mockDetailHydration = { done: 42, total: 120 };
+    render(<SyncStatusIndicator />);
+    expect(screen.getByTestId('sync-detail-progress')).toBeTruthy();
+    expect(screen.getByText('42/120')).toBeTruthy();
+  });
+
+  it('hides the detail-progress count once the detail phase finishes', () => {
+    mockIsSyncing = true;
+    mockDetailHydration = null;
+    render(<SyncStatusIndicator />);
+    expect(screen.queryByTestId('sync-detail-progress')).toBeNull();
   });
 
   it('shows a pending badge with the count', () => {

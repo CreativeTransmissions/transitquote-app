@@ -9,14 +9,15 @@ const initial = useConnectivityStore.getState();
 
 beforeEach(() => {
   // Reset to the store's initial values between tests (state is module-global).
-  useConnectivityStore.setState({ isOnline: true, lastSyncedAt: null, isSyncing: false });
+  useConnectivityStore.setState({ isOnline: true, lastSyncedAt: null, isSyncing: false, detailHydration: null });
 });
 
 describe('connectivityStore', () => {
-  it('defaults to online, never synced, not syncing', () => {
+  it('defaults to online, never synced, not syncing, no detail hydration', () => {
     expect(initial.isOnline).toBe(true);
     expect(initial.lastSyncedAt).toBeNull();
     expect(initial.isSyncing).toBe(false);
+    expect(initial.detailHydration).toBeNull();
   });
 
   it('setOnline toggles connectivity', () => {
@@ -39,5 +40,12 @@ describe('connectivityStore', () => {
     expect(useConnectivityStore.getState().isSyncing).toBe(true);
     useConnectivityStore.getState().setSyncing(false);
     expect(useConnectivityStore.getState().isSyncing).toBe(false);
+  });
+
+  it('setDetailHydration records progress and clears back to null', () => {
+    useConnectivityStore.getState().setDetailHydration({ done: 3, total: 10 });
+    expect(useConnectivityStore.getState().detailHydration).toEqual({ done: 3, total: 10 });
+    useConnectivityStore.getState().setDetailHydration(null);
+    expect(useConnectivityStore.getState().detailHydration).toBeNull();
   });
 });

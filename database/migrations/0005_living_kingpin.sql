@@ -1,0 +1,1 @@
+ALTER TABLE `job_details` ADD `job_modified_at` text;

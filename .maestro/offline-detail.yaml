@@ -1,0 +1,64 @@
+# Offline bulk-detail-hydration test (spec §11; docs/proposals/offline-bulk-detail-hydration.md):
+#   login ONLINE → let the sync settle so every job's detail is bulk-hydrated into the local DB →
+#   go offline → open a job that was NEVER opened this session → its full detail (route/stops,
+#   customer, pricing) still renders from the local DB, with the "Showing details as of …" note that
+#   only appears offline. This proves detail is prefetched for ALL jobs, not just visited ones.
+#
+# Run (native Windows — emulator, adb, and Maestro all on Windows; see docs/SMOKE_TESTING.md.
+# Requires the embedded-bundle build + adb reverse + mkcert CA — full recipe in that doc):
+#   maestro test \
+#     -e SITE_URL=https://tq-pro-teams-php8.ddev.site \
+#     -e CLIENT_ID=... -e CLIENT_SECRET=... \
+#     -e TQ_USERNAME=api-driver -e TQ_PASSWORD=... \
+#     .maestro/offline-detail.yaml
+#
+# NETWORK CONTROL — IMPORTANT (same contract as offline.yaml):
+#   Uses `toggleAirplaneMode` (Android-only, broadly available). It is a RELATIVE toggle, so the
+#   flow assumes it starts ONLINE — run on a freshly-booted / online emulator. 1st toggle = offline,
+#   2nd = online. If your Maestro supports it, prefer `- setAirplaneMode: Enabled/Disabled` + an
+#   `onFlowComplete` safety net. ⚠️ If this flow aborts while offline, re-enable the network manually.
+#
+#   Read-only against the live DDEV site (no writes). Credentials come from -e env vars.
+# ⚠️ No `env:` block: in Maestro 2.6.0 an in-flow `env: { VAR: "" }` default OVERRIDES the `-e`
+# value (the "" wins) → `${VAR}` resolves empty, nothing is typed, silent false-green. Pass via `-e`.
+appId: com.transitteam.app
+---
+# Authenticate ONLINE so the list pull + background detail hydration run (assumes start = online).
+- runFlow: subflows/auth.yaml
+
+# The list renders from the local DB.
+- assertVisible:
+    id: "job-card-.*"
+
+# Wait for the background detail phase to settle. The sync indicator shows a "{done}/{total}" count
+# (testID sync-detail-progress) while hydrating; once it's gone, every job's detail is persisted.
+# If hydration finished before we looked, notVisible passes immediately — either way we proceed clean.
+- extendedWaitUntil:
+    notVisible:
+      id: "sync-detail-progress"
+    timeout: 60000
+
+# --- Go offline (online → offline) WITHOUT having opened any job this session ---
+- toggleAirplaneMode
+- extendedWaitUntil:
+    visible: "Offline.*"
+    timeout: 15000
+
+# Open a job we never opened — its detail can only come from the bulk prefetch.
+- tapOn:
+    id: "job-card-.*"
+    index: 0
+
+# Full offline detail renders from the local DB: the back affordance, the "as of" provenance note
+# (offline-only, proves persisted detail), and the Customer section. No "missing detail" stub.
+- assertVisible:
+    id: "job-back"
+- assertVisible:
+    id: "detail-as-of"
+- assertVisible: "Customer"
+
+# --- Reconnect (offline → online) so the emulator is left ONLINE for the next flow ---
+- toggleAirplaneMode
+- extendedWaitUntil:
+    notVisible: "Offline.*"
+    timeout: 20000

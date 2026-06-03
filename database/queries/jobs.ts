@@ -91,10 +91,49 @@ export function applyOptimisticAssignment(
     .run();
 }
 
-/** Upsert a job + its hydrated detail (from GET /jobs?id=). */
-export function upsertJobWithDetail(job: JobInsert, detail: JobDetailRow): void {
-  db.transaction((tx) => {
-    tx.insert(jobs).values(job).onConflictDoUpdate({ target: jobs.id, set: job }).run();
-    tx.insert(jobDetails).values(detail).onConflictDoUpdate({ target: jobDetails.jobId, set: detail }).run();
-  });
+/**
+ * Jobs whose hydrated detail is missing or stale — the work set for bulk detail hydration
+ * (spec §11, offline-first). A LEFT JOIN finds jobs with no `job_details` row, or one whose
+ * `job_modified_at` no longer matches `jobs.modified` (the server bumped it since we hydrated, or a
+ * pre-0005 row with a NULL marker). Up-to-date jobs are excluded → a steady-state sync needing
+ * nothing issues zero detail requests.
+ *
+ * Ordering puts the current user's assigned jobs first (best offline value soonest on big tenants),
+ * then the rest by newest `modified`. `driverId` null (dispatcher/admin) keeps the plain order.
+ */
+export function getJobsNeedingDetail(driverId: number | null = null): { id: number; modified: string | null }[] {
+  const rows = db
+    .select({
+      id: jobs.id,
+      modified: jobs.modified,
+      driverId: jobs.driverId,
+      hydratedModified: jobDetails.jobModifiedAt,
+      hasDetail: jobDetails.jobId,
+    })
+    .from(jobs)
+    .leftJoin(jobDetails, eq(jobDetails.jobId, jobs.id))
+    .orderBy(desc(jobs.modified))
+    .all();
+
+  const needing = rows.filter((r) => r.hasDetail == null || r.hydratedModified !== r.modified);
+
+  // Assigned-first: stable partition that preserves the newest-first order within each group.
+  if (driverId != null) {
+    const mine = needing.filter((r) => r.driverId === driverId);
+    const others = needing.filter((r) => r.driverId !== driverId);
+    return [...mine, ...others].map((r) => ({ id: r.id, modified: r.modified }));
+  }
+  return needing.map((r) => ({ id: r.id, modified: r.modified }));
+}
+
+/**
+ * Write a job's hydrated detail blob ONLY — never the `jobs` row. This is the reconciliation
+ * guarantee for offline-first writes: status/assignment live on `jobs` and are reconciled exactly
+ * once, in `pullJobs` (reconcileOptimistic). A detail pull must never overwrite them with the
+ * server's stale value while an optimistic outbox mutation is pending. `jobModifiedAt` is the
+ * `jobs.modified` captured at hydration time, so the next sync can detect staleness incrementally.
+ */
+export function upsertJobDetailRow(detail: JobDetailRow, jobModifiedAt: string | null): void {
+  const row: JobDetailRow = { ...detail, jobModifiedAt };
+  db.insert(jobDetails).values(row).onConflictDoUpdate({ target: jobDetails.jobId, set: row }).run();
 }

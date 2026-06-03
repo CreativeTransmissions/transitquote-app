@@ -38,9 +38,9 @@ async function openUrl(url: string | null): Promise<void> {
 export default function JobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const jobId = Number(id);
-  const { job, detail, isHydrating, error } = useJobDetail(jobId);
+  const { job, detail, isHydrating, error, isOnline } = useJobDetail(jobId);
   const settings = useTeamSettings();
-  const { formatDateTimeSmart } = useDateFormat();
+  const { formatDateTimeSmart, formatDateTime } = useDateFormat();
   const statuses = useStatusTypes();
   const update = useUpdateJobStatus();
   const assign = useAssignDriver();
@@ -140,6 +140,12 @@ export default function JobDetailScreen() {
                 </Pressable>
               </View>
             </View>
+          ) : null}
+
+          {!isOnline && detail?.hydratedAt ? (
+            <Text style={styles.asOf} testID="detail-as-of">
+              Showing details as of {formatDateTime(detail.hydratedAt)}
+            </Text>
           ) : null}
 
           {job.description ? <Text style={styles.description}>{job.description}</Text> : null}
@@ -299,6 +305,7 @@ const styles = StyleSheet.create({
   ref: { ...TYPOGRAPHY.title, color: COLOURS.text, flexShrink: 1 },
   description: { ...TYPOGRAPHY.body, color: COLOURS.text },
   meta: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted },
+  asOf: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted, fontStyle: 'italic' },
   actions: { marginTop: SPACING.sm },
   assignButtons: { gap: SPACING.sm, paddingVertical: SPACING.sm },
   mapButton: { paddingTop: SPACING.sm },

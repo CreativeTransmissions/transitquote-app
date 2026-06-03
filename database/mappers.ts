@@ -87,6 +87,9 @@ export function mapJobDetail(detail: JobDetail, hydratedAt: string): {
     jobDate: detail.job_date,
     payment: detail.payment,
     hydratedAt,
+    // Set by the detail-only writer (upsertJobDetailRow) from the list's jobs.modified, not here —
+    // the mapper has only the detail payload, while the incremental check keys off the list row.
+    jobModifiedAt: null,
   };
   return { job, detail: detailRow };
 }

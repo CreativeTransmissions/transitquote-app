@@ -75,6 +75,13 @@ _All M1-blocking questions resolved 2026-05-30 against the live test site — se
 **Offline core — the point of this milestone** (US-051 · AC: Offline-First)
 - [x] `syncEngine` — pull side (`pullJobs` reconcile, `pullJobDetail` hydrate, `sync_meta`) +
   flush-then-pull on every foreground sync (`useSyncJobs`).
+- [x] **Bulk detail hydration** (`hydrateJobDetails`, mig `0005` `job_modified_at`) — the sync now
+  prefetches **every** job's detail (incremental, bounded concurrency, abortable, partial-failure
+  tolerant) so opening **any** job offline shows full detail, not just visited ones. Detail writes are
+  blob-only (`upsertJobDetailRow`) so they never revert a pending optimistic status/assignment — that
+  row is reconciled solely by `pullJobs`. Determinate first-sync/indicator progress. Unit-tested;
+  `offline-detail.yaml` E2E **green on `Pixel_9` 2026-06-03** (open a never-opened job offline → full
+  detail + "as of" note). See `docs/proposals/offline-bulk-detail-hydration.md`.
 - [x] `useConnectivity()` (expo-network) + `OfflineBanner` with "last synced X ago".
 - [x] Outbox table + `outboxFlusher` (pending/in_progress/failed; permanent (4xx / 200+success:false)→failed
   no retry; transient (5xx/network)→pending retry to MAX_RETRY_ATTEMPTS — spec §11.5). `isPermanentFailure` tested.

@@ -149,13 +149,16 @@ ALTER TABLE \`team_settings\` ADD \`time_format\` text;`;
 // Verbatim copy of 0004_fancy_adam_warlock.sql (adds ask_for_time → date-only pickups).
 const m0004 = `ALTER TABLE \`team_settings\` ADD \`ask_for_time\` integer;`;
 
+// Verbatim copy of 0005_living_kingpin.sql (adds job_modified_at → incremental detail hydration).
+const m0005 = `ALTER TABLE \`job_details\` ADD \`job_modified_at\` text;`;
+
 // Shape consumed by the Expo migrator (drizzle-orm/expo-sqlite/migrator).
 const bundle: {
   journal: typeof journal;
   migrations: Record<string, string>;
 } = {
   journal,
-  migrations: { m0000, m0001, m0002, m0003, m0004 },
+  migrations: { m0000, m0001, m0002, m0003, m0004, m0005 },
 };
 
 export default bundle;

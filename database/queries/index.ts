@@ -5,7 +5,8 @@ export {
   jobByIdQuery,
   jobDetailByIdQuery,
   replaceJobs,
-  upsertJobWithDetail,
+  upsertJobDetailRow,
+  getJobsNeedingDetail,
   applyOptimisticStatus,
 } from './jobs';
 export {

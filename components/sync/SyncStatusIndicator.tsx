@@ -14,15 +14,24 @@ import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
 
 export function SyncStatusIndicator() {
   const isSyncing = useConnectivityStore((s) => s.isSyncing);
+  const detailHydration = useConnectivityStore((s) => s.detailHydration);
   const { pendingCount, failed } = useOutbox();
   const failedCount = failed.length;
   const [problemsVisible, setProblemsVisible] = useState(false);
 
   if (!isSyncing && pendingCount === 0 && failedCount === 0) return null;
 
+  // While the background detail phase runs, surface its determinate progress next to the spinner.
+  const showDetailProgress = isSyncing && detailHydration != null && detailHydration.total > 0;
+
   return (
     <View style={styles.row} testID="sync-status">
       {isSyncing ? <ActivityIndicator size="small" color={COLOURS.primary} /> : null}
+      {showDetailProgress ? (
+        <Text style={styles.detailProgress} testID="sync-detail-progress">
+          {detailHydration!.done}/{detailHydration!.total}
+        </Text>
+      ) : null}
       {pendingCount > 0 ? (
         <View style={[styles.badge, styles.pending]} testID="sync-pending-badge">
           <Text style={styles.badgeText}>{pendingCount} pending</Text>
@@ -46,6 +55,7 @@ export function SyncStatusIndicator() {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
+  detailProgress: { ...TYPOGRAPHY.label, color: COLOURS.textMuted },
   badge: { paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: RADIUS.sm },
   pending: { backgroundColor: COLOURS.warning },
   failed: { backgroundColor: COLOURS.danger },

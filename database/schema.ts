@@ -64,6 +64,10 @@ export const jobDetails = sqliteTable('job_details', {
   jobDate: text('job_date_json', { mode: 'json' }).$type<LabelValue[]>(),
   payment: text('payment_json', { mode: 'json' }).$type<LabelValue[]>(),
   hydratedAt: text('hydrated_at'),
+  // The `jobs.modified` captured when this detail was hydrated. Bulk hydration compares it to the
+  // current `jobs.modified` to re-fetch only jobs that changed (incremental sync); a NULL (pre-0005
+  // rows, or a job whose `modified` advanced) marks the detail as stale → re-hydrate next sync.
+  jobModifiedAt: text('job_modified_at'),
 });
 
 // ─── Reference data (from /configuration) ─────────────────────────────────────

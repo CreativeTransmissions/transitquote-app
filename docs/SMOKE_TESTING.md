@@ -11,6 +11,11 @@ Flows (`.maestro/`):
 - **`smoke.yaml`** — the M1 happy path: onboarding → login → jobs list → job detail → status update.
 - **`offline.yaml`** — the offline-first promise (ROADMAP M1 exit criterion): go offline → list still
   renders from the local DB → queue a status change while offline → it auto-syncs on reconnect.
+- **`offline-detail.yaml`** — bulk detail hydration (spec §11; `docs/proposals/offline-bulk-detail-hydration.md`):
+  login → let the sync settle (every job's detail is prefetched) → go offline → open a job **never
+  opened this session** → its full detail (route/customer/pricing) + the offline "as of" note still
+  render from the local DB. Read-only; toggles airplane mode. ✅ **Verified GREEN on `Pixel_9`
+  2026-06-03** (exit 0, all steps COMPLETED; api-driver).
 - **`subflows/auth.yaml`** — shared onboarding+login, invoked via `runFlow` by `smoke`/`offline`.
 
 > **Status (2026-05-31):** ALL flows green on the embedded-bundle build (exit 0) — `minimal`, the
@@ -296,16 +301,47 @@ covered by the `.api-samples/` ignore) holding `SITE_URL`/`CLIENT_ID`/`CLIENT_SE
 >    fix is `taskkill /PID <java.exe> /F` (the app itself launches fine via `adb shell monkey`, which
 >    proves it's a Maestro-side wedge, not an app crash). Then re-run.
 
-## New flows (2026-06-03) — authored, pending an emulator run
+## New flows (2026-06-03) — ✅ verified passing on the emulator
 
-These were added to close the recommended E2E gaps. YAML validated (all 17 `.maestro` flows parse);
-they have **not** yet been executed here (no emulator was running at authoring time). Run them with
-the per-run loop above.
+These were added to close the recommended E2E gaps. **Run GREEN on the `Pixel_9` emulator
+2026-06-03** (exit 0, all steps COMPLETED) on the embedded-bundle build via the per-run loop above.
 
 - **`roles.yaml`** — role-based UI hiding (CLAUDE.md §4 + Testing Standards): a **driver** must NOT
   see the dispatcher-only Drivers/Customers links. Deterministic. Run with **api-driver**.
 - **`assign-driver.yaml`** — dispatcher assigns a driver from job detail (Assign → pick → confirm).
   Deterministic. Run with **api-dispatch**. ⚠️ MUTATES a job's assignment on the live DDEV site.
+
+### Other top-level flows verified the same run (2026-06-03, exit 0)
+
+The full set of 8 top-level `.maestro/*.yaml` flows now passes (split across two credential sets —
+driver-only vs dispatch-only — so run per-flow, not one `maestro test .maestro`):
+
+- **Driver creds (api-driver):** `minimal`, `roles`, `smoke` ⚠️mutates, `offline` ⚠️mutates+airplane,
+  `screens` (screenshot tour).
+- **Dispatch creds (api-dispatch):** `job-card-fields` (card-field regression), `screens-dispatch`
+  (Drivers/Customers screenshot tour), `assign-driver` ⚠️mutates.
+
+> Two operational gotchas recurred and were cleared exactly as documented above: (1) the first flow
+> after a cold boot flaked on `io.grpc … UNAVAILABLE` / `Command failed (tcp:…): closed` — settle the
+> device (wake + dismiss keyguard) and re-run; (2) `Unable to launch app` between runs — kill stray
+> `java.exe` + `adb kill-server && adb start-server`, then re-run.
+
+### Full-suite re-run on the bulk-detail-hydration build (2026-06-03, exit 0)
+
+All **9** top-level flows GREEN on `Pixel_9` after rebuilding the embedded bundle with the
+offline-bulk-detail-hydration change (`docs/proposals/offline-bulk-detail-hydration.md`) — the 8
+above plus the new **`offline-detail.yaml`**. Build: `expo export:embed` → `:app:assembleDebug` →
+`adb install -r` (bundle verified to contain the `detail-as-of` testID).
+
+- **Driver creds (api-driver):** `minimal`, `roles`, `smoke` ⚠️mutates, `offline` ⚠️mutates+airplane,
+  `offline-detail` ⚠️airplane (NEW), `screens`.
+- **Dispatch creds (api-dispatch):** `job-card-fields`, `screens-dispatch`, `assign-driver` ⚠️mutates.
+
+> One gotcha hit this run: **`minimal.yaml` failed on first attempt** because it uses a bare
+> `launchApp` (no `clearState`) and the freshly-reinstalled app still held a logged-in session from a
+> prior flow, so it landed on the jobs list instead of onboarding. `adb shell pm clear
+> com.transitteam.app` (wipes app data, not the APK/embedded bundle) → re-run → green. The
+> credentialed flows are immune: their `subflows/auth.yaml` does its own `clearState`.
 
 ## E2E coverage gaps — NOT auto-testable from Maestro alone
 

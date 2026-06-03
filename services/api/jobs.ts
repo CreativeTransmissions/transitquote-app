@@ -11,8 +11,8 @@ export async function getJobs(signal?: AbortSignal): Promise<Job[]> {
   return unwrapData(res.data, 'jobs', true);
 }
 
-export async function getJobDetail(id: number): Promise<JobDetail> {
-  const res = await apiClient.get<ApiResponse<JobDetail>>(PATH, { params: { id } });
+export async function getJobDetail(id: number, signal?: AbortSignal): Promise<JobDetail> {
+  const res = await apiClient.get<ApiResponse<JobDetail>>(PATH, { params: { id }, signal });
   return unwrapData(res.data, 'job detail');
 }
 

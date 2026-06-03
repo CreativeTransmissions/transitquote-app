@@ -37,8 +37,15 @@ describe('getJobDetail', () => {
   it('requests by id param and unwraps the detail object', async () => {
     get.mockResolvedValue({ data: { data: { id: '7' }, success: true } });
     const result = await getJobDetail(7);
-    expect(get).toHaveBeenCalledWith(PATH, { params: { id: 7 } });
+    expect(get).toHaveBeenCalledWith(PATH, { params: { id: 7 }, signal: undefined });
     expect(result).toEqual({ id: '7' });
+  });
+
+  it('forwards an abort signal so bulk hydration can cancel in-flight detail requests', async () => {
+    const signal = new AbortController().signal;
+    get.mockResolvedValue({ data: { data: { id: '7' }, success: true } });
+    await getJobDetail(7, signal);
+    expect(get).toHaveBeenCalledWith(PATH, { params: { id: 7 }, signal });
   });
 });
 

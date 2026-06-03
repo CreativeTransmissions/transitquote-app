@@ -36,6 +36,13 @@
       "when": 1780310111216,
       "tag": "0004_fancy_adam_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1780505801091,
+      "tag": "0005_living_kingpin",
+      "breakpoints": true
     }
   ]
 }

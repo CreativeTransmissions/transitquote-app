@@ -6,6 +6,7 @@ import m0001 from './0001_unique_trish_tilby.sql';
 import m0002 from './0002_chunky_robin_chapel.sql';
 import m0003 from './0003_remarkable_wild_child.sql';
 import m0004 from './0004_fancy_adam_warlock.sql';
+import m0005 from './0005_living_kingpin.sql';
 
   export default {
     journal,
@@ -14,7 +15,8 @@ import m0004 from './0004_fancy_adam_warlock.sql';
 m0001,
 m0002,
 m0003,
-m0004
+m0004,
+m0005
     }
   }
   
