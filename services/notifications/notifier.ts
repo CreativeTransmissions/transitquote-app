@@ -26,6 +26,9 @@ export interface PresentedNotification {
 // In-memory record of what *would* have been presented — lets the UI surface an in-app banner and
 // lets tests assert behaviour without the native module. Capped to avoid unbounded growth.
 const MAX_LOG = 50;
+// Above this many OS notifications in one batch, collapse them into a single summary so a large
+// sync delta (e.g. back online after a long offline spell) doesn't flood the notification shade.
+const MAX_FIRE = 5;
 const presentedLog: PresentedNotification[] = [];
 
 export function presentJobNotifications(events: JobChangeEvent[]): PresentedNotification[] {
@@ -43,14 +46,22 @@ export function presentJobNotifications(events: JobChangeEvent[]): PresentedNoti
  */
 function fireLocalNotifications(items: PresentedNotification[]): void {
   if (getNotificationPermission() !== 'granted') return;
-  for (const n of items) {
-    Notifications.scheduleNotificationAsync({
-      content: { title: n.title, body: n.body, data: { jobId: n.jobId } },
-      trigger: Platform.OS === 'android' ? { channelId: NOTIFICATION_CHANNEL_ID } : null,
-    }).catch(() => {
-      /* native module unavailable / transient failure — intent already recorded in the log */
-    });
+
+  // Collapse an oversized batch into one summary rather than firing dozens of notifications.
+  if (items.length > MAX_FIRE) {
+    schedule({ title: 'Jobs updated', body: `${items.length} jobs have updates.`, jobId: items[0].jobId });
+    return;
   }
+  for (const n of items) schedule(n);
+}
+
+function schedule(n: PresentedNotification): void {
+  Notifications.scheduleNotificationAsync({
+    content: { title: n.title, body: n.body, data: { jobId: n.jobId } },
+    trigger: Platform.OS === 'android' ? { channelId: NOTIFICATION_CHANNEL_ID } : null,
+  }).catch(() => {
+    /* native module unavailable / transient failure — intent already recorded in the log */
+  });
 }
 
 /** Most recent presented notifications (newest last). Used by the in-app notifications view. */
