@@ -26,12 +26,12 @@ const markPendingRetry = outboxQueries.markPendingRetry as jest.Mock;
 const updateAssigned = jobsApi.updateAssigned as jest.Mock;
 const updateJobStatus = jobsApi.updateJobStatus as jest.Mock;
 
-function assignRow(id: number, attempts = 0): OutboxRow {
+function assignRow(id: number, attempts = 0, status: OutboxRow['status'] = 'pending'): OutboxRow {
   return {
     id,
     actionType: 'ASSIGN_DRIVER',
     payload: { id: 100 + id, driver_id: 7 },
-    status: 'pending',
+    status,
     attempts,
     lastError: null,
     createdAt: '2026-06-03 10:00:00',
@@ -127,5 +127,27 @@ describe('flushOutbox failure classification', () => {
 
     expect(markFailed).toHaveBeenCalledWith(1, 'Network request failed');
     expect(markPendingRetry).not.toHaveBeenCalled();
+  });
+});
+
+describe('flushOutbox attempt accounting (interrupted-run recovery)', () => {
+  it('persists the incremented attempt count when marking a row in_progress', async () => {
+    getProcessable.mockReturnValueOnce([assignRow(1, 0)]).mockReturnValue([]);
+
+    await flushOutbox();
+
+    // attempt count is written BEFORE dispatch, so an app-kill mid-network can't reset it to 0.
+    expect(markInProgress).toHaveBeenCalledWith(1, 1);
+  });
+
+  it('fails a recovered in_progress row that has already exhausted its attempts (no infinite loop)', async () => {
+    // Left in_progress by repeated interrupted runs; attempts already at MAX. 5 -> 6 > MAX.
+    getProcessable.mockReturnValueOnce([assignRow(1, 5, 'in_progress')]).mockReturnValue([]);
+
+    await flushOutbox();
+
+    expect(markFailed).toHaveBeenCalledTimes(1);
+    expect(updateAssigned).not.toHaveBeenCalled(); // capped before going to the network again
+    expect(markInProgress).not.toHaveBeenCalled();
   });
 });

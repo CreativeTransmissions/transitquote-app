@@ -36,7 +36,15 @@ async function dispatchAction(row: OutboxRow): Promise<void> {
 async function flushOnce(): Promise<void> {
   const items = getProcessable();
   for (const row of items) {
-    markInProgress(row.id);
+    // Count this dispatch attempt and persist it before we go to the network. row.attempts already
+    // includes any prior interrupted run (the previous markInProgress wrote it), so an action that
+    // repeatedly kills/hangs the app is capped here instead of retrying forever.
+    const attempts = row.attempts + 1;
+    if (attempts > MAX_RETRY_ATTEMPTS) {
+      markFailed(row.id, 'Action could not be completed after repeated attempts.');
+      continue;
+    }
+    markInProgress(row.id, attempts);
     try {
       await dispatchAction(row);
       removeOutboxItem(row.id);
@@ -44,10 +52,10 @@ async function flushOnce(): Promise<void> {
       const message = getApiErrorMessage(error);
       if (isPermanentFailure(error)) {
         markFailed(row.id, message);
+      } else if (attempts >= MAX_RETRY_ATTEMPTS) {
+        markFailed(row.id, message);
       } else {
-        const attempts = row.attempts + 1;
-        if (attempts >= MAX_RETRY_ATTEMPTS) markFailed(row.id, message);
-        else markPendingRetry(row.id, message, attempts);
+        markPendingRetry(row.id, message, attempts);
       }
     }
   }

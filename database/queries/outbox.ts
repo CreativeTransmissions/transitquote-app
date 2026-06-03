@@ -40,8 +40,14 @@ export function outboxQuery() {
   return db.select().from(outbox);
 }
 
-export function markInProgress(id: number): void {
-  db.update(outbox).set({ status: 'in_progress' }).where(eq(outbox.id, id)).run();
+/**
+ * Mark a row in_progress AND persist the attempt count for the dispatch we're about to make.
+ * Persisting up-front means an interrupted run (app killed mid-dispatch) leaves the bumped count
+ * on the row, so the recovered attempt is counted and a crash/hang-looping action can't retry
+ * forever — it eventually hits MAX_RETRY_ATTEMPTS.
+ */
+export function markInProgress(id: number, attempts: number): void {
+  db.update(outbox).set({ status: 'in_progress', attempts }).where(eq(outbox.id, id)).run();
 }
 
 /** On success, drop the item (synced items aren't kept). */
