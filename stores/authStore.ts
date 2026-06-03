@@ -66,26 +66,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   accessToken: null,
 
   hydrate: async () => {
-    const activeSiteId = await SecureStore.getItemAsync(ACTIVE_SITE_KEY);
-    if (!activeSiteId) {
+    // Boot calls this once and never awaits the rejection (useAppBoot: `void hydrate()`). A
+    // SecureStore failure (Android keystore corruption after an OS update is a known field issue)
+    // must therefore NOT reject — otherwise `status` stays 'loading' and the boot gate hangs the
+    // app on the splash screen forever. Fall back to 'unauthenticated' (the login screen) instead.
+    try {
+      const activeSiteId = await SecureStore.getItemAsync(ACTIVE_SITE_KEY);
+      if (!activeSiteId) {
+        set({ status: 'unauthenticated' });
+        return;
+      }
+      const sites = await readSites();
+      const site = sites.find((s) => s.id === activeSiteId);
+      if (!site) {
+        set({ status: 'unauthenticated' });
+        return;
+      }
+      const token = await SecureStore.getItemAsync(tokenKey(activeSiteId));
+      set({
+        activeSiteId,
+        siteUrl: site.siteUrl,
+        clientId: site.clientId,
+        clientSecret: site.clientSecret,
+        accessToken: token,
+        status: token ? 'authenticated' : 'unauthenticated',
+      });
+    } catch {
       set({ status: 'unauthenticated' });
-      return;
     }
-    const sites = await readSites();
-    const site = sites.find((s) => s.id === activeSiteId);
-    if (!site) {
-      set({ status: 'unauthenticated' });
-      return;
-    }
-    const token = await SecureStore.getItemAsync(tokenKey(activeSiteId));
-    set({
-      activeSiteId,
-      siteUrl: site.siteUrl,
-      clientId: site.clientId,
-      clientSecret: site.clientSecret,
-      accessToken: token,
-      status: token ? 'authenticated' : 'unauthenticated',
-    });
   },
 
   saveSiteConfig: async (config) => {
