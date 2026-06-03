@@ -27,6 +27,6 @@ module.exports = {
   // regressing. Raise these as the thinner areas (components, the remaining hooks, app routes)
   // gain coverage; do not lower them.
   coverageThreshold: {
-    global: { statements: 85, branches: 82, functions: 85, lines: 87 },
+    global: { statements: 90, branches: 85, functions: 90, lines: 93 },
   },
 };
