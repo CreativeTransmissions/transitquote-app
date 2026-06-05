@@ -1,5 +1,41 @@
 {
   "enabledPlugins": {
     "expo@claude-plugins-official": true
+  },
+  "env": {
+    "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(adb devices:*)",
+      "Bash(adb wait-for-device:*)",
+      "Bash(adb reverse:*)",
+      "Bash(adb install:*)",
+      "Bash(adb pull:*)",
+      "Bash(adb logcat:*)",
+      "Bash(adb shell screencap:*)",
+      "Bash(adb shell dumpsys:*)",
+      "Bash(adb shell input:*)",
+      "Bash(adb shell am:*)",
+      "Bash(adb shell monkey:*)",
+      "Bash(adb shell getprop:*)",
+      "Bash(adb shell run-as:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx jest:*)",
+      "Bash(npx expo export:embed:*)",
+      "Bash(npx expo-doctor:*)",
+      "Bash(maestro test:*)",
+      "Bash(curl -s http://localhost:*)",
+      "Bash(curl http://localhost:*)",
+      "Bash(./gradlew :app:assembleDebug:*)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(cat //wsl$/*)",
+      "Bash(ls //wsl$/*)",
+      "Bash(curl -sk https://tq-pro-teams-php8.ddev.site:*)",
+      "Bash(curl -s https://tq-pro-teams-php8.ddev.site:*)",
+      "Bash(wsl -d Ubuntu -e bash -lc:*)",
+      "Bash(wsl.exe -d Ubuntu -e bash -lc:*)",
+      "Bash(ddev:*)"
+    ]
   }
 }
