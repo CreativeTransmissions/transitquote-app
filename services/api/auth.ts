@@ -53,6 +53,15 @@ export async function login(creds: LoginCredentials): Promise<LoginResult> {
   return { accessToken: tokenRes.data.access_token, roles };
 }
 
-export async function logout(): Promise<void> {
-  await apiClient.post(LOGOUT_PATH);
+/**
+ * Logout / server-side token revocation. The server requires the token as an `access_token`
+ * request param (form-encoded) — without it `rest_logout` returns 400 `rest_missing_callback_param`
+ * and the token is never revoked (the Authorization header alone is NOT sufficient here).
+ * Stateless by design: the caller supplies the token it persisted.
+ */
+export async function logout(accessToken: string): Promise<void> {
+  const body = new URLSearchParams({ access_token: accessToken }).toString();
+  await apiClient.post(LOGOUT_PATH, body, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
 }

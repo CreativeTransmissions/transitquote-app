@@ -18,7 +18,9 @@ const mockSaveSiteConfig = jest.fn();
 jest.mock('../../services/api/auth', () => ({ logout: jest.fn() }));
 jest.mock('../../database/queries', () => ({ clearLocalData: jest.fn() }));
 jest.mock('../../stores/authStore', () => ({
-  useAuthStore: { getState: () => ({ clearSession: mockClearSession, saveSiteConfig: mockSaveSiteConfig }) },
+  useAuthStore: {
+    getState: () => ({ accessToken: 'tok-abc', clearSession: mockClearSession, saveSiteConfig: mockSaveSiteConfig }),
+  },
 }));
 
 const mockLogout = logout as jest.Mock;
@@ -41,6 +43,7 @@ describe('useLogout', () => {
     await result.current.mutateAsync();
 
     expect(mockLogout).toHaveBeenCalledTimes(1);
+    expect(mockLogout).toHaveBeenCalledWith('tok-abc'); // token passed for server-side revocation
     expect(mockClearSession).toHaveBeenCalledTimes(1);
     expect(mockClearLocal).toHaveBeenCalledTimes(1);
   });

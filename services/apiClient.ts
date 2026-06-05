@@ -12,6 +12,7 @@
 import { create, isAxiosError, type AxiosInstance } from 'axios';
 import { useAuthStore } from '../stores/authStore';
 import { parseApiBody } from './parseApiBody';
+import { isTokenRejected } from './apiError';
 
 export { parseApiBody };
 
@@ -31,11 +32,15 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// 401 → clear the session (token expired/revoked). The route guard handles the redirect.
+// Token gone bad → clear the session; the route guard handles the redirect to login.
+// Two server shapes mean "your token is no longer good": a 401 (no/!Bearer Authorization header)
+// and a 403 with an `oauth2.*` code (token invalid/expired/revoked — see isTokenRejected). A 403
+// `rest_forbidden` is an authenticated *permission* denial and must NOT log the user out.
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (isAxiosError(error) && error.response?.status === 401) {
+    const status = isAxiosError(error) ? error.response?.status : undefined;
+    if (status === 401 || isTokenRejected(error)) {
       await useAuthStore.getState().clearSession();
     }
     return Promise.reject(error);

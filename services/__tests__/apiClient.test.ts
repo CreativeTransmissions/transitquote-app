@@ -70,6 +70,24 @@ describe('response interceptor', () => {
     expect(clearSession).not.toHaveBeenCalled();
   });
 
+  it('clears the session on a 403 with an oauth2 token-rejected code (invalid/expired/revoked)', async () => {
+    const error = {
+      isAxiosError: true,
+      response: {
+        status: 403,
+        data: { code: 'oauth2.authentication.attempt_authentication.invalid_token' },
+      },
+    };
+    await expect(responseRejected(error)).rejects.toBe(error);
+    expect(clearSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT clear the session on a 403 permission denial (rest_forbidden)', async () => {
+    const error = { isAxiosError: true, response: { status: 403, data: { code: 'rest_forbidden' } } };
+    await expect(responseRejected(error)).rejects.toBe(error);
+    expect(clearSession).not.toHaveBeenCalled();
+  });
+
   it('ignores non-axios errors', async () => {
     const error = new Error('boom');
     await expect(responseRejected(error)).rejects.toBe(error);

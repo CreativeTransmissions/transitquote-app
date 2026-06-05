@@ -22,12 +22,32 @@ export class ApiActionError extends Error {
 }
 
 /**
+ * Whether an error means the access token itself was rejected (invalid / expired / revoked) — as
+ * opposed to a permission denial. The hardened server returns **403** with an `oauth2.*` error code
+ * for a bad token (a *missing* Authorization header is 401; an authenticated-but-unauthorized action
+ * is 403 `rest_forbidden`). This is the single boundary that distinguishes those cases — used both to
+ * clear the session (apiClient) and to keep a token-expiry mid-write retryable (isPermanentFailure).
+ * See docs/API_NOTES.md §11.
+ */
+export function isTokenRejected(error: unknown): boolean {
+  if (!isAxiosError(error)) return false;
+  if (error.response?.status !== 403) return false;
+  const data = error.response.data;
+  if (!data || typeof data !== 'object' || !('code' in data)) return false;
+  const code = (data as { code?: unknown }).code;
+  return typeof code === 'string' && code.startsWith('oauth2.');
+}
+
+/**
  * Whether an error means the action should NOT be retried (permanent). True for 4xx responses and
- * ApiActionError (200 + success:false). Network errors and 5xx are transient → retry. Drives the
+ * ApiActionError (200 + success:false). Network errors and 5xx are transient → retry. A rejected
+ * token (403 `oauth2.*`) is ALSO transient: the session is cleared and re-login mints a fresh token,
+ * so the queued write must survive to retry — not be burned as a permanent failure. Drives the
  * outbox flush policy (spec §11.5).
  */
 export function isPermanentFailure(error: unknown): boolean {
   if (error instanceof ApiActionError) return true;
+  if (isTokenRejected(error)) return false;
   if (isAxiosError(error)) {
     const status = error.response?.status;
     return status !== undefined && status >= 400 && status < 500;

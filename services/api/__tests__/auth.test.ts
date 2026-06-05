@@ -67,9 +67,12 @@ describe('login', () => {
 });
 
 describe('logout', () => {
-  it('posts to the logout endpoint', async () => {
-    post.mockResolvedValue({ data: {} });
-    await logout();
-    expect(post).toHaveBeenCalledWith(LOGOUT_PATH);
+  it('posts the access_token form-encoded to the logout endpoint', async () => {
+    post.mockResolvedValue({ data: { success: true } });
+    await logout('tok-xyz');
+    const [path, body, config] = post.mock.calls[0];
+    expect(path).toBe(LOGOUT_PATH);
+    expect(body).toBe('access_token=tok-xyz');
+    expect(config).toEqual({ headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
   });
 });
