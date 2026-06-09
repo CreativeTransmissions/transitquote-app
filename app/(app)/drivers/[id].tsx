@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,10 +10,11 @@ import { useDrivers } from '../../../hooks/useDrivers';
 import { useJobs } from '../../../hooks/useJobs';
 import { useOutbox } from '../../../hooks/useOutbox';
 import { useRole } from '../../../hooks/useRole';
+import { useTheme, type Theme } from '../../../hooks/useTheme';
 import { fullName } from '../../../utils/formatters';
 import { mailtoUrl, telUrl } from '../../../utils/links';
 import { openLink } from '../../../utils/openLink';
-import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../../constants';
+import { RADIUS, SPACING, TYPOGRAPHY } from '../../../constants';
 
 async function openUrl(url: string | null): Promise<void> {
   if (!url) return;
@@ -27,6 +29,8 @@ export default function DriverDetailScreen() {
   const drivers = useDrivers();
   const { jobs } = useJobs('mine', driverId);
   const { stateByJob } = useOutbox();
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
 
   // Don't redirect while the role query is still hydrating (role === null) — see drivers/index.tsx.
   if (role !== null && !isDispatcher) return <Redirect href="/jobs" />;
@@ -48,7 +52,7 @@ export default function DriverDetailScreen() {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Icon name="chevron-left" size="lg" colour={COLOURS.primary} />
+          <Icon name="chevron-left" size="lg" colour={t.colours.primary} />
         </Pressable>
       </View>
 
@@ -70,10 +74,10 @@ export default function DriverDetailScreen() {
               </View>
 
               <View style={styles.card}>
-                <LinkRow label="Phone" value={driver.phone ?? ''} url={phone} testID="driver-call" />
-                <LinkRow label="Email" value={driver.email ?? ''} url={email} testID="driver-email" />
+                <LinkRow label="Phone" value={driver.phone ?? ''} url={phone} testID="driver-call" styles={styles} />
+                <LinkRow label="Email" value={driver.email ?? ''} url={email} testID="driver-email" styles={styles} />
                 {assignTarget ? (
-                  <Row label="Can assign to" value={fullName(assignTarget.firstName, assignTarget.lastName)} />
+                  <Row label="Can assign to" value={fullName(assignTarget.firstName, assignTarget.lastName)} styles={styles} />
                 ) : null}
               </View>
 
@@ -87,7 +91,9 @@ export default function DriverDetailScreen() {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+type DriverDetailStyles = ReturnType<typeof makeStyles>;
+
+function Row({ label, value, styles }: { label: string; value: string; styles: DriverDetailStyles }) {
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
@@ -98,8 +104,20 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function LinkRow({ label, value, url, testID }: { label: string; value: string; url: string | null; testID?: string }) {
-  if (!url) return <Row label={label} value={value} />;
+function LinkRow({
+  label,
+  value,
+  url,
+  testID,
+  styles,
+}: {
+  label: string;
+  value: string;
+  url: string | null;
+  testID?: string;
+  styles: DriverDetailStyles;
+}) {
+  if (!url) return <Row label={label} value={value} styles={styles} />;
   return (
     <Pressable testID={testID} style={styles.row} accessibilityRole="link" onPress={() => openUrl(url)}>
       <Text style={styles.rowLabel}>{label}</Text>
@@ -110,33 +128,34 @@ function LinkRow({ label, value, url, testID }: { label: string; value: string; 
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLOURS.background },
-  header: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },
-  backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -SPACING.sm },
-  content: { padding: SPACING.md, gap: SPACING.sm },
-  headerBlock: { gap: SPACING.sm, marginBottom: SPACING.sm },
-  name: { ...TYPOGRAPHY.title, color: COLOURS.text },
-  badge: { alignSelf: 'flex-start', paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: RADIUS.sm },
-  available: { backgroundColor: '#E6F4EA' },
-  unavailable: { backgroundColor: '#FDECEA' },
-  badgeText: { ...TYPOGRAPHY.label, color: COLOURS.text },
-  card: {
-    backgroundColor: COLOURS.surface,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLOURS.border,
-    paddingHorizontal: SPACING.md,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: SPACING.sm,
-    gap: SPACING.md,
-  },
-  rowLabel: { ...TYPOGRAPHY.body, color: COLOURS.textMuted },
-  rowValue: { ...TYPOGRAPHY.body, color: COLOURS.text, flexShrink: 1, textAlign: 'right' },
-  rowValueLink: { color: COLOURS.primary },
-  section: { ...TYPOGRAPHY.label, color: COLOURS.textMuted, textTransform: 'uppercase', marginTop: SPACING.sm },
-});
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: t.colours.background },
+    header: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },
+    backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -SPACING.sm },
+    content: { padding: SPACING.md, gap: SPACING.sm },
+    headerBlock: { gap: SPACING.sm, marginBottom: SPACING.sm },
+    name: { ...TYPOGRAPHY.title, color: t.colours.text },
+    badge: { alignSelf: 'flex-start', paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: RADIUS.sm },
+    available: { backgroundColor: t.colours.successSurface },
+    unavailable: { backgroundColor: t.colours.dangerSurface },
+    badgeText: { ...TYPOGRAPHY.label, color: t.colours.text },
+    card: {
+      backgroundColor: t.colours.surface,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: t.colours.border,
+      paddingHorizontal: SPACING.md,
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: SPACING.sm,
+      gap: SPACING.md,
+    },
+    rowLabel: { ...TYPOGRAPHY.body, color: t.colours.textMuted },
+    rowValue: { ...TYPOGRAPHY.body, color: t.colours.text, flexShrink: 1, textAlign: 'right' },
+    rowValueLink: { color: t.colours.primary },
+    section: { ...TYPOGRAPHY.label, color: t.colours.textMuted, textTransform: 'uppercase', marginTop: SPACING.sm },
+  });

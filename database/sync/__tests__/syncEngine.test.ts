@@ -250,3 +250,107 @@ describe('pullCustomers', () => {
     expect(getLastSynced('customers')).not.toBeNull();
   });
 });
+
+describe('hydrateJobDetails — staged hydration (P-2)', () => {
+  // Use a real DETAIL_HYDRATION_FIRST_BATCH value for the boundary test.
+  // Import the constant at the top of the test to get the live value.
+  const { DETAIL_HYDRATION_FIRST_BATCH } = jest.requireActual('../../../constants') as {
+    DETAIL_HYDRATION_FIRST_BATCH: number;
+  };
+
+  beforeEach(() => {
+    mockGetJobDetail.mockImplementation((id: number) =>
+      Promise.resolve({ detail: { jobId: id, hydratedAt: 'h' } }),
+    );
+  });
+
+  it('hydrates all jobs in one pass when the count is within DETAIL_HYDRATION_FIRST_BATCH', async () => {
+    const count = Math.min(DETAIL_HYDRATION_FIRST_BATCH, 5); // small set fits in one batch
+    const jobRows = Array.from({ length: count }, (_, i) => wireJob(i + 1));
+    db.insert(jobs).values(jobRows).run();
+
+    await hydrateJobDetails();
+
+    expect(mockGetJobDetail).toHaveBeenCalledTimes(count);
+    expect(db.select().from(jobDetails).all()).toHaveLength(count);
+    expect(getJobsNeedingDetail()).toEqual([]);
+  });
+
+  it('hydrates all jobs across two passes when the count exceeds DETAIL_HYDRATION_FIRST_BATCH', async () => {
+    // Seed DETAIL_HYDRATION_FIRST_BATCH + 10 jobs so pass2 has 10 items.
+    const total = DETAIL_HYDRATION_FIRST_BATCH + 10;
+    const jobRows = Array.from({ length: total }, (_, i) => wireJob(i + 1));
+    db.insert(jobs).values(jobRows).run();
+
+    await hydrateJobDetails();
+
+    // Every job should have been fetched and persisted — pass1 + pass2.
+    expect(mockGetJobDetail).toHaveBeenCalledTimes(total);
+    expect(db.select().from(jobDetails).all()).toHaveLength(total);
+    expect(getJobsNeedingDetail()).toEqual([]);
+  });
+
+  it('progress totals cover the entire work set, not just the first batch', async () => {
+    const total = DETAIL_HYDRATION_FIRST_BATCH + 5;
+    const jobRows = Array.from({ length: total }, (_, i) => wireJob(i + 1));
+    db.insert(jobs).values(jobRows).run();
+
+    const progress: [number, number][] = [];
+    await hydrateJobDetails(undefined, (done, t) => progress.push([done, t]));
+
+    // Every progress call should report `total` as the grand total.
+    const totals = progress.map(([, t]) => t);
+    expect(new Set(totals).size).toBe(1); // all the same
+    expect(totals[0]).toBe(total);
+
+    // The final progress entry should be [total, total].
+    expect(progress.at(-1)).toEqual([total, total]);
+  });
+
+  it('cancellation mid-first-batch stops the run; whatever was persisted stays', async () => {
+    const total = DETAIL_HYDRATION_FIRST_BATCH + 20;
+    const jobRows = Array.from({ length: total }, (_, i) => wireJob(i + 1));
+    db.insert(jobs).values(jobRows).run();
+
+    const controller = new AbortController();
+    let callCount = 0;
+    mockGetJobDetail.mockImplementation(async (id: number) => {
+      callCount += 1;
+      // Abort after 3 fetches so we cancel mid-first-batch.
+      if (callCount === 3) controller.abort();
+      return { detail: { jobId: id, hydratedAt: 'h' } };
+    });
+
+    await hydrateJobDetails(controller.signal);
+
+    // Some details were persisted; no more than the first batch was attempted.
+    const hydrated = db.select().from(jobDetails).all().length;
+    expect(hydrated).toBeGreaterThan(0);
+    expect(hydrated).toBeLessThanOrEqual(DETAIL_HYDRATION_FIRST_BATCH);
+    // The remainder is still reported as "needing detail".
+    expect(getJobsNeedingDetail().length).toBeGreaterThan(0);
+  });
+
+  it('second pass does not run when the signal is aborted after the first pass', async () => {
+    const total = DETAIL_HYDRATION_FIRST_BATCH + 5;
+    const jobRows = Array.from({ length: total }, (_, i) => wireJob(i + 1));
+    db.insert(jobs).values(jobRows).run();
+
+    const controller = new AbortController();
+    let callCount = 0;
+    mockGetJobDetail.mockImplementation(async (id: number) => {
+      callCount += 1;
+      // Abort exactly when the first batch completes (on the last call of pass1).
+      if (callCount === DETAIL_HYDRATION_FIRST_BATCH) controller.abort();
+      return { detail: { jobId: id, hydratedAt: 'h' } };
+    });
+
+    await hydrateJobDetails(controller.signal);
+
+    // Only the first batch (or fewer, due to pool races) should be hydrated.
+    const hydrated = db.select().from(jobDetails).all().length;
+    expect(hydrated).toBeLessThanOrEqual(DETAIL_HYDRATION_FIRST_BATCH);
+    // The extra 5 from pass2 were NOT hydrated.
+    expect(getJobsNeedingDetail().length).toBeGreaterThanOrEqual(5);
+  });
+});

@@ -10,12 +10,14 @@ import { EmptyState } from '../../../components/shared/EmptyState';
 import { useCustomers } from '../../../hooks/useCustomers';
 import { useRole } from '../../../hooks/useRole';
 import { filterCustomers } from '../../../utils/customerSearch';
-import { COLOURS, GRADIENTS, SPACING, TYPOGRAPHY } from '../../../constants';
+import { useTheme } from '../../../hooks/useTheme';
+import { SPACING, TYPOGRAPHY } from '../../../constants';
 
 export default function CustomersScreen() {
   const { role, isDispatcher } = useRole();
   const { customers, dbError, isSyncing, refresh } = useCustomers();
   const [query, setQuery] = useState('');
+  const t = useTheme();
 
   // role is null until the reactive role query hydrates — don't redirect during that first-render
   // loading window, or a real dispatcher gets bounced back to /jobs (see drivers/index.tsx).
@@ -24,11 +26,11 @@ export default function CustomersScreen() {
   const visible = filterCustomers(customers, query);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <LinearGradient colors={GRADIENTS.screen} style={StyleSheet.absoluteFill} pointerEvents="none" />
+    <SafeAreaView style={[styles.safe, { backgroundColor: t.colours.background }]} edges={['top']}>
+      <LinearGradient colors={t.gradients.screen} style={StyleSheet.absoluteFill} pointerEvents="none" />
       <OfflineBanner />
       <View style={styles.header}>
-        <Text style={styles.title}>Customers</Text>
+        <Text style={[styles.title, { color: t.colours.text }]}>Customers</Text>
       </View>
 
       <View style={styles.search}>
@@ -66,9 +68,9 @@ export default function CustomersScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLOURS.background },
+  safe: { flex: 1 },
   header: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: SPACING.xs },
-  title: { ...TYPOGRAPHY.title, color: COLOURS.text },
+  title: { ...TYPOGRAPHY.title },
   search: { paddingHorizontal: SPACING.md },
   content: { padding: SPACING.md, gap: SPACING.sm },
   emptyContent: { flexGrow: 1 },

@@ -15,6 +15,12 @@ let mockOutbox: { failed: unknown[] };
 
 // Capture the options passed to each Tabs.Screen so we can assert href/badge gating.
 const screenOptions: Record<string, Record<string, unknown>> = {};
+// Capture the top-level Tabs props (screenOptions + screenListeners).
+let capturedTabsProps: Record<string, unknown> = {};
+
+jest.mock('../../../utils/haptics', () => ({
+  hapticLight: jest.fn().mockResolvedValue(undefined),
+}));
 
 jest.mock('expo-router', () => {
   const React = require('react');
@@ -22,7 +28,10 @@ jest.mock('expo-router', () => {
   return {
     Redirect: ({ href }: { href: string }) => React.createElement(Text, { testID: 'redirect' }, href),
     Tabs: Object.assign(
-      ({ children }: { children: React.ReactNode }) => React.createElement(View, { testID: 'tabs' }, children),
+      (props: { children: React.ReactNode; screenOptions?: unknown; screenListeners?: unknown }) => {
+        capturedTabsProps = { screenOptions: props.screenOptions, screenListeners: props.screenListeners };
+        return React.createElement(View, { testID: 'tabs' }, props.children);
+      },
       {
         Screen: ({ name, options }: { name: string; options: Record<string, unknown> }) => {
           screenOptions[name] = options;
@@ -54,6 +63,7 @@ function renderLayout() {
 
 beforeEach(() => {
   for (const k of Object.keys(screenOptions)) delete screenOptions[k];
+  capturedTabsProps = {};
   mockStatus = 'authenticated';
   mockRole = { isDispatcher: false };
   mockOutbox = { failed: [] };
@@ -122,5 +132,31 @@ describe('AppLayout tab role gating', () => {
   it('shows no Jobs badge when the outbox has no failures', () => {
     renderLayout();
     expect(screenOptions.jobs.tabBarBadge).toBeUndefined();
+  });
+});
+
+describe('AppLayout — tab-press haptic (A11y-7)', () => {
+  it('registers a tabPress screenListener', () => {
+    renderLayout();
+    expect(typeof (capturedTabsProps.screenListeners as Record<string, unknown>)?.tabPress).toBe('function');
+  });
+
+  it('fires hapticLight when the tabPress listener is invoked', async () => {
+    const { hapticLight } = require('../../../utils/haptics') as { hapticLight: jest.Mock };
+    hapticLight.mockClear();
+    renderLayout();
+    const listeners = capturedTabsProps.screenListeners as Record<string, () => void>;
+    listeners.tabPress();
+    // hapticLight is fire-and-forget (void) — allow the microtask queue to drain.
+    await Promise.resolve();
+    expect(hapticLight).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('AppLayout — tab label font scaling (A11y-3)', () => {
+  it('sets tabBarAllowFontScaling: false in screenOptions', () => {
+    renderLayout();
+    const opts = capturedTabsProps.screenOptions as Record<string, unknown>;
+    expect(opts?.tabBarAllowFontScaling).toBe(false);
   });
 });

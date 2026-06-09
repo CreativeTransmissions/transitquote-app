@@ -1,6 +1,7 @@
 /**
  * Tests for the onboarding screen — collects site URL + credentials, submits via useOnboarding,
- * routes to /login on success, and surfaces validation/save errors.
+ * routes to /login on success, surfaces validation/save errors, and renders H-4 field helpers +
+ * the "What's this?" credential expander.
  */
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -11,6 +12,11 @@ let mockOnboarding: { mutate: jest.Mock; isError: boolean; error: Error | null; 
 
 jest.mock('expo-router', () => ({ router: { replace: (...a: unknown[]) => mockReplace(...a) } }));
 jest.mock('../../../hooks/useOnboarding', () => ({ useOnboarding: () => mockOnboarding }));
+
+// Icon is a native module wrapper — stub to avoid native setup in unit tests.
+jest.mock('../../../components/shared/Icon', () => ({
+  Icon: () => null,
+}));
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 
@@ -48,5 +54,65 @@ describe('OnboardingScreen', () => {
     mockOnboarding = { mutate: jest.fn(), isError: true, error: new Error('Enter your site URL.'), isPending: false };
     renderScreen();
     expect(screen.getByText('Enter your site URL.')).toBeTruthy();
+  });
+});
+
+describe('OnboardingScreen — H-4 field helpers', () => {
+  it('shows the site URL helper text', () => {
+    renderScreen();
+    expect(
+      screen.getByText('Your full WordPress site address, e.g. https://courier.example.com'),
+    ).toBeTruthy();
+  });
+
+  it('shows the credential helper text under the Client Secret field', () => {
+    renderScreen();
+    expect(
+      screen.getByText(
+        'Your administrator can find these under TransitTeam → API in WordPress.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('renders the "What\'s this?" expander button', () => {
+    renderScreen();
+    expect(screen.getByTestId('onboarding-cred-expander')).toBeTruthy();
+  });
+
+  it('expander button has accessibilityRole="button" and starts collapsed', () => {
+    renderScreen();
+    const expander = screen.getByTestId('onboarding-cred-expander');
+    expect(expander.props.accessibilityRole).toBe('button');
+    expect(expander.props.accessibilityState?.expanded).toBe(false);
+  });
+
+  it('toggles the expander open and sets accessibilityState expanded=true', () => {
+    renderScreen();
+    const expander = screen.getByTestId('onboarding-cred-expander');
+    // Content not visible before tap.
+    expect(screen.queryByTestId('onboarding-cred-expander-content')).toBeNull();
+    fireEvent.press(expander);
+    // Content visible after tap.
+    expect(screen.getByTestId('onboarding-cred-expander-content')).toBeTruthy();
+    expect(expander.props.accessibilityState?.expanded).toBe(true);
+  });
+
+  it('collapses the expander when pressed a second time', () => {
+    renderScreen();
+    const expander = screen.getByTestId('onboarding-cred-expander');
+    fireEvent.press(expander);
+    expect(screen.getByTestId('onboarding-cred-expander-content')).toBeTruthy();
+    fireEvent.press(expander);
+    expect(screen.queryByTestId('onboarding-cred-expander-content')).toBeNull();
+    expect(expander.props.accessibilityState?.expanded).toBe(false);
+  });
+
+  it('shows the explanatory paragraph when expanded', () => {
+    renderScreen();
+    fireEvent.press(screen.getByTestId('onboarding-cred-expander'));
+    // Match on a phrase that avoids apostrophe encoding concerns.
+    expect(
+      screen.getByText(/TransitTeam connects this app to your company/),
+    ).toBeTruthy();
   });
 });

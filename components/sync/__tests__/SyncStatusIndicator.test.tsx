@@ -23,6 +23,14 @@ jest.mock('../SyncProblemsSheet', () => {
       visible ? React.createElement(Text, null, 'PROBLEMS OPEN') : null,
   };
 });
+jest.mock('../PendingSyncSheet', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  return {
+    PendingSyncSheet: ({ visible }: { visible: boolean }) =>
+      visible ? React.createElement(Text, null, 'PENDING OPEN') : null,
+  };
+});
 
 beforeEach(() => {
   mockIsSyncing = false;
@@ -67,7 +75,7 @@ describe('SyncStatusIndicator', () => {
   it('pending badge has the correct accessibilityLabel', () => {
     mockOutbox = { pendingCount: 5, failed: [] };
     render(<SyncStatusIndicator />);
-    expect(screen.getByLabelText('5 updates waiting to sync')).toBeTruthy();
+    expect(screen.getByLabelText('5 updates waiting to sync, double-tap to learn more')).toBeTruthy();
   });
 
   it('shows a failed badge and opens the problems sheet when tapped', () => {
@@ -84,6 +92,24 @@ describe('SyncStatusIndicator', () => {
     mockOutbox = { pendingCount: 0, failed: [{ id: 1 }, { id: 2 }] };
     render(<SyncStatusIndicator />);
     expect(screen.getByLabelText('2 updates failed')).toBeTruthy();
+  });
+
+  it('pending badge is a Pressable with the correct accessibilityRole and label', () => {
+    mockOutbox = { pendingCount: 3, failed: [] };
+    render(<SyncStatusIndicator />);
+    const badge = screen.getByTestId('sync-pending-badge');
+    expect(badge.props.accessibilityRole).toBe('button');
+    expect(badge.props.accessibilityLabel).toBe(
+      '3 updates waiting to sync, double-tap to learn more',
+    );
+  });
+
+  it('opens PendingSyncSheet when the pending badge is tapped', () => {
+    mockOutbox = { pendingCount: 2, failed: [] };
+    render(<SyncStatusIndicator />);
+    expect(screen.queryByText('PENDING OPEN')).toBeNull();
+    fireEvent.press(screen.getByTestId('sync-pending-badge'));
+    expect(screen.getByText('PENDING OPEN')).toBeTruthy();
   });
 
   it('spinner has accessibilityLabel "Syncing" when not in detail phase', () => {

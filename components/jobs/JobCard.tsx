@@ -14,14 +14,15 @@
  * Lookup maps (serviceNames, vehicleNames, paymentStatusNames) injected from JobList — no hooks
  * or DB access inside this component.
  */
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { JobStatusBadge } from './JobStatusBadge';
 import { Icon } from '../shared/Icon';
-import { CARD, CARD_PRESSED, COLOURS, SPACING, TYPOGRAPHY } from '../../constants';
+import { makeCard, makeCardPressed, SPACING, TYPOGRAPHY } from '../../constants';
 import { nameSurnameFirst } from '../../utils/formatters';
 import { resolveStatusColour } from '../../utils/statusColours';
 import { useDateFormat } from '../../hooks/useDateFormat';
+import { useTheme, type Theme } from '../../hooks/useTheme';
 import type { JobRow } from '../../database/schema';
 import type { JobOutboxState } from '../../hooks/useOutbox';
 
@@ -48,10 +49,10 @@ function isPaymentPaid(name: string): boolean {
   return !prefix.includes('un') && !prefix.includes('not');
 }
 
-function PaymentBadge({ name }: { name: string }) {
+function PaymentBadge({ name, t, styles }: { name: string; t: Theme; styles: JobCardStyles }) {
   const paid = isPaymentPaid(name);
-  const bgColour = paid ? COLOURS.successSurface : `${COLOURS.warning}1F`;
-  const textColour = paid ? COLOURS.statusDone : COLOURS.warning;
+  const bgColour = paid ? t.colours.successSurface : `${t.colours.warning}1F`;
+  const textColour = paid ? t.colours.statusDone : t.colours.warning;
   return (
     <View style={[styles.chip, { backgroundColor: bgColour }]}>
       <Text style={[styles.chipText, { color: textColour }]} maxFontSizeMultiplier={1.5}>
@@ -71,6 +72,8 @@ function JobCardInner({
   paymentStatusNames = {},
 }: JobCardProps) {
   const { formatDateTimeSmart } = useDateFormat();
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
 
   const customerName = nameSurnameFirst(job.customerFirstName, job.customerLastName);
   const pickup = job.pickupIsAsap ? 'ASAP' : formatDateTimeSmart(job.pickupDatetime);
@@ -80,7 +83,11 @@ function JobCardInner({
   const paymentStatusName =
     job.paymentStatusId != null ? paymentStatusNames[job.paymentStatusId] : undefined;
 
-  const statusColour = resolveStatusColour(job.statusName, job.statusTypeId != null ? String(job.statusTypeId) : undefined);
+  const statusColour = resolveStatusColour(
+    job.statusName,
+    job.statusTypeId != null ? String(job.statusTypeId) : undefined,
+    t.colours,
+  );
   const metaParts = [serviceName, vehicleName].filter(Boolean).join(' · ');
 
   return (
@@ -88,7 +95,7 @@ function JobCardInner({
       testID={`job-card-${job.id}`}
       accessibilityRole="button"
       onPress={() => onPress(job.id)}
-      android_ripple={{ color: COLOURS.surfaceAlt }}
+      android_ripple={{ color: t.colours.surfaceAlt }}
       style={({ pressed }) => [
         styles.card,
         { borderLeftColor: statusColour },
@@ -97,7 +104,7 @@ function JobCardInner({
     >
       {/* Row 1: job ref + status badge */}
       <View style={styles.headerRow}>
-        <Text style={styles.ref} numberOfLines={1}>
+        <Text style={styles.ref} numberOfLines={1} maxFontSizeMultiplier={1.5}>
           {job.jobRef}
         </Text>
         <JobStatusBadge statusName={job.statusName} statusTypeId={job.statusTypeId} />
@@ -113,7 +120,7 @@ function JobCardInner({
       {/* Row 3: pickup address */}
       {job.pickupAddress ? (
         <View style={styles.iconRow}>
-          <Icon name="map-marker-outline" size="sm" colour={COLOURS.textMuted} />
+          <Icon name="map-marker-outline" size="sm" colour={t.colours.textMuted} />
           <Text
             testID={`job-pickup-address-${job.id}`}
             style={styles.iconRowText}
@@ -129,7 +136,7 @@ function JobCardInner({
         <View style={styles.timeDriverRow}>
           {pickup ? (
             <View style={styles.iconRow}>
-              <Icon name="clock-outline" size="sm" colour={COLOURS.textMuted} />
+              <Icon name="clock-outline" size="sm" colour={t.colours.textMuted} />
               <Text testID={`job-pickup-time-${job.id}`} style={styles.iconRowText} maxFontSizeMultiplier={1.5}>
                 {pickup}
               </Text>
@@ -137,7 +144,7 @@ function JobCardInner({
           ) : null}
           {showDriver ? (
             <View style={styles.iconRow}>
-              <Icon name="account-outline" size="sm" colour={COLOURS.textMuted} />
+              <Icon name="account-outline" size="sm" colour={t.colours.textMuted} />
               <Text
                 style={[styles.iconRowText, !job.driverName && styles.unassigned]}
                 numberOfLines={1}
@@ -162,7 +169,7 @@ function JobCardInner({
         ) : (
           <View />
         )}
-        {paymentStatusName ? <PaymentBadge name={paymentStatusName} /> : null}
+        {paymentStatusName ? <PaymentBadge name={paymentStatusName} t={t} styles={styles} /> : null}
       </View>
 
       {/* Sync state */}
@@ -170,13 +177,13 @@ function JobCardInner({
         <View style={styles.syncRow}>
           {outboxState === 'failed' ? (
             <>
-              <Icon name="alert-circle" size="sm" colour={COLOURS.danger} />
-              <Text style={[styles.syncText, styles.syncFailed]}>Update failed</Text>
+              <Icon name="alert-circle" size="sm" colour={t.colours.danger} />
+              <Text style={[styles.syncText, styles.syncFailed]} maxFontSizeMultiplier={1.5}>Update failed</Text>
             </>
           ) : (
             <>
-              <Icon name="clock-outline" size="sm" colour={COLOURS.warning} />
-              <Text style={[styles.syncText, styles.syncPending]}>Pending sync</Text>
+              <Icon name="clock-outline" size="sm" colour={t.colours.warning} />
+              <Text style={[styles.syncText, styles.syncPending]} maxFontSizeMultiplier={1.5}>Pending sync</Text>
             </>
           )}
         </View>
@@ -187,46 +194,49 @@ function JobCardInner({
 
 export const JobCard = memo(JobCardInner);
 
-const styles = StyleSheet.create({
-  card: { ...CARD },
-  pressed: { ...CARD_PRESSED, transform: [{ scale: 0.99 }] },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-  },
-  ref: { ...TYPOGRAPHY.subheading, color: COLOURS.text },
-  customer: { ...TYPOGRAPHY.body, color: COLOURS.text },
-  iconRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.xs, flexShrink: 1 },
-  iconRowText: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted, flexShrink: 1 },
-  timeDriverRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-    flexWrap: 'wrap',
-  },
-  unassigned: { color: COLOURS.warning },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: COLOURS.border },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-  },
-  metaText: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted, flexShrink: 1 },
-  chip: {
-    borderRadius: 999,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-  },
-  chipText: { ...TYPOGRAPHY.label },
-  syncRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-  },
-  syncText: { ...TYPOGRAPHY.label },
-  syncPending: { color: COLOURS.warning },
-  syncFailed: { color: COLOURS.danger },
-});
+type JobCardStyles = ReturnType<typeof makeStyles>;
+
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    card: { ...makeCard(t) },
+    pressed: { ...makeCardPressed(t), transform: [{ scale: 0.99 }] },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: SPACING.sm,
+    },
+    ref: { ...TYPOGRAPHY.subheading, color: t.colours.text },
+    customer: { ...TYPOGRAPHY.body, color: t.colours.text },
+    iconRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.xs, flexShrink: 1 },
+    iconRowText: { ...TYPOGRAPHY.caption, color: t.colours.textMuted, flexShrink: 1 },
+    timeDriverRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: SPACING.sm,
+      flexWrap: 'wrap',
+    },
+    unassigned: { color: t.colours.warning },
+    divider: { height: StyleSheet.hairlineWidth, backgroundColor: t.colours.border },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: SPACING.sm,
+    },
+    metaText: { ...TYPOGRAPHY.caption, color: t.colours.textMuted, flexShrink: 1 },
+    chip: {
+      borderRadius: 999,
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: 2,
+    },
+    chipText: { ...TYPOGRAPHY.label },
+    syncRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.xs,
+    },
+    syncText: { ...TYPOGRAPHY.label },
+    syncPending: { color: t.colours.warning },
+    syncFailed: { color: t.colours.danger },
+  });

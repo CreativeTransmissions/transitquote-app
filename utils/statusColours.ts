@@ -5,17 +5,12 @@
  * substring matching. Falls back to a deterministic colour derived from the numeric
  * statusTypeId when no keyword matches (cycle over the 5 semantic tokens mod 5).
  * When neither name nor id is available returns statusNeutral.
+ *
+ * Theme-aware: callers pass the active palette (from useTheme().colours) so the resolved
+ * colour matches the current scheme. `palette` defaults to LIGHT_COLOURS so non-UI tests and
+ * legacy callers stay simple.
  */
-import { COLOURS } from '../constants';
-
-/** Ordered fallback tokens cycled by (statusTypeId mod 5) when no keyword matches. */
-const FALLBACK_CYCLE = [
-  COLOURS.statusNeutral,
-  COLOURS.statusInfo,
-  COLOURS.statusActive,
-  COLOURS.statusDone,
-  COLOURS.statusProblem,
-] as const;
+import { LIGHT_COLOURS, type Palette } from '../constants';
 
 /**
  * Resolve a display colour for a job status.
@@ -24,24 +19,31 @@ const FALLBACK_CYCLE = [
  * @param statusTypeId - Numeric string id from the API (may be null/undefined). Used only
  *   when the name produces no keyword match, to ensure the same unknown status always gets
  *   the same colour across renders.
+ * @param palette - Active colour palette (defaults to the light palette).
  */
 export function resolveStatusColour(
   statusName: string | null | undefined,
   statusTypeId?: string | null,
+  palette: Palette = LIGHT_COLOURS,
 ): string {
   const name = (statusName ?? '').toLowerCase();
 
-  if (
-    name.includes('pending') ||
-    name.includes('new') ||
-    name.includes('open')
-  ) return COLOURS.statusNeutral;
+  // Ordered fallback tokens cycled by (statusTypeId mod 5) when no keyword matches.
+  const fallbackCycle = [
+    palette.statusNeutral,
+    palette.statusInfo,
+    palette.statusActive,
+    palette.statusDone,
+    palette.statusProblem,
+  ] as const;
 
-  if (
-    name.includes('assigned') ||
-    name.includes('accepted') ||
-    name.includes('claimed')
-  ) return COLOURS.statusInfo;
+  if (name.includes('pending') || name.includes('new') || name.includes('open')) {
+    return palette.statusNeutral;
+  }
+
+  if (name.includes('assigned') || name.includes('accepted') || name.includes('claimed')) {
+    return palette.statusInfo;
+  }
 
   if (
     name.includes('transit') ||
@@ -49,25 +51,23 @@ export function resolveStatusColour(
     name.includes('progress') ||
     name.includes('collected') ||
     name.includes('picked')
-  ) return COLOURS.statusActive;
+  ) {
+    return palette.statusActive;
+  }
 
-  if (
-    name.includes('delivered') ||
-    name.includes('completed') ||
-    name.includes('done')
-  ) return COLOURS.statusDone;
+  if (name.includes('delivered') || name.includes('completed') || name.includes('done')) {
+    return palette.statusDone;
+  }
 
-  if (
-    name.includes('cancelled') ||
-    name.includes('failed') ||
-    name.includes('rejected')
-  ) return COLOURS.statusProblem;
+  if (name.includes('cancelled') || name.includes('failed') || name.includes('rejected')) {
+    return palette.statusProblem;
+  }
 
   // No keyword match — fall back deterministically by numeric id.
   const id = parseInt(statusTypeId ?? '', 10);
   if (!isNaN(id)) {
-    return FALLBACK_CYCLE[Math.abs(id) % FALLBACK_CYCLE.length];
+    return fallbackCycle[Math.abs(id) % fallbackCycle.length];
   }
 
-  return COLOURS.statusNeutral;
+  return palette.statusNeutral;
 }

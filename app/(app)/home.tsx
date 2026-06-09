@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useMemo } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,17 +10,29 @@ import { useRole } from '../../hooks/useRole';
 import { useDrivers } from '../../hooks/useDrivers';
 import { useLogout } from '../../hooks/useLogout';
 import { useSites } from '../../hooks/useSites';
+import { useTheme, type Theme } from '../../hooks/useTheme';
+import { useSettingsStore, type ThemePreference } from '../../stores/settingsStore';
 import { fullName } from '../../utils/formatters';
-import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
+import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
 import type { SiteConfig } from '../../types/app';
 
-/** Profile / Settings (spec §6.10): current user, driver details, active site + switcher, logout. */
+const THEME_OPTIONS: { value: ThemePreference; label: string; testID: string }[] = [
+  { value: 'system', label: 'System', testID: 'theme-system' },
+  { value: 'light', label: 'Light', testID: 'theme-light' },
+  { value: 'dark', label: 'Dark', testID: 'theme-dark' },
+];
+
+/** Profile / Settings (spec §6.10): current user, driver details, active site + switcher, appearance, logout. */
 export default function ProfileScreen() {
   const user = useCurrentUser();
   const { role, assignmentMode, driverId } = useRole();
   const drivers = useDrivers();
   const logout = useLogout();
   const { sites, activeSiteId, switchTo } = useSites();
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
+  const themePreference = useSettingsStore((s) => s.themePreference);
+  const setThemePreference = useSettingsStore((s) => s.setThemePreference);
 
   const name = fullName(user?.firstName, user?.lastName) || user?.firstName || '—';
   const driver = driverId != null ? drivers.find((d) => d.id === driverId) ?? null : null;
@@ -64,22 +77,22 @@ export default function ProfileScreen() {
           </View>
         ) : null}
 
-        <Section title="User">
-          <Row label="Name" value={name} />
-          <Row label="Role" value={role ?? '—'} />
-          <Row label="Assignment mode" value={assignmentMode} />
+        <Section title="User" styles={styles}>
+          <Row label="Name" value={name} styles={styles} />
+          <Row label="Role" value={role ?? '—'} styles={styles} />
+          <Row label="Assignment mode" value={assignmentMode} styles={styles} />
         </Section>
 
         {driver ? (
-          <Section title="Driver">
-            <Row label="Phone" value={driver.phone || '—'} />
-            <Row label="Email" value={driver.email || '—'} />
-            <Row label="Availability" value={driver.available ? 'Available' : 'Unavailable'} />
+          <Section title="Driver" styles={styles}>
+            <Row label="Phone" value={driver.phone || '—'} styles={styles} />
+            <Row label="Email" value={driver.email || '—'} styles={styles} />
+            <Row label="Availability" value={driver.available ? 'Available' : 'Unavailable'} styles={styles} />
           </Section>
         ) : null}
 
         {sites.length > 1 ? (
-          <Section title="Switch site">
+          <Section title="Switch site" styles={styles}>
             {sites.map((site) => {
               const active = site.id === activeSiteId;
               return (
@@ -95,7 +108,7 @@ export default function ProfileScreen() {
                     {site.siteUrl}
                   </Text>
                   {active ? (
-                    <Icon name="check" size="md" colour={COLOURS.primary} accessibilityLabel="Active site" />
+                    <Icon name="check" size="md" colour={t.colours.primary} accessibilityLabel="Active site" />
                   ) : (
                     <Text style={styles.switchHint}>Switch</Text>
                   )}
@@ -105,6 +118,27 @@ export default function ProfileScreen() {
           </Section>
         ) : null}
 
+        <Section title="Appearance" styles={styles}>
+          {THEME_OPTIONS.map((option) => {
+            const checked = themePreference === option.value;
+            return (
+              <Pressable
+                key={option.value}
+                testID={option.testID}
+                style={styles.themeRow}
+                onPress={() => setThemePreference(option.value)}
+                accessibilityRole="radio"
+                accessibilityState={{ checked }}
+              >
+                <Text style={[styles.themeLabel, checked && styles.themeLabelActive]}>{option.label}</Text>
+                {checked ? (
+                  <Icon name="check" size="md" colour={t.colours.primary} accessibilityLabel="Selected" />
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </Section>
+
         <View style={styles.logout}>
           <Button label="Log out" variant="secondary" onPress={handleLogout} loading={logout.isPending} testID="profile-logout" />
         </View>
@@ -113,7 +147,9 @@ export default function ProfileScreen() {
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+type ProfileStyles = ReturnType<typeof makeStyles>;
+
+function Section({ title, children, styles }: { title: string; children: ReactNode; styles: ProfileStyles }) {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -122,7 +158,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, styles }: { label: string; value: string; styles: ProfileStyles }) {
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
@@ -133,47 +169,58 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLOURS.background },
-  content: { padding: SPACING.lg },
-  title: { ...TYPOGRAPHY.title, color: COLOURS.text, marginBottom: SPACING.md },
-  activeSite: {
-    backgroundColor: COLOURS.primary,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    marginBottom: SPACING.md,
-  },
-  activeSiteLabel: { ...TYPOGRAPHY.label, color: COLOURS.background, opacity: 0.8 },
-  activeSiteUrl: { ...TYPOGRAPHY.subheading, color: COLOURS.background },
-  section: { marginBottom: SPACING.lg, gap: SPACING.xs },
-  sectionTitle: { ...TYPOGRAPHY.label, color: COLOURS.textMuted, textTransform: 'uppercase' },
-  card: {
-    backgroundColor: COLOURS.surface,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLOURS.border,
-    paddingHorizontal: SPACING.md,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: SPACING.md,
-    gap: SPACING.md,
-  },
-  rowLabel: { ...TYPOGRAPHY.body, color: COLOURS.textMuted },
-  rowValue: { ...TYPOGRAPHY.body, color: COLOURS.text, flexShrink: 1, textAlign: 'right' },
-  siteRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: SPACING.md,
-    gap: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLOURS.border,
-  },
-  siteUrl: { ...TYPOGRAPHY.body, color: COLOURS.text, flexShrink: 1 },
-  siteActive: { color: COLOURS.primary, fontWeight: '600' },
-  switchHint: { ...TYPOGRAPHY.body, color: COLOURS.primary },
-  logout: { marginTop: SPACING.sm },
-});
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: t.colours.background },
+    content: { padding: SPACING.lg },
+    title: { ...TYPOGRAPHY.title, color: t.colours.text, marginBottom: SPACING.md },
+    activeSite: {
+      backgroundColor: t.colours.primary,
+      borderRadius: RADIUS.md,
+      padding: SPACING.md,
+      marginBottom: SPACING.md,
+    },
+    activeSiteLabel: { ...TYPOGRAPHY.label, color: t.colours.textInverse, opacity: 0.8 },
+    activeSiteUrl: { ...TYPOGRAPHY.subheading, color: t.colours.textInverse },
+    section: { marginBottom: SPACING.lg, gap: SPACING.xs },
+    sectionTitle: { ...TYPOGRAPHY.label, color: t.colours.textMuted, textTransform: 'uppercase' },
+    card: {
+      backgroundColor: t.colours.surface,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: t.colours.border,
+      paddingHorizontal: SPACING.md,
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: SPACING.md,
+      gap: SPACING.md,
+    },
+    rowLabel: { ...TYPOGRAPHY.body, color: t.colours.textMuted },
+    rowValue: { ...TYPOGRAPHY.body, color: t.colours.text, flexShrink: 1, textAlign: 'right' },
+    siteRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: SPACING.md,
+      gap: SPACING.md,
+      borderBottomWidth: 1,
+      borderBottomColor: t.colours.border,
+    },
+    siteUrl: { ...TYPOGRAPHY.body, color: t.colours.text, flexShrink: 1 },
+    siteActive: { color: t.colours.primary, fontWeight: '600' },
+    switchHint: { ...TYPOGRAPHY.body, color: t.colours.primary },
+    themeRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      minHeight: 48,
+      paddingVertical: SPACING.sm,
+      gap: SPACING.md,
+    },
+    themeLabel: { ...TYPOGRAPHY.body, color: t.colours.text },
+    themeLabelActive: { color: t.colours.primary, fontWeight: '600' },
+    logout: { marginTop: SPACING.sm },
+  });

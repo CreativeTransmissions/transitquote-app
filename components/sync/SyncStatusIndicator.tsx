@@ -5,13 +5,15 @@
  *  - outbox failed      → a tappable warning badge (opens SyncProblemsSheet to explain why)
  * Online + synced + empty outbox → renders nothing (the default, quiet state).
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useConnectivityStore } from '../../stores/connectivityStore';
 import { useOutbox } from '../../hooks/useOutbox';
 import { SyncProblemsSheet } from './SyncProblemsSheet';
+import { PendingSyncSheet } from './PendingSyncSheet';
 import { Icon } from '../shared/Icon';
-import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
+import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
+import { useTheme, type Theme } from '../../hooks/useTheme';
 
 export function SyncStatusIndicator() {
   const isSyncing = useConnectivityStore((s) => s.isSyncing);
@@ -19,6 +21,9 @@ export function SyncStatusIndicator() {
   const { pendingCount, failed } = useOutbox();
   const failedCount = failed.length;
   const [problemsVisible, setProblemsVisible] = useState(false);
+  const [pendingVisible, setPendingVisible] = useState(false);
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
 
   if (!isSyncing && pendingCount === 0 && failedCount === 0) return null;
 
@@ -34,7 +39,7 @@ export function SyncStatusIndicator() {
       {isSyncing ? (
         <ActivityIndicator
           size="small"
-          color={COLOURS.primary}
+          color={t.colours.primary}
           accessibilityLabel={spinnerLabel}
         />
       ) : null}
@@ -44,14 +49,16 @@ export function SyncStatusIndicator() {
         </Text>
       ) : null}
       {pendingCount > 0 ? (
-        <View
+        <Pressable
           style={[styles.badge, styles.pending]}
           testID="sync-pending-badge"
-          accessibilityLabel={`${pendingCount} updates waiting to sync`}
+          onPress={() => setPendingVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`${pendingCount} updates waiting to sync, double-tap to learn more`}
         >
-          <Icon name="clock-outline" size="sm" colour={COLOURS.background} />
+          <Icon name="clock-outline" size="sm" colour={t.colours.onColour} />
           <Text style={styles.badgeText}>{pendingCount} pending</Text>
-        </View>
+        </Pressable>
       ) : null}
       {failedCount > 0 ? (
         <Pressable
@@ -62,20 +69,29 @@ export function SyncStatusIndicator() {
           accessibilityLabel={`${failedCount} updates failed`}
           accessibilityHint="Show what went wrong"
         >
-          <Icon name="alert-circle" size="sm" colour={COLOURS.background} />
+          <Icon name="alert-circle" size="sm" colour={t.colours.onColour} />
           <Text style={styles.badgeText}>{failedCount} failed</Text>
         </Pressable>
       ) : null}
       <SyncProblemsSheet visible={problemsVisible} onClose={() => setProblemsVisible(false)} />
+      <PendingSyncSheet visible={pendingVisible} onClose={() => setPendingVisible(false)} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
-  detailProgress: { ...TYPOGRAPHY.label, color: COLOURS.textMuted },
-  badge: { paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: RADIUS.sm },
-  pending: { backgroundColor: COLOURS.warning },
-  failed: { backgroundColor: COLOURS.danger },
-  badgeText: { ...TYPOGRAPHY.label, color: COLOURS.background },
-});
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    row: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
+    detailProgress: { ...TYPOGRAPHY.label, color: t.colours.textMuted },
+    badge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.xs,
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: 2,
+      borderRadius: RADIUS.sm,
+    },
+    pending: { backgroundColor: t.colours.warning },
+    failed: { backgroundColor: t.colours.danger },
+    badgeText: { ...TYPOGRAPHY.label, color: t.colours.onColour },
+  });

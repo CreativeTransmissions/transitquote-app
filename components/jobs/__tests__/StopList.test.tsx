@@ -1,5 +1,7 @@
+import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StopList } from '../StopList';
+import { COLOURS } from '../../../constants';
 import type { Stop } from '../../../types/api';
 
 // StopList's only dependency is the date formatter — stub it to a deterministic value so the
@@ -113,5 +115,19 @@ describe('StopList', () => {
     render(<StopList stops={[stop]} onCallStop={jest.fn()} />);
     const link = screen.getByTestId('stop-0-call');
     expect(link.props.accessibilityLabel).toBe('Call John Smith 07700111222');
+  });
+
+  it('renders a timeline dot per stop', () => {
+    render(<StopList stops={[makeStop({ id: '1' }), makeStop({ id: '2' })]} />);
+    expect(screen.getByTestId('stop-0-dot')).toBeTruthy();
+    expect(screen.getByTestId('stop-1-dot')).toBeTruthy();
+  });
+
+  it('colours the first stop dot with statusActive and the rest with textMuted', () => {
+    render(<StopList stops={[makeStop({ id: '1' }), makeStop({ id: '2' })]} />);
+    const first = StyleSheet.flatten(screen.getByTestId('stop-0-dot').props.style);
+    const second = StyleSheet.flatten(screen.getByTestId('stop-1-dot').props.style);
+    expect(first.backgroundColor).toBe(COLOURS.statusActive);
+    expect(second.backgroundColor).toBe(COLOURS.textMuted);
   });
 });

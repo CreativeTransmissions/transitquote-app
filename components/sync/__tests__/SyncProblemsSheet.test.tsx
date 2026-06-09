@@ -2,6 +2,8 @@
  * Tests for SyncProblemsSheet — lists failed outbox items with the affected job ref and per-item
  * Retry / Discard, plus an all-caught-up empty state. The outbox hooks are mocked; useLiveQuery
  * feeds the job-ref lookup; the message utils are real.
+ *
+ * Now uses SheetContainer for chrome — also tests backdrop close and haptic on open.
  */
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -10,6 +12,7 @@ import { useOutbox } from '../../../hooks/useOutbox';
 import { useRetryOutboxItem, useDiscardOutboxItem } from '../../../hooks/useOutboxActions';
 import { SyncProblemsSheet } from '../SyncProblemsSheet';
 import type { OutboxRow } from '../../../database/schema';
+import { hapticLight } from '../../../utils/haptics';
 
 jest.mock('../../../database/client');
 jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
@@ -17,6 +20,13 @@ jest.mock('../../../hooks/useOutbox', () => ({ useOutbox: jest.fn() }));
 jest.mock('../../../hooks/useOutboxActions', () => ({
   useRetryOutboxItem: jest.fn(),
   useDiscardOutboxItem: jest.fn(),
+}));
+
+// SheetContainer fires hapticLight on open — silence the native module.
+jest.mock('../../../utils/haptics', () => ({
+  hapticLight: jest.fn(() => Promise.resolve()),
+  hapticSuccess: jest.fn(() => Promise.resolve()),
+  hapticError: jest.fn(() => Promise.resolve()),
 }));
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
@@ -39,10 +49,10 @@ function failedItem(id: number, jobId: number): OutboxRow {
   };
 }
 
-function renderSheet() {
+function renderSheet(visible = true) {
   return render(
     <SafeAreaProvider initialMetrics={METRICS}>
-      <SyncProblemsSheet visible onClose={jest.fn()} />
+      <SyncProblemsSheet visible={visible} onClose={jest.fn()} />
     </SafeAreaProvider>,
   );
 }
@@ -100,7 +110,34 @@ describe('SyncProblemsSheet', () => {
   it('uses dangerSurface token for the item background (no hardcoded hex)', () => {
     mockOutbox.mockReturnValue({ failed: [failedItem(1, 100)] });
     renderSheet();
-    // The item container uses COLOURS.dangerSurface — verify the testID renders.
     expect(screen.getByTestId('sync-problem-1')).toBeTruthy();
+  });
+
+  it('calls onClose when the backdrop (SheetContainer) is tapped', () => {
+    mockOutbox.mockReturnValue({ failed: [] });
+    const onClose = jest.fn();
+    render(
+      <SafeAreaProvider initialMetrics={METRICS}>
+        <SyncProblemsSheet visible onClose={onClose} />
+      </SafeAreaProvider>,
+    );
+    fireEvent.press(screen.getByLabelText('Close'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('fires hapticLight when the sheet becomes visible', () => {
+    mockOutbox.mockReturnValue({ failed: [] });
+    const { rerender } = render(
+      <SafeAreaProvider initialMetrics={METRICS}>
+        <SyncProblemsSheet visible={false} onClose={jest.fn()} />
+      </SafeAreaProvider>,
+    );
+    expect(hapticLight).not.toHaveBeenCalled();
+    rerender(
+      <SafeAreaProvider initialMetrics={METRICS}>
+        <SyncProblemsSheet visible={true} onClose={jest.fn()} />
+      </SafeAreaProvider>,
+    );
+    expect(hapticLight).toHaveBeenCalledTimes(1);
   });
 });

@@ -4,9 +4,10 @@
  * discard. Hooks + picker children are mocked; Button/Badge/EmptyState are real; Alert is mocked
  * so we can drive its confirm button.
  */
-import { Alert } from 'react-native';
+import { AccessibilityInfo, Alert } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { hapticSuccess, hapticError } from '../../../../utils/haptics';
 import JobDetailScreen from '../[id]';
 
 let mockDetail: Record<string, unknown>;
@@ -35,6 +36,14 @@ jest.mock('../../../../hooks/useOutbox', () => ({ useOutbox: () => mockOutbox })
 jest.mock('../../../../hooks/useOutboxActions', () => ({
   useRetryOutboxItem: () => ({ mutate: mockRetryMutate, isPending: false }),
   useDiscardOutboxItem: () => ({ mutate: mockDiscardMutate, isPending: false }),
+}));
+jest.mock('../../../../hooks/useJobCardLookups', () => ({
+  useJobCardLookups: () => ({ serviceNames: { 3: 'Same-day' }, vehicleNames: { 4: 'Van' }, paymentStatusNames: {} }),
+}));
+jest.mock('../../../../utils/haptics', () => ({
+  hapticSuccess: jest.fn(),
+  hapticError: jest.fn(),
+  hapticLight: jest.fn(),
 }));
 jest.mock('../../../../components/sync/OfflineBanner', () => ({ OfflineBanner: () => null }));
 jest.mock('../../../../components/jobs/StopList', () => ({ StopList: () => null }));
@@ -72,6 +81,7 @@ function detail(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   jest.clearAllMocks();
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => {});
   mockDetail = detail();
   mockRole = { isDriver: false, isDispatcher: true, isDecentralized: false, driverId: null };
   mockAssignable = { drivers: [{ id: 9, firstName: 'A', lastName: 'B' }], canAssign: true };
@@ -138,5 +148,86 @@ describe('JobDetailScreen — failed action', () => {
     expect(mockRetryMutate).toHaveBeenCalledWith(99);
     fireEvent.press(screen.getByText('Discard'));
     expect(mockDiscardMutate).toHaveBeenCalledWith(99);
+  });
+});
+
+describe('JobDetailScreen — bottom action bar', () => {
+  it('renders Update status in the bottom bar for an assigned job (no assign-primary)', () => {
+    mockDetail = detail({ job: { id: 5, jobRef: 'JOB-5', statusName: 'Booked', statusTypeId: 1, driverId: 9, driverName: 'A B' } });
+    renderScreen();
+    expect(screen.getByTestId('job-update-status')).toBeTruthy();
+    expect(screen.queryByTestId('job-assign-primary')).toBeNull();
+    // dispatcher can still (re)assign via the section button
+    expect(screen.getByTestId('job-assign')).toBeTruthy();
+  });
+
+  it('promotes Assign to the bottom bar for a dispatcher on an unassigned job, keeping update + assign visible', () => {
+    // default mockDetail has driverId null + dispatcher + canAssign true
+    renderScreen();
+    expect(screen.getByTestId('job-assign-primary')).toBeTruthy(); // bottom bar primary
+    expect(screen.getByTestId('job-update-status')).toBeTruthy(); // inline secondary
+    expect(screen.getByTestId('job-assign')).toBeTruthy(); // assignment section
+  });
+
+  it('shows Claim in the bottom bar for a decentralized driver on an unassigned job', () => {
+    mockRole = { isDriver: true, isDispatcher: false, isDecentralized: true, driverId: 7 };
+    mockAssignable = { drivers: [], canAssign: false };
+    renderScreen();
+    expect(screen.getByTestId('job-claim')).toBeTruthy();
+    expect(screen.queryByTestId('job-update-status')).toBeTruthy(); // still available inline
+  });
+
+  it('shows only Update status for a centralized driver (no assignment affordances)', () => {
+    mockRole = { isDriver: true, isDispatcher: false, isDecentralized: false, driverId: 7 };
+    mockAssignable = { drivers: [], canAssign: false };
+    renderScreen();
+    expect(screen.getByTestId('job-update-status')).toBeTruthy();
+    expect(screen.queryByTestId('job-assign-primary')).toBeNull();
+    expect(screen.queryByTestId('job-claim')).toBeNull();
+  });
+});
+
+describe('JobDetailScreen — header & haptics', () => {
+  it('renders the resolved service / vehicle line', () => {
+    mockDetail = detail({ job: { id: 5, jobRef: 'JOB-5', statusName: 'Booked', statusTypeId: 1, driverId: null, serviceId: 3, vehicleId: 4 } });
+    renderScreen();
+    expect(screen.getByText('Same-day · Van')).toBeTruthy();
+  });
+
+  it('fires a success haptic + announcement when the status changes', () => {
+    const { rerender } = renderScreen();
+    expect(hapticSuccess).not.toHaveBeenCalled();
+    mockDetail = detail({ job: { id: 5, jobRef: 'JOB-5', statusName: 'Delivered', statusTypeId: 5, driverId: null } });
+    rerender(
+      <SafeAreaProvider initialMetrics={METRICS}>
+        <JobDetailScreen />
+      </SafeAreaProvider>,
+    );
+    expect(hapticSuccess).toHaveBeenCalled();
+    expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith('Status updated to Delivered');
+  });
+
+  it('fires a success haptic + announcement when the job becomes assigned', () => {
+    const { rerender } = renderScreen();
+    mockDetail = detail({ job: { id: 5, jobRef: 'JOB-5', statusName: 'Booked', statusTypeId: 1, driverId: 9, driverName: 'Jane Doe' } });
+    rerender(
+      <SafeAreaProvider initialMetrics={METRICS}>
+        <JobDetailScreen />
+      </SafeAreaProvider>,
+    );
+    expect(hapticSuccess).toHaveBeenCalled();
+    expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith('Assigned to Jane Doe');
+  });
+
+  it('fires an error haptic when the failed banner appears for this job', () => {
+    const { rerender } = renderScreen();
+    expect(hapticError).not.toHaveBeenCalled();
+    mockOutbox = { failed: [{ id: 99, payload: { id: 5 }, lastError: 'Rejected' }] };
+    rerender(
+      <SafeAreaProvider initialMetrics={METRICS}>
+        <JobDetailScreen />
+      </SafeAreaProvider>,
+    );
+    expect(hapticError).toHaveBeenCalledTimes(1);
   });
 });

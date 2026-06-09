@@ -6,6 +6,7 @@
 import { useEffect } from 'react';
 import { useDatabase } from './useDatabase';
 import { useAuthStore } from '../stores/authStore';
+import { useSettingsStore } from '../stores/settingsStore';
 import { configureNotifications, ensureNotificationPermission } from '../services/notifications/setup';
 
 export type BootStatus = 'booting' | 'error' | 'ready';
@@ -19,6 +20,13 @@ export function useAppBoot(): AppBoot {
   const { ready, error } = useDatabase();
   const hydrate = useAuthStore((s) => s.hydrate);
   const authStatus = useAuthStore((s) => s.status);
+  const hydrateSettings = useSettingsStore((s) => s.hydrate);
+
+  // Hydrate the persisted theme preference once at boot. Non-blocking: theming defaults to
+  // 'system' until this resolves, so it never gates the UI.
+  useEffect(() => {
+    void hydrateSettings();
+  }, [hydrateSettings]);
 
   // Hydrate the session only once migrations have completed.
   useEffect(() => {

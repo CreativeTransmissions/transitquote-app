@@ -6,7 +6,9 @@ import { useAuthStore } from '../../stores/authStore';
 import { useConnectivity } from '../../hooks/useConnectivity';
 import { useRole } from '../../hooks/useRole';
 import { useOutbox } from '../../hooks/useOutbox';
-import { COLOURS, TYPOGRAPHY } from '../../constants';
+import { useTheme } from '../../hooks/useTheme';
+import { hapticLight } from '../../utils/haptics';
+import { TYPOGRAPHY } from '../../constants';
 
 // Route-level error boundary for the authenticated area (CLAUDE.md).
 export { RouteErrorBoundary as ErrorBoundary } from '../../components/shared/RouteErrorBoundary';
@@ -34,6 +36,7 @@ export default function AppLayout() {
   const { failed } = useOutbox();
   const failedCount = failed.length;
   const insets = useSafeAreaInsets();
+  const t = useTheme();
 
   if (status !== 'authenticated') {
     return <Redirect href="/login" />;
@@ -46,16 +49,26 @@ export default function AppLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: COLOURS.primary,
-        tabBarInactiveTintColor: COLOURS.textMuted,
+        tabBarActiveTintColor: t.colours.primary,
+        tabBarInactiveTintColor: t.colours.textMuted,
         tabBarStyle: {
           height: 64 + insets.bottom,
           paddingBottom: insets.bottom,
-          backgroundColor: COLOURS.background,
+          backgroundColor: t.colours.background,
           borderTopWidth: 1,
-          borderTopColor: COLOURS.border,
+          borderTopColor: t.colours.border,
         },
+        // Tab labels carry semantic meaning (icons alone are not sufficient in sun/gloves), but
+        // allowing full OS font scaling on a constrained 64dp tab bar causes label overflow and
+        // overlapping icons. Cap at 1× (tabBarAllowFontScaling: false) — the icons carry the
+        // meaning and the fixed-height bar makes variable scaling impractical.
+        tabBarAllowFontScaling: false,
         tabBarLabelStyle: { fontSize: TYPOGRAPHY.label.fontSize, fontWeight: TYPOGRAPHY.label.fontWeight },
+      }}
+      screenListeners={{
+        // Haptic confirmation on every tab switch (A11y-7 / §3.6): light impact gives gloved
+        // drivers tactile feedback that the navigation registered. Fire-and-forget — never throws.
+        tabPress: () => { void hapticLight(); },
       }}
     >
       <Tabs.Screen
@@ -65,7 +78,7 @@ export default function AppLayout() {
           tabBarButtonTestID: 'tab-jobs',
           tabBarIcon: tabIcon('briefcase-outline', 'briefcase'),
           tabBarBadge: failedCount > 0 ? failedCount : undefined,
-          tabBarBadgeStyle: { backgroundColor: COLOURS.danger },
+          tabBarBadgeStyle: { backgroundColor: t.colours.danger },
         }}
       />
       <Tabs.Screen

@@ -7,7 +7,7 @@
  * - When omitted the icon is hidden from the TalkBack/VoiceOver tree (decorative).
  */
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLOURS } from '../../constants';
+import { useTheme } from '../../hooks/useTheme';
 
 export type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -28,18 +28,21 @@ interface IconProps {
 export function Icon({
   name,
   size = 'md',
-  colour = COLOURS.text,
+  colour,
   accessibilityLabel,
   testID,
 }: IconProps) {
+  const t = useTheme();
   const px = SIZE_MAP[size];
+  // Default to the themed text colour when no explicit colour token is supplied.
+  const resolvedColour = colour ?? t.colours.text;
 
   if (accessibilityLabel) {
     return (
       <MaterialCommunityIcons
         name={name}
         size={px}
-        color={colour}
+        color={resolvedColour}
         testID={testID}
         accessible={true}
         accessibilityLabel={accessibilityLabel}
@@ -52,7 +55,7 @@ export function Icon({
     <MaterialCommunityIcons
       name={name}
       size={px}
-      color={colour}
+      color={resolvedColour}
       testID={testID}
       accessible={false}
       importantForAccessibility="no"

@@ -1,12 +1,19 @@
 /**
- * Tests for DriverPicker — the assign-driver bottom sheet. It is presentation-only (the caller
- * passes the already-permission-filtered driver list): an empty list shows the "no permission"
- * message, the current assignee is ticked, and selecting/cancelling fires the right callback.
+ * Tests for DriverPicker — the assign-driver bottom sheet (uses SheetContainer for chrome).
+ * An empty list shows the "no permission" message, the current assignee is ticked, and
+ * selecting/cancelling fires the right callback.
  */
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DriverPicker } from '../DriverPicker';
 import type { DriverRow } from '../../../database/schema';
+
+// SheetContainer fires hapticLight on open — silence the native module.
+jest.mock('../../../utils/haptics', () => ({
+  hapticLight: jest.fn(() => Promise.resolve()),
+  hapticSuccess: jest.fn(() => Promise.resolve()),
+  hapticError: jest.fn(() => Promise.resolve()),
+}));
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 
@@ -51,7 +58,7 @@ describe('DriverPicker', () => {
   it('shows the no-permission empty state when there are no assignable drivers', () => {
     renderPicker({ drivers: [] });
     expect(screen.getByText('No drivers available')).toBeTruthy();
-    expect(screen.getByText(/don’t have permission/)).toBeTruthy();
+    expect(screen.getByText(/don't have permission/)).toBeTruthy();
     expect(screen.queryByTestId('driver-option-1')).toBeNull();
   });
 
@@ -88,6 +95,13 @@ describe('DriverPicker', () => {
     const onClose = jest.fn();
     renderPicker({ onClose });
     fireEvent.press(screen.getByTestId('driver-cancel'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onClose when the backdrop is pressed', () => {
+    const onClose = jest.fn();
+    renderPicker({ onClose });
+    fireEvent.press(screen.getByLabelText('Close'));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

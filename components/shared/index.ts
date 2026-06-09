@@ -5,4 +5,5 @@ export { HintCard } from './HintCard';
 export { Icon } from './Icon';
 export type { IconName } from './Icon';
 export { RouteErrorBoundary } from './RouteErrorBoundary';
+export { SheetContainer } from './SheetContainer';
 export { TextField } from './TextField';

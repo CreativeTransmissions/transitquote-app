@@ -5,7 +5,8 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useAppBoot } from '../../hooks/useAppBoot';
-import { COLOURS, SPACING, TYPOGRAPHY } from '../../constants';
+import { useTheme } from '../../hooks/useTheme';
+import { SPACING, TYPOGRAPHY } from '../../constants';
 
 interface BootGateProps {
   children: ReactNode;
@@ -13,20 +14,23 @@ interface BootGateProps {
 
 export function BootGate({ children }: BootGateProps) {
   const { status, error } = useAppBoot();
+  const t = useTheme();
 
   if (status === 'error') {
     return (
-      <View style={styles.centre}>
-        <Text style={styles.title}>Couldn’t start the app</Text>
-        <Text style={styles.subtitle}>{error?.message ?? 'Database migration failed.'}</Text>
+      <View style={[styles.centre, { backgroundColor: t.colours.background }]}>
+        <Text style={[styles.title, { color: t.colours.text }]}>Couldn’t start the app</Text>
+        <Text style={[styles.subtitle, { color: t.colours.textMuted }]}>
+          {error?.message ?? 'Database migration failed.'}
+        </Text>
       </View>
     );
   }
 
   if (status === 'booting') {
     return (
-      <View style={styles.centre}>
-        <ActivityIndicator size="large" color={COLOURS.primary} />
+      <View style={[styles.centre, { backgroundColor: t.colours.background }]}>
+        <ActivityIndicator size="large" color={t.colours.primary} />
       </View>
     );
   }
@@ -40,17 +44,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: SPACING.lg,
-    backgroundColor: COLOURS.background,
   },
   title: {
     ...TYPOGRAPHY.heading,
-    color: COLOURS.text,
     marginBottom: SPACING.sm,
     textAlign: 'center',
   },
   subtitle: {
     ...TYPOGRAPHY.body,
-    color: COLOURS.textMuted,
     textAlign: 'center',
   },
 });

@@ -3,7 +3,8 @@
  * Surfaced in the Jobs screen header once, then dismissed permanently (per site).
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
+import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
+import { useTheme } from '../../hooks/useTheme';
 import { Icon } from './Icon';
 
 interface HintCardProps {
@@ -13,10 +14,11 @@ interface HintCardProps {
 }
 
 export function HintCard({ message, onDismiss, testID }: HintCardProps) {
+  const t = useTheme();
   return (
-    <View style={styles.container} testID={testID}>
-      <Icon name="lightbulb-outline" size="md" colour={COLOURS.primary} />
-      <Text style={styles.message}>{message}</Text>
+    <View style={[styles.container, { backgroundColor: t.colours.surfaceAlt }]} testID={testID}>
+      <Icon name="lightbulb-outline" size="md" colour={t.colours.primary} />
+      <Text style={[styles.message, { color: t.colours.text }]}>{message}</Text>
       <Pressable
         onPress={onDismiss}
         accessibilityRole="button"
@@ -24,7 +26,7 @@ export function HintCard({ message, onDismiss, testID }: HintCardProps) {
         hitSlop={8}
         style={styles.dismiss}
       >
-        <Icon name="close" size="md" colour={COLOURS.textMuted} />
+        <Icon name="close" size="md" colour={t.colours.textMuted} />
       </Pressable>
     </View>
   );
@@ -34,7 +36,6 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLOURS.surfaceAlt,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     gap: SPACING.sm,
@@ -43,7 +44,6 @@ const styles = StyleSheet.create({
   },
   message: {
     ...TYPOGRAPHY.caption,
-    color: COLOURS.text,
     flex: 1,
   },
   dismiss: {
