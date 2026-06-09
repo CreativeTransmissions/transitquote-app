@@ -93,4 +93,25 @@ describe('StopList', () => {
 
     expect(onOpenStop).toHaveBeenCalledWith(stop);
   });
+
+  it('row has correct accessibilityLabel when onOpenStop is provided', () => {
+    const stop = makeStop();
+    render(<StopList stops={[stop]} onOpenStop={jest.fn()} />);
+    const row = screen.getByTestId('stop-0');
+    expect(row.props.accessibilityLabel).toBe('Open stop 1, 10 Downing St, London, in Maps');
+  });
+
+  it('row has no accessibilityLabel when onOpenStop is not provided', () => {
+    const stop = makeStop();
+    render(<StopList stops={[stop]} />);
+    const row = screen.getByTestId('stop-0');
+    expect(row.props.accessibilityLabel).toBeUndefined();
+  });
+
+  it('call link has accessibilityLabel with contact name and phone', () => {
+    const stop = makeStop();
+    render(<StopList stops={[stop]} onCallStop={jest.fn()} />);
+    const link = screen.getByTestId('stop-0-call');
+    expect(link.props.accessibilityLabel).toBe('Call John Smith 07700111222');
+  });
 });

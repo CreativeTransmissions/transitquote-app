@@ -26,9 +26,16 @@ describe('StatusPicker', () => {
     expect(screen.getByText('Delivered')).toBeTruthy();
   });
 
-  it('ticks the current status', () => {
+  it('marks the current status row with accessibilityState selected', () => {
     renderPicker({ currentStatusId: 5 });
-    expect(screen.getByText('✓')).toBeTruthy();
+    const row = screen.getByTestId('status-option-5');
+    expect(row.props.accessibilityState).toEqual(expect.objectContaining({ selected: true }));
+  });
+
+  it('non-current rows are not selected', () => {
+    renderPicker({ currentStatusId: 5 });
+    const row = screen.getByTestId('status-option-1');
+    expect(row.props.accessibilityState).toEqual(expect.objectContaining({ selected: false }));
   });
 
   it('calls onSelect with the chosen status', () => {
@@ -43,5 +50,11 @@ describe('StatusPicker', () => {
     renderPicker({ onClose });
     fireEvent.press(screen.getByTestId('status-cancel'));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancel has accessibilityRole="button"', () => {
+    renderPicker();
+    const cancel = screen.getByTestId('status-cancel');
+    expect(cancel.props.accessibilityRole).toBe('button');
   });
 });

@@ -4,8 +4,6 @@
  * engine uses to protect optimistic writes, and every status transition (in_progress / failed /
  * pending-retry / retry / discard / remove).
  */
-jest.mock('../../client');
-
 import { db, resetTestDb } from '../../testkit/sqliteClient';
 import {
   enqueueAction,
@@ -20,6 +18,8 @@ import {
   discardOutboxItem,
 } from '../outbox';
 import { outbox } from '../../schema';
+
+jest.mock('../../client');
 
 beforeEach(() => resetTestDb());
 

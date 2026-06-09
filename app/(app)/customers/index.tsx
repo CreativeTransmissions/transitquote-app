@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Redirect, router } from 'expo-router';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CustomerCard } from '../../../components/customers/CustomerCard';
@@ -28,9 +28,6 @@ export default function CustomersScreen() {
       <LinearGradient colors={GRADIENTS.screen} style={StyleSheet.absoluteFill} pointerEvents="none" />
       <OfflineBanner />
       <View style={styles.header}>
-        <Pressable testID="customers-back" onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.back}>‹ Back</Text>
-        </Pressable>
         <Text style={styles.title}>Customers</Text>
       </View>
 
@@ -58,7 +55,8 @@ export default function CustomersScreen() {
           ListEmptyComponent={
             <EmptyState
               title={query ? 'No matches' : 'No customers'}
-              subtitle={query ? 'Try a different search.' : 'Pull down to refresh.'}
+              subtitle={query ? 'Try a different search.' : 'Customers come from your TransitTeam site. Add them in the WordPress admin.'}
+              icon={query ? undefined : 'account-box-outline'}
             />
           }
         />
@@ -70,7 +68,6 @@ export default function CustomersScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLOURS.background },
   header: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: SPACING.xs },
-  back: { ...TYPOGRAPHY.body, color: COLOURS.primary },
   title: { ...TYPOGRAPHY.title, color: COLOURS.text },
   search: { paddingHorizontal: SPACING.md },
   content: { padding: SPACING.md, gap: SPACING.sm },

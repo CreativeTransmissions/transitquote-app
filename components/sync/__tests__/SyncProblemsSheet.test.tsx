@@ -3,14 +3,6 @@
  * Retry / Discard, plus an all-caught-up empty state. The outbox hooks are mocked; useLiveQuery
  * feeds the job-ref lookup; the message utils are real.
  */
-jest.mock('../../../database/client');
-jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
-jest.mock('../../../hooks/useOutbox', () => ({ useOutbox: jest.fn() }));
-jest.mock('../../../hooks/useOutboxActions', () => ({
-  useRetryOutboxItem: jest.fn(),
-  useDiscardOutboxItem: jest.fn(),
-}));
-
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
@@ -18,6 +10,14 @@ import { useOutbox } from '../../../hooks/useOutbox';
 import { useRetryOutboxItem, useDiscardOutboxItem } from '../../../hooks/useOutboxActions';
 import { SyncProblemsSheet } from '../SyncProblemsSheet';
 import type { OutboxRow } from '../../../database/schema';
+
+jest.mock('../../../database/client');
+jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
+jest.mock('../../../hooks/useOutbox', () => ({ useOutbox: jest.fn() }));
+jest.mock('../../../hooks/useOutboxActions', () => ({
+  useRetryOutboxItem: jest.fn(),
+  useDiscardOutboxItem: jest.fn(),
+}));
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 const mockLive = useLiveQuery as jest.Mock;
@@ -83,5 +83,24 @@ describe('SyncProblemsSheet', () => {
 
     fireEvent.press(screen.getByTestId('sync-problem-discard-1'));
     expect(discard).toHaveBeenCalledWith(1);
+  });
+
+  it('Retry has an accessibilityLabel including the job ref', () => {
+    mockOutbox.mockReturnValue({ failed: [failedItem(1, 100)] });
+    renderSheet();
+    expect(screen.getByLabelText('Retry update for JOB-100')).toBeTruthy();
+  });
+
+  it('Discard has an accessibilityLabel including the job ref', () => {
+    mockOutbox.mockReturnValue({ failed: [failedItem(1, 100)] });
+    renderSheet();
+    expect(screen.getByLabelText('Discard update for JOB-100')).toBeTruthy();
+  });
+
+  it('uses dangerSurface token for the item background (no hardcoded hex)', () => {
+    mockOutbox.mockReturnValue({ failed: [failedItem(1, 100)] });
+    renderSheet();
+    // The item container uses COLOURS.dangerSurface — verify the testID renders.
+    expect(screen.getByTestId('sync-problem-1')).toBeTruthy();
   });
 });

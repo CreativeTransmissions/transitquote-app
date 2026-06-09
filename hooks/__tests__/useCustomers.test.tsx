@@ -3,14 +3,6 @@
  * background pull on mount when online. useLiveQuery + connectivity + the pull are mocked so we
  * assert the wiring: render from the DB immediately, pull only when online, expose the UI states.
  */
-jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
-jest.mock('../../database/queries/customers', () => ({
-  customersListQuery: jest.fn(() => 'q:customers'),
-  customerJobsQuery: jest.fn((id: number) => `q:customerJobs:${id}`),
-}));
-jest.mock('../../database/sync/syncEngine', () => ({ pullCustomers: jest.fn() }));
-jest.mock('../useConnectivity', () => ({ useConnectivity: jest.fn() }));
-
 import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -19,6 +11,14 @@ import { customerJobsQuery } from '../../database/queries/customers';
 import { pullCustomers } from '../../database/sync/syncEngine';
 import { useConnectivity } from '../useConnectivity';
 import { useCustomers, useCustomerJobs } from '../useCustomers';
+
+jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
+jest.mock('../../database/queries/customers', () => ({
+  customersListQuery: jest.fn(() => 'q:customers'),
+  customerJobsQuery: jest.fn((id: number) => `q:customerJobs:${id}`),
+}));
+jest.mock('../../database/sync/syncEngine', () => ({ pullCustomers: jest.fn() }));
+jest.mock('../useConnectivity', () => ({ useConnectivity: jest.fn() }));
 
 const mockLive = useLiveQuery as jest.Mock;
 const mockPull = pullCustomers as jest.Mock;

@@ -2,12 +2,12 @@
  * Tests for BootGate — gates the app on the boot sequence: an error screen when migrations fail,
  * a loading state while booting, and the app children once ready. useAppBoot is mocked.
  */
-jest.mock('../../../hooks/useAppBoot', () => ({ useAppBoot: jest.fn() }));
-
 import { render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { useAppBoot } from '../../../hooks/useAppBoot';
 import { BootGate } from '../BootGate';
+
+jest.mock('../../../hooks/useAppBoot', () => ({ useAppBoot: jest.fn() }));
 
 const mockBoot = useAppBoot as jest.Mock;
 const child = <Text>APP CONTENT</Text>;

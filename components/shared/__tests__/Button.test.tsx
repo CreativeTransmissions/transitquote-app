@@ -2,15 +2,15 @@
  * Tests for the shared Button: label vs loading spinner, the disabled/loading press guard, and
  * the secondary variant. The gradient is a presentation detail (mocked to a plain view).
  */
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import { Button } from '../Button';
+
 jest.mock('expo-linear-gradient', () => {
   const React = require('react');
   const { View } = require('react-native');
   return { LinearGradient: ({ children, ...props }: { children: React.ReactNode }) =>
     React.createElement(View, props, children) };
 });
-
-import { fireEvent, render, screen } from '@testing-library/react-native';
-import { Button } from '../Button';
 
 describe('Button', () => {
   it('renders its label and fires onPress', () => {

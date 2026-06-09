@@ -30,4 +30,9 @@ describe('FirstSyncProgress', () => {
 
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
+
+  it('spinner has accessibilityLabel "Setting up"', () => {
+    render(<FirstSyncProgress onCancel={jest.fn()} />);
+    expect(screen.getByLabelText('Setting up')).toBeTruthy();
+  });
 });

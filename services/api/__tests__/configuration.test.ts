@@ -1,8 +1,8 @@
 /** Tests for the configuration API — GET /configuration, unwrapped via the shared envelope guard. */
-jest.mock('../../apiClient', () => ({ apiClient: { get: jest.fn() } }));
-
 import { apiClient } from '../../apiClient';
 import { getConfiguration } from '../configuration';
+
+jest.mock('../../apiClient', () => ({ apiClient: { get: jest.fn() } }));
 
 const get = apiClient.get as jest.Mock;
 const PATH = '/wp-json/transitquote/v1/configuration';

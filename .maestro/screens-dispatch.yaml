@@ -51,20 +51,24 @@ appId: com.transitteam.app
 - tapOn:
     id: "login-submit"
 
-# 06 — Jobs list (dispatcher: shows Drivers / Customers nav links)
+# 06 — Jobs list (dispatcher: bottom tab bar shows Jobs / Drivers / Customers / Profile)
 - assertVisible: "Jobs"
+- assertVisible:
+    id: "tab-drivers"
+- assertVisible:
+    id: "tab-customers"
 - waitForAnimationToEnd
 - takeScreenshot: shots/06-jobs-dispatch
 
-# 07 — Drivers list
-- tapOn: "Drivers"
+# 07 — Drivers list (via the Drivers tab — Phase 1 §3.2)
+- tapOn:
+    id: "tab-drivers"
 - extendedWaitUntil:
-    visible:
-      id: "drivers-back"
+    visible: "Drivers"
     timeout: 15000
 - waitForAnimationToEnd
 - takeScreenshot: shots/07-drivers-list
-# 08 — Driver detail
+# 08 — Driver detail (pushes within the Drivers tab; icon back button returns to the list)
 - tapOn:
     id: "driver-card-.*"
     index: 0
@@ -72,19 +76,17 @@ appId: com.transitteam.app
 - takeScreenshot: shots/08-driver-detail
 - tapOn:
     id: "driver-back"
-- tapOn:
-    id: "drivers-back"
-- assertVisible: "Jobs"
+- assertVisible: "Drivers"
 
-# 09 — Customers list
-- tapOn: "Customers"
+# 09 — Customers list (via the Customers tab)
+- tapOn:
+    id: "tab-customers"
 - extendedWaitUntil:
-    visible:
-      id: "customers-back"
+    visible: "Customers"
     timeout: 15000
 - waitForAnimationToEnd
 - takeScreenshot: shots/09-customers-list
-# 10 — Customer detail
+# 10 — Customer detail (pushes within the Customers tab)
 - tapOn:
     id: "customer-card-.*"
     index: 0

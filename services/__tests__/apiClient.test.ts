@@ -5,15 +5,15 @@
  * Also pins the transformResponse wiring to parseApiBody (the leaked-PHP recovery is defence-in-
  * depth that must never be silently dropped).
  */
+import { apiClient, parseApiBody } from '../apiClient';
+import type { InternalAxiosRequestConfig } from 'axios';
+
 const clearSession = jest.fn();
 let mockStoreState: { siteUrl: string | null; accessToken: string | null; clearSession: jest.Mock };
 
 jest.mock('../../stores/authStore', () => ({
   useAuthStore: { getState: () => mockStoreState },
 }));
-
-import { apiClient, parseApiBody } from '../apiClient';
-import type { InternalAxiosRequestConfig } from 'axios';
 
 type RequestHandler = (c: InternalAxiosRequestConfig) => InternalAxiosRequestConfig;
 type RejectedHandler = (e: unknown) => Promise<unknown>;

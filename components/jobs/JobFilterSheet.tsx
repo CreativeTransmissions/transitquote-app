@@ -70,6 +70,8 @@ export function JobFilterSheet({
                     testID={`filter-status-${status.id}`}
                     onPress={() => toggleStatus(status.id)}
                     style={[styles.chip, active && styles.chipActive]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
                   >
                     <Text style={[styles.chipText, active && styles.chipTextActive]}>{status.name}</Text>
                   </Pressable>
@@ -85,6 +87,8 @@ export function JobFilterSheet({
                     testID="filter-driver-any"
                     onPress={() => selectDriver(null)}
                     style={[styles.chip, draft.driverId == null && styles.chipActive]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: draft.driverId == null }}
                   >
                     <Text style={[styles.chipText, draft.driverId == null && styles.chipTextActive]}>Any</Text>
                   </Pressable>
@@ -96,6 +100,8 @@ export function JobFilterSheet({
                         testID={`filter-driver-${driver.id}`}
                         onPress={() => selectDriver(driver.id)}
                         style={[styles.chip, active && styles.chipActive]}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
                       >
                         <Text style={[styles.chipText, active && styles.chipTextActive]}>
                           {fullName(driver.firstName, driver.lastName) || `Driver ${driver.id}`}
@@ -161,7 +167,7 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
-    borderRadius: RADIUS.sm,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: COLOURS.border,
     backgroundColor: COLOURS.surface,

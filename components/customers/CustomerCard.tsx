@@ -18,6 +18,7 @@ export function CustomerCard({ customer, onPress }: CustomerCardProps) {
       testID={`customer-card-${customer.id}`}
       accessibilityRole="button"
       onPress={() => onPress(customer.id)}
+      android_ripple={{ color: COLOURS.surfaceAlt }}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <Text style={styles.name} numberOfLines={1}>

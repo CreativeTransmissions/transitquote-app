@@ -2,6 +2,7 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '../shared/EmptyState';
+import { Icon } from '../shared/Icon';
 import { COLOURS, RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
 import { fullName } from '../../utils/formatters';
 import type { DriverRow } from '../../database/schema';
@@ -33,15 +34,24 @@ export function DriverPicker({ visible, drivers, currentDriverId, onSelect, onCl
                     testID={`driver-option-${driver.id}`}
                     style={styles.row}
                     accessibilityRole="button"
+                    accessibilityState={{ selected: isCurrent }}
                     onPress={() => onSelect(driver)}
                   >
                     <View style={styles.rowBody}>
                       <Text style={[styles.name, isCurrent && styles.current]}>
                         {fullName(driver.firstName, driver.lastName) || `Driver ${driver.id}`}
                       </Text>
-                      <Text style={styles.availability}>{driver.available ? 'Available' : 'Unavailable'}</Text>
+                      <View style={styles.availabilityRow}>
+                        <View
+                          style={[
+                            styles.availabilityDot,
+                            driver.available ? styles.availabilityDotAvailable : styles.availabilityDotUnavailable,
+                          ]}
+                        />
+                        <Text style={styles.availability}>{driver.available ? 'Available' : 'Unavailable'}</Text>
+                      </View>
                     </View>
-                    {isCurrent ? <Text style={styles.tick}>✓</Text> : null}
+                    {isCurrent ? <Icon name="check" size="md" colour={COLOURS.primary} /> : null}
                   </Pressable>
                 );
               })}
@@ -77,8 +87,11 @@ const styles = StyleSheet.create({
   rowBody: { gap: 2, flexShrink: 1 },
   name: { ...TYPOGRAPHY.body, color: COLOURS.text },
   current: { color: COLOURS.primary, fontWeight: '600' },
+  availabilityRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
+  availabilityDot: { width: 8, height: 8, borderRadius: 4 },
+  availabilityDotAvailable: { backgroundColor: COLOURS.statusDone },
+  availabilityDotUnavailable: { backgroundColor: COLOURS.textMuted },
   availability: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted },
-  tick: { ...TYPOGRAPHY.body, color: COLOURS.primary },
   cancel: { marginTop: SPACING.md, alignItems: 'center', paddingVertical: SPACING.sm },
   cancelText: { ...TYPOGRAPHY.subheading, color: COLOURS.primary },
 });

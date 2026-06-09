@@ -2,6 +2,12 @@
 module.exports = {
   preset: 'jest-expo',
   // RNTL v13+ registers its matchers automatically — no extend-expect setup needed.
+  moduleNameMapper: {
+    // Point @expo/vector-icons at the manual mock so tests that transitively import Icon.tsx
+    // don't need per-file jest.mock() calls for the native font loader.
+    '^@expo/vector-icons$': '<rootDir>/__mocks__/@expo/vector-icons.tsx',
+    '^@expo/vector-icons/(.*)$': '<rootDir>/__mocks__/@expo/vector-icons.tsx',
+  },
   transformIgnorePatterns: [
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|drizzle-orm))',
   ],

@@ -3,6 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/shared/Button';
+import { Icon } from '../../components/shared/Icon';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { useRole } from '../../hooks/useRole';
 import { useDrivers } from '../../hooks/useDrivers';
@@ -52,9 +53,6 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable testID="profile-back" onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.back}>‹ Back</Text>
-        </Pressable>
         <Text style={styles.title}>Profile</Text>
 
         {activeSite ? (
@@ -96,7 +94,11 @@ export default function ProfileScreen() {
                   <Text style={[styles.siteUrl, active && styles.siteActive]} numberOfLines={1}>
                     {site.siteUrl}
                   </Text>
-                  {active ? <Text style={styles.tick}>✓</Text> : <Text style={styles.switchHint}>Switch</Text>}
+                  {active ? (
+                    <Icon name="check" size="md" colour={COLOURS.primary} accessibilityLabel="Active site" />
+                  ) : (
+                    <Text style={styles.switchHint}>Switch</Text>
+                  )}
                 </Pressable>
               );
             })}
@@ -134,7 +136,6 @@ function Row({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLOURS.background },
   content: { padding: SPACING.lg },
-  back: { ...TYPOGRAPHY.body, color: COLOURS.primary, marginBottom: SPACING.sm },
   title: { ...TYPOGRAPHY.title, color: COLOURS.text, marginBottom: SPACING.md },
   activeSite: {
     backgroundColor: COLOURS.primary,
@@ -173,7 +174,6 @@ const styles = StyleSheet.create({
   },
   siteUrl: { ...TYPOGRAPHY.body, color: COLOURS.text, flexShrink: 1 },
   siteActive: { color: COLOURS.primary, fontWeight: '600' },
-  tick: { ...TYPOGRAPHY.body, color: COLOURS.primary },
   switchHint: { ...TYPOGRAPHY.body, color: COLOURS.primary },
   logout: { marginTop: SPACING.sm },
 });

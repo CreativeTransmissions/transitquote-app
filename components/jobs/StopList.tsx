@@ -8,6 +8,7 @@
  * given stop, in which case the contact line / call affordance is hidden.
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Icon } from '../shared/Icon';
 import { COLOURS, SPACING, TYPOGRAPHY } from '../../constants';
 import { useDateFormat } from '../../hooks/useDateFormat';
 import type { Stop } from '../../types/api';
@@ -33,6 +34,11 @@ export function StopList({ stops, onOpenStop, onCallStop }: StopListProps) {
             key={stop.id ?? index}
             testID={`stop-${index}`}
             accessibilityRole="button"
+            accessibilityLabel={
+              onOpenStop
+                ? `Open stop ${index + 1}, ${stop.address || 'unknown address'}, in Maps`
+                : undefined
+            }
             onPress={() => onOpenStop?.(stop)}
             style={({ pressed }) => [styles.stop, pressed && styles.pressed]}
           >
@@ -47,21 +53,27 @@ export function StopList({ stops, onOpenStop, onCallStop }: StopListProps) {
                   <Pressable
                     testID={`stop-${index}-call`}
                     accessibilityRole="link"
+                    accessibilityLabel={`Call ${[contactName, contactPhone].filter(Boolean).join(' ')}`}
                     onPress={() => onCallStop?.(stop)}
                     hitSlop={6}
+                    style={styles.contactRow}
                   >
+                    <Icon name="phone-outline" size="sm" colour={COLOURS.primary} />
                     <Text style={styles.contactLink}>
                       {[contactName, contactPhone].filter(Boolean).join(' · ')}
                     </Text>
                   </Pressable>
                 ) : (
-                  <Text style={styles.contact}>{[contactName, contactPhone].filter(Boolean).join(' · ')}</Text>
+                  <View style={styles.contactRow}>
+                    <Icon name="phone-outline" size="sm" colour={COLOURS.textMuted} />
+                    <Text style={styles.contact}>{[contactName, contactPhone].filter(Boolean).join(' · ')}</Text>
+                  </View>
                 )
               ) : null}
               {note ? <Text style={styles.note}>{note}</Text> : null}
               {scheduled ? <Text style={styles.meta}>{scheduled}</Text> : null}
             </View>
-            {onOpenStop ? <Text style={styles.chevron}>›</Text> : null}
+            {onOpenStop ? <Icon name="chevron-right" size="md" colour={COLOURS.textMuted} /> : null}
           </Pressable>
         );
       })}
@@ -84,9 +96,9 @@ const styles = StyleSheet.create({
   body: { flex: 1, gap: 2 },
   type: { ...TYPOGRAPHY.label, color: COLOURS.primary, textTransform: 'capitalize' },
   address: { ...TYPOGRAPHY.body, color: COLOURS.text },
+  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   contact: { ...TYPOGRAPHY.caption, color: COLOURS.text },
   contactLink: { ...TYPOGRAPHY.caption, color: COLOURS.primary },
   note: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted, fontStyle: 'italic' },
   meta: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted },
-  chevron: { ...TYPOGRAPHY.subheading, color: COLOURS.textMuted },
 });

@@ -3,6 +3,11 @@
  * switcher (only when >1 site), and the confirm-then-act logout / switch flows (via Alert). The
  * data hooks, router, and Alert are mocked.
  */
+import { Alert } from 'react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import ProfileScreen from '../home';
+
 let mockUser: Record<string, unknown> | null;
 let mockRole: Record<string, unknown>;
 let mockDrivers: Record<string, unknown>[];
@@ -16,11 +21,6 @@ jest.mock('../../../hooks/useRole', () => ({ useRole: () => mockRole }));
 jest.mock('../../../hooks/useDrivers', () => ({ useDrivers: () => mockDrivers }));
 jest.mock('../../../hooks/useLogout', () => ({ useLogout: () => ({ mutate: mockLogoutMutate, isPending: false }) }));
 jest.mock('../../../hooks/useSites', () => ({ useSites: () => mockSites }));
-
-import { Alert } from 'react-native';
-import { fireEvent, render, screen } from '@testing-library/react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import ProfileScreen from '../home';
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 

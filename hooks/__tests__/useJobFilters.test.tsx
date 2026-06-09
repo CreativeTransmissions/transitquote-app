@@ -3,15 +3,15 @@
  * sensitive; tokens/creds live in secure-store). Restores on mount, merges over the empty default,
  * tolerates malformed persisted JSON, and persists on set/clear.
  */
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  __esModule: true,
-  default: { getItem: jest.fn(), setItem: jest.fn() },
-}));
-
 import { renderHook, waitFor, act } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useJobFilters } from '../useJobFilters';
 import { EMPTY_FILTERS } from '../../utils/jobFilter';
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: jest.fn(), setItem: jest.fn() },
+}));
 
 const getItem = AsyncStorage.getItem as jest.Mock;
 const setItem = AsyncStorage.setItem as jest.Mock;

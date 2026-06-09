@@ -3,6 +3,10 @@
  * notification setup once the DB is ready. A DB error wins; otherwise booting until the DB is ready
  * AND the session is no longer loading. useDatabase, the auth store, and notification setup are mocked.
  */
+import { renderHook, waitFor } from '@testing-library/react-native';
+import { useDatabase } from '../useDatabase';
+import { useAppBoot } from '../useAppBoot';
+
 const mockHydrate = jest.fn();
 let mockAuthStatus: string;
 const mockConfigureNotifications = jest.fn();
@@ -16,10 +20,6 @@ jest.mock('../../services/notifications/setup', () => ({
   configureNotifications: () => mockConfigureNotifications(),
   ensureNotificationPermission: () => mockEnsurePermission(),
 }));
-
-import { renderHook, waitFor } from '@testing-library/react-native';
-import { useDatabase } from '../useDatabase';
-import { useAppBoot } from '../useAppBoot';
 
 const mockUseDatabase = useDatabase as jest.Mock;
 

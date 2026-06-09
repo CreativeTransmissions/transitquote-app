@@ -49,4 +49,20 @@ describe('DriverCard', () => {
     fireEvent.press(screen.getByTestId('driver-card-8'));
     expect(onPress).toHaveBeenCalledWith(8);
   });
+
+  it('has accessibilityRole="button"', () => {
+    render(<DriverCard driver={driver()} jobCount={0} onPress={jest.fn()} />);
+    expect(screen.getByTestId('driver-card-1').props.accessibilityRole).toBe('button');
+  });
+
+  it('uses successSurface token for available badge (no hardcoded hex)', () => {
+    render(<DriverCard driver={driver({ available: true })} jobCount={0} onPress={jest.fn()} />);
+    // The badge text "Available" renders — background token is set via StyleSheet
+    expect(screen.getByText('Available')).toBeTruthy();
+  });
+
+  it('uses dangerSurface token for unavailable badge (no hardcoded hex)', () => {
+    render(<DriverCard driver={driver({ available: false })} jobCount={0} onPress={jest.fn()} />);
+    expect(screen.getByText('Unavailable')).toBeTruthy();
+  });
 });

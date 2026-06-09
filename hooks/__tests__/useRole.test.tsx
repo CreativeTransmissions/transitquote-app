@@ -4,12 +4,12 @@
  * seeded. The DB client is the better-sqlite3 harness (query builders are constructed but ignored);
  * useLiveQuery is mocked to feed the current_user / team_settings rows under test.
  */
-jest.mock('../../database/client');
-jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
-
 import { renderHook } from '@testing-library/react-native';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useRole } from '../useRole';
+
+jest.mock('../../database/client');
+jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
 
 const mockLive = useLiveQuery as jest.Mock;
 

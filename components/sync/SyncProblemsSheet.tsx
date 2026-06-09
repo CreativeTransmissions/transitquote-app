@@ -59,6 +59,7 @@ export function SyncProblemsSheet({ visible, onClose }: SyncProblemsSheetProps) 
                         disabled={busy}
                         hitSlop={6}
                         accessibilityRole="button"
+                        accessibilityLabel={`Retry update for ${ref ?? `#${item.payload.id}`}`}
                       >
                         <Text style={styles.retry}>Retry</Text>
                       </Pressable>
@@ -68,6 +69,7 @@ export function SyncProblemsSheet({ visible, onClose }: SyncProblemsSheetProps) 
                         disabled={busy}
                         hitSlop={6}
                         accessibilityRole="button"
+                        accessibilityLabel={`Discard update for ${ref ?? `#${item.payload.id}`}`}
                       >
                         <Text style={styles.discard}>Discard</Text>
                       </Pressable>
@@ -100,7 +102,7 @@ const styles = StyleSheet.create({
   subtitle: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted, marginTop: SPACING.xs, marginBottom: SPACING.md },
   empty: { ...TYPOGRAPHY.body, color: COLOURS.textMuted, paddingVertical: SPACING.lg },
   item: {
-    backgroundColor: '#FDECEA',
+    backgroundColor: COLOURS.dangerSurface,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     gap: SPACING.xs,

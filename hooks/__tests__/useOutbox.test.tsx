@@ -3,13 +3,13 @@
  * (sync badge), failed items (surfaced on the affected job), and a per-job state map where FAILED
  * takes precedence over pending. useLiveQuery is mocked to feed the queue rows.
  */
-jest.mock('../../database/client');
-jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
-
 import { renderHook } from '@testing-library/react-native';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useOutbox } from '../useOutbox';
 import type { OutboxRow } from '../../database/schema';
+
+jest.mock('../../database/client');
+jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
 
 const mockLive = useLiveQuery as jest.Mock;
 

@@ -45,4 +45,9 @@ describe('CustomerCard', () => {
     fireEvent.press(screen.getByTestId('customer-card-9'));
     expect(onPress).toHaveBeenCalledWith(9);
   });
+
+  it('has accessibilityRole="button"', () => {
+    render(<CustomerCard customer={customer()} onPress={jest.fn()} />);
+    expect(screen.getByTestId('customer-card-1').props.accessibilityRole).toBe('button');
+  });
 });

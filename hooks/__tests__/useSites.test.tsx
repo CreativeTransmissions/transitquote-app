@@ -4,6 +4,9 @@
  * previous site's data never bleeds into the new one; switching to the already-active site is a
  * no-op. The auth store and the local-data wipe are mocked.
  */
+import { renderHook, waitFor, act } from '@testing-library/react-native';
+import { useSites } from '../useSites';
+
 const mockListSites = jest.fn();
 const mockSwitchSite = jest.fn();
 let mockActiveSiteId: string | null;
@@ -14,9 +17,6 @@ jest.mock('../../stores/authStore', () => ({
     sel({ listSites: mockListSites, switchSite: mockSwitchSite, activeSiteId: mockActiveSiteId }),
 }));
 jest.mock('../../database/queries', () => ({ clearLocalData: () => mockClearLocalData() }));
-
-import { renderHook, waitFor, act } from '@testing-library/react-native';
-import { useSites } from '../useSites';
 
 const SITES = [
   { id: 'site-1', siteUrl: 'https://a.example', clientId: 'a', clientSecret: 's', lastUsed: 1 },

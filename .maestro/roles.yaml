@@ -1,6 +1,8 @@
 # Role-based UI hiding (CLAUDE.md §4 + Testing Standards: "driver does NOT see dispatcher-only UI").
-# A DRIVER account must NOT see the dispatcher-only Drivers / Customers nav links on the jobs list;
-# Profile is always available. Deterministic — run with the api-driver account.
+# A DRIVER account must NOT see the dispatcher-only Drivers / Customers bottom tabs; Jobs + Profile
+# tabs are always present. Deterministic — run with the api-driver account.
+# Primary navigation is now the bottom tab bar (Phase 1 §3.2): tabs carry testIDs tab-jobs,
+# tab-drivers, tab-customers, tab-profile.
 #
 # Run (native Windows — emulator + adb + Maestro; see docs/SMOKE_TESTING.md for the full recipe):
 #   maestro test \
@@ -14,11 +16,16 @@ appId: com.transitteam.app
 # Onboarding → login → jobs list (as the driver account).
 - runFlow: subflows/auth.yaml
 
-# Assert the screen actually loaded BEFORE the negative checks, so an absent link can't be a
+# Assert the screen actually loaded BEFORE the negative checks, so an absent tab can't be a
 # false-green from the page simply not having rendered.
 - assertVisible: "Jobs"
-- assertVisible: "Profile"
+- assertVisible:
+    id: "tab-jobs"
+- assertVisible:
+    id: "tab-profile"
 
-# The dispatcher-only links must be absent for a driver (JobsScreen renders them only when isDispatcher).
-- assertNotVisible: "Drivers"
-- assertNotVisible: "Customers"
+# The dispatcher-only tabs must be absent for a driver (layout gates them via href: null).
+- assertNotVisible:
+    id: "tab-drivers"
+- assertNotVisible:
+    id: "tab-customers"

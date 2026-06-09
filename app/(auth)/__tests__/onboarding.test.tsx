@@ -2,15 +2,15 @@
  * Tests for the onboarding screen — collects site URL + credentials, submits via useOnboarding,
  * routes to /login on success, and surfaces validation/save errors.
  */
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import OnboardingScreen from '../onboarding';
+
 const mockReplace = jest.fn();
 let mockOnboarding: { mutate: jest.Mock; isError: boolean; error: Error | null; isPending: boolean };
 
 jest.mock('expo-router', () => ({ router: { replace: (...a: unknown[]) => mockReplace(...a) } }));
 jest.mock('../../../hooks/useOnboarding', () => ({ useOnboarding: () => mockOnboarding }));
-
-import { fireEvent, render, screen } from '@testing-library/react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import OnboardingScreen from '../onboarding';
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 

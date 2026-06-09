@@ -4,14 +4,6 @@
  * data. useLiveQuery is keyed by the query it receives (job vs detail) so re-renders stay stable;
  * connectivity and the pull are mocked.
  */
-jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
-jest.mock('../../database/queries/jobs', () => ({
-  jobByIdQuery: jest.fn((id: number) => ({ kind: 'job', id })),
-  jobDetailByIdQuery: jest.fn((id: number) => ({ kind: 'detail', id })),
-}));
-jest.mock('../../database/sync/syncEngine', () => ({ pullJobDetail: jest.fn() }));
-jest.mock('../useConnectivity', () => ({ useConnectivity: jest.fn() }));
-
 import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -19,6 +11,14 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { pullJobDetail } from '../../database/sync/syncEngine';
 import { useConnectivity } from '../useConnectivity';
 import { useJobDetail } from '../useJobDetail';
+
+jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
+jest.mock('../../database/queries/jobs', () => ({
+  jobByIdQuery: jest.fn((id: number) => ({ kind: 'job', id })),
+  jobDetailByIdQuery: jest.fn((id: number) => ({ kind: 'detail', id })),
+}));
+jest.mock('../../database/sync/syncEngine', () => ({ pullJobDetail: jest.fn() }));
+jest.mock('../useConnectivity', () => ({ useConnectivity: jest.fn() }));
 
 const mockLive = useLiveQuery as jest.Mock;
 const mockPull = pullJobDetail as jest.Mock;

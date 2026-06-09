@@ -19,6 +19,7 @@ export function DriverCard({ driver, jobCount, onPress }: DriverCardProps) {
       testID={`driver-card-${driver.id}`}
       accessibilityRole="button"
       onPress={() => onPress(driver.id)}
+      android_ripple={{ color: COLOURS.surfaceAlt }}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <View style={styles.headerRow}>
@@ -47,8 +48,8 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.sm },
   name: { ...TYPOGRAPHY.subheading, color: COLOURS.text, flexShrink: 1 },
   badge: { paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: RADIUS.sm },
-  available: { backgroundColor: '#E6F4EA' },
-  unavailable: { backgroundColor: '#FDECEA' },
+  available: { backgroundColor: COLOURS.successSurface },
+  unavailable: { backgroundColor: COLOURS.dangerSurface },
   badgeText: { ...TYPOGRAPHY.label, color: COLOURS.text },
   contact: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted },
   meta: { ...TYPOGRAPHY.caption, color: COLOURS.textMuted },

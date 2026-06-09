@@ -4,16 +4,16 @@
  * own record's can_assign_to (a single driver id — CLAUDE.md §"Role & Assignment Mode"). The server
  * also enforces this; the hook guards the UX. useLiveQuery feeds the drivers list; useRole is mocked.
  */
-jest.mock('../../database/client');
-jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
-jest.mock('../useRole', () => ({ useRole: jest.fn() }));
-
 import { renderHook } from '@testing-library/react-native';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useRole } from '../useRole';
 import { useDrivers, useAssignableDrivers } from '../useDrivers';
 import type { DriverRow } from '../../database/schema';
 import type { RoleInfo } from '../useRole';
+
+jest.mock('../../database/client');
+jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
+jest.mock('../useRole', () => ({ useRole: jest.fn() }));
 
 const mockLive = useLiveQuery as jest.Mock;
 const mockRole = useRole as jest.Mock;

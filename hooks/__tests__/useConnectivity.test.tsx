@@ -2,6 +2,10 @@
  * Tests for useConnectivity — seeds online/offline from expo-network on mount, subscribes to
  * network-state changes, mirrors both into the connectivity store, and unsubscribes on unmount.
  */
+import { renderHook, waitFor, act } from '@testing-library/react-native';
+import { getNetworkStateAsync } from 'expo-network';
+import { useConnectivity } from '../useConnectivity';
+
 const mockSetOnline = jest.fn();
 let mockIsOnline = true;
 const mockRemove = jest.fn();
@@ -18,10 +22,6 @@ jest.mock('../../stores/connectivityStore', () => ({
   useConnectivityStore: (sel: (s: unknown) => unknown) =>
     sel({ isOnline: mockIsOnline, setOnline: mockSetOnline }),
 }));
-
-import { renderHook, waitFor, act } from '@testing-library/react-native';
-import { getNetworkStateAsync } from 'expo-network';
-import { useConnectivity } from '../useConnectivity';
 
 const mockGetState = getNetworkStateAsync as jest.Mock;
 
