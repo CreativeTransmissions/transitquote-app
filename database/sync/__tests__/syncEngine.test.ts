@@ -10,17 +10,6 @@
  * Mocked: the network (getJobs/getCustomers), the notifier, and changeDetector (so we control the
  * event list and assert the orchestration contract, not changeDetector's own logic).
  */
-jest.mock('../../client');
-jest.mock('../../mappers', () => ({
-  mapJob: (j: unknown) => j, // getJobs fixtures are already JobInsert-shaped
-  mapJobDetail: (d: { job: unknown; detail: unknown }) => d,
-  mapCustomer: (c: unknown) => c,
-}));
-jest.mock('../../../services/api/jobs', () => ({ getJobs: jest.fn(), getJobDetail: jest.fn() }));
-jest.mock('../../../services/api/customers', () => ({ getCustomers: jest.fn() }));
-jest.mock('../../../services/notifications/notifier', () => ({ presentJobNotifications: jest.fn() }));
-jest.mock('../changeDetector', () => ({ detectJobChanges: jest.fn(() => []) }));
-
 import { eq } from 'drizzle-orm';
 import { db, resetTestDb } from '../../testkit/sqliteClient';
 import { pullJobs, pullJobDetail, pullCustomers, hydrateJobDetails } from '../syncEngine';
@@ -32,6 +21,17 @@ import { getAllJobs, applyOptimisticStatus, getJobsNeedingDetail } from '../../q
 import { enqueueAction } from '../../queries/outbox';
 import { getLastSynced, setLastSynced } from '../../queries/syncMeta';
 import { jobs, jobDetails, currentUser, customers, type JobInsert } from '../../schema';
+
+jest.mock('../../client');
+jest.mock('../../mappers', () => ({
+  mapJob: (j: unknown) => j, // getJobs fixtures are already JobInsert-shaped
+  mapJobDetail: (d: { job: unknown; detail: unknown }) => d,
+  mapCustomer: (c: unknown) => c,
+}));
+jest.mock('../../../services/api/jobs', () => ({ getJobs: jest.fn(), getJobDetail: jest.fn() }));
+jest.mock('../../../services/api/customers', () => ({ getCustomers: jest.fn() }));
+jest.mock('../../../services/notifications/notifier', () => ({ presentJobNotifications: jest.fn() }));
+jest.mock('../changeDetector', () => ({ detectJobChanges: jest.fn(() => []) }));
 
 const mockGetJobs = getJobs as jest.Mock;
 const mockGetJobDetail = getJobDetail as jest.Mock;

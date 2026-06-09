@@ -72,9 +72,11 @@ export default function LoginScreen() {
           <Button testID="login-submit" label="Sign in" onPress={handleSubmit} loading={loginMutation.isPending} />
 
             <Pressable
+              testID="login-change-site"
               onPress={() => router.replace('/onboarding')}
               disabled={loginMutation.isPending}
               style={styles.changeSite}
+              accessibilityRole="button"
             >
               <Text style={styles.changeSiteText}>Change site</Text>
             </Pressable>

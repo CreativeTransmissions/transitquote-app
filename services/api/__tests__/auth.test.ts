@@ -3,10 +3,10 @@
  * authorization code, which is exchanged (form-encoded) at the oauth2 token endpoint for the access
  * token. Covers the happy path, both failure points, role defaulting, and logout.
  */
-jest.mock('../../apiClient', () => ({ apiClient: { post: jest.fn() } }));
-
 import { apiClient } from '../../apiClient';
 import { login, logout } from '../auth';
+
+jest.mock('../../apiClient', () => ({ apiClient: { post: jest.fn() } }));
 
 const post = apiClient.post as jest.Mock;
 const LOGIN_PATH = '/wp-json/transitquote/v1/rest_login';

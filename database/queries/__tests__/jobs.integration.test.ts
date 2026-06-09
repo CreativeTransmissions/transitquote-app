@@ -6,8 +6,6 @@
  * previously untestable because the production client opens a native expo-sqlite connection.
  * The `jest.mock('../../client')` below swaps in the better-sqlite3 harness (database/__mocks__).
  */
-jest.mock('../../client');
-
 import { db, resetTestDb } from '../../testkit/sqliteClient';
 import {
   replaceJobs,
@@ -23,6 +21,8 @@ import {
   upsertJobDetailRow,
 } from '../jobs';
 import { jobs, jobDetails, type JobInsert, type JobDetailRow } from '../../schema';
+
+jest.mock('../../client');
 
 function detailRow(jobId: number, overrides: Partial<JobDetailRow> = {}): JobDetailRow {
   return {

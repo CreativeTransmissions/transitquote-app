@@ -74,10 +74,11 @@ appId: com.transitteam.app
     id: "job-back"
 - assertVisible: "Jobs"
 
-# NOTE: api-driver is a pure DRIVER account — the Drivers/Customers links are dispatcher-only and
+# NOTE: api-driver is a pure DRIVER account — the Drivers/Customers tabs are dispatcher-only and
 # not rendered, so those views are not reachable with the stored credentials.
 
-# 05 — Profile
-- tapOn: "Profile"
+# 05 — Profile (reached via the bottom Profile tab — Phase 1 §3.2)
+- tapOn:
+    id: "tab-profile"
 - waitForAnimationToEnd
 - takeScreenshot: shots/05-profile

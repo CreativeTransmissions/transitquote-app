@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,10 +9,13 @@ import { OfflineBanner } from '../../../components/sync/OfflineBanner';
 import { SyncStatusIndicator } from '../../../components/sync/SyncStatusIndicator';
 import { FirstSyncProgress } from '../../../components/sync/FirstSyncProgress';
 import { EmptyState } from '../../../components/shared/EmptyState';
+import { HintCard } from '../../../components/shared/HintCard';
+import { Icon } from '../../../components/shared/Icon';
 import { useJobs, type JobScope } from '../../../hooks/useJobs';
 import { useJobFilters } from '../../../hooks/useJobFilters';
 import { useRole } from '../../../hooks/useRole';
 import { useOutbox } from '../../../hooks/useOutbox';
+import { useFirstRunHint } from '../../../hooks/useFirstRunHint';
 import { useConnectivityStore } from '../../../stores/connectivityStore';
 import { useStatusTypes } from '../../../hooks/useStatusTypes';
 import { useDrivers } from '../../../hooks/useDrivers';
@@ -22,11 +25,12 @@ import { COLOURS, GRADIENTS, SPACING, TYPOGRAPHY } from '../../../constants';
 type DriverTab = 'available' | 'mine';
 
 export default function JobsScreen() {
-  const { isDispatcher, isDriver, isDecentralized, driverId } = useRole();
+  const { role, isDispatcher, isDriver, isDecentralized, driverId } = useRole();
   const { stateByJob } = useOutbox();
   const statuses = useStatusTypes();
   const drivers = useDrivers();
   const { filters, setFilters, clear } = useJobFilters();
+  const { showHint, dismissHint } = useFirstRunHint();
 
   // Decentralized drivers get Available / My Jobs tabs (spec §6.4). Everyone else sees one list:
   // dispatchers see all jobs; centralized drivers see the server-filtered list.
@@ -38,7 +42,8 @@ export default function JobsScreen() {
   const detailHydration = useConnectivityStore((s) => s.detailHydration);
   const [filterVisible, setFilterVisible] = useState(false);
 
-  const visibleJobs = applyJobFilters(jobs, filters);
+  // P-1: filtering is O(n) over the whole job set — memoize so it only reruns when jobs/filters change.
+  const visibleJobs = useMemo(() => applyJobFilters(jobs, filters), [jobs, filters]);
   const activeFilters = countActiveFilters(filters);
   const showSpinner = jobs.length === 0 && isSyncing && !syncError;
 
@@ -52,22 +57,11 @@ export default function JobsScreen() {
           <Text style={styles.title}>Jobs</Text>
           <SyncStatusIndicator />
         </View>
-        <View style={styles.headerLinks}>
-          {isDispatcher ? (
-            <>
-              <Pressable onPress={() => router.push('/drivers')} hitSlop={8}>
-                <Text style={styles.link}>Drivers</Text>
-              </Pressable>
-              <Pressable onPress={() => router.push('/customers')} hitSlop={8}>
-                <Text style={styles.link}>Customers</Text>
-              </Pressable>
-            </>
-          ) : null}
-          <Pressable onPress={() => router.push('/home')} hitSlop={8}>
-            <Text style={styles.link}>Profile</Text>
-          </Pressable>
-        </View>
       </View>
+
+      {showHint && role !== null ? (
+        <HintCard message={hintMessage(role, isDecentralized)} onDismiss={dismissHint} testID="jobs-hint" />
+      ) : null}
 
       {showTabs ? (
         <View style={styles.tabs}>
@@ -98,13 +92,38 @@ export default function JobsScreen() {
             showDriver={isDispatcher}
             outboxStateByJob={stateByJob}
             emptyTitle={activeFilters > 0 ? 'No jobs match your filters' : emptyTitle(scope)}
-            emptySubtitle={activeFilters > 0 ? 'Adjust or clear the filters.' : 'Pull down to refresh.'}
+            emptySubtitle={
+              activeFilters > 0
+                ? 'Adjust or clear the filters.'
+                : scope === 'available'
+                  ? 'No unclaimed jobs right now. New jobs appear here automatically — pull down to check.'
+                  : 'Pull down to refresh.'
+            }
+            emptyIcon={
+              activeFilters > 0
+                ? 'filter-remove-outline'
+                : scope === 'available'
+                  ? 'briefcase-search-outline'
+                  : 'briefcase-outline'
+            }
+            emptyAction={
+              activeFilters > 0
+                ? { label: 'Clear filters', onPress: clear }
+                : undefined
+            }
           />
         )}
       </View>
 
       <View style={styles.toolbar}>
-        <Pressable testID="jobs-filter" style={styles.toolbarButton} onPress={() => setFilterVisible(true)} accessibilityRole="button">
+        <Pressable
+          testID="jobs-filter"
+          style={styles.toolbarButton}
+          onPress={() => setFilterVisible(true)}
+          accessibilityRole="button"
+          hitSlop={8}
+        >
+          <Icon name="filter-variant" size="sm" colour={COLOURS.primary} />
           <Text style={styles.toolbarText}>Filter</Text>
           {activeFilters > 0 ? (
             <View style={styles.badge}>
@@ -112,7 +131,8 @@ export default function JobsScreen() {
             </View>
           ) : null}
         </Pressable>
-        <Pressable testID="jobs-refresh" style={styles.toolbarButton} onPress={refresh} accessibilityRole="button">
+        <Pressable testID="jobs-refresh" style={styles.toolbarButton} onPress={refresh} accessibilityRole="button" hitSlop={8}>
+          <Icon name="refresh" size="sm" colour={COLOURS.primary} />
           <Text style={styles.toolbarText}>Refresh</Text>
         </Pressable>
       </View>
@@ -141,6 +161,16 @@ function emptyTitle(scope: JobScope): string {
   if (scope === 'available') return 'No available jobs';
   if (scope === 'mine') return 'No jobs assigned to you';
   return 'No jobs yet';
+}
+
+function hintMessage(role: string, isDecentralized: boolean): string {
+  if (role === 'driver' && isDecentralized) {
+    return 'Available shows unclaimed jobs anyone can take. My Jobs is your work. Tap a job, then Claim job to take it.';
+  }
+  if (role === 'driver') {
+    return 'Jobs your dispatcher assigns to you appear here automatically. Pull down to refresh.';
+  }
+  return 'Tap any job to assign a driver or update its status. Use Filter to narrow by status, driver, or date.';
 }
 
 function Tab({
@@ -177,9 +207,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
   },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-  headerLinks: { flexDirection: 'row', gap: SPACING.md },
   title: { ...TYPOGRAPHY.title, color: COLOURS.text },
-  link: { ...TYPOGRAPHY.body, color: COLOURS.primary },
   tabs: { flexDirection: 'row', paddingHorizontal: SPACING.md, gap: SPACING.sm, marginBottom: SPACING.xs },
   tab: {
     flex: 1,

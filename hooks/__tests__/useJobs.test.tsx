@@ -4,6 +4,13 @@
  * sync hook are mocked so we assert the WIRING (which builder, the unknown-driver guard, when sync
  * fires), not their internals.
  */
+import { renderHook } from '@testing-library/react-native';
+import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
+import { jobsListQuery, availableJobsQuery, myJobsQuery } from '../../database/queries/jobs';
+import { useConnectivity } from '../useConnectivity';
+import { useSyncJobs } from '../useSync';
+import { useJobs } from '../useJobs';
+
 jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
 jest.mock('../../database/queries/jobs', () => ({
   jobsListQuery: jest.fn(() => 'q:all'),
@@ -12,13 +19,6 @@ jest.mock('../../database/queries/jobs', () => ({
 }));
 jest.mock('../useConnectivity', () => ({ useConnectivity: jest.fn() }));
 jest.mock('../useSync', () => ({ useSyncJobs: jest.fn() }));
-
-import { renderHook } from '@testing-library/react-native';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
-import { jobsListQuery, availableJobsQuery, myJobsQuery } from '../../database/queries/jobs';
-import { useConnectivity } from '../useConnectivity';
-import { useSyncJobs } from '../useSync';
-import { useJobs } from '../useJobs';
 
 const mockLive = useLiveQuery as jest.Mock;
 const mockConnectivity = useConnectivity as jest.Mock;

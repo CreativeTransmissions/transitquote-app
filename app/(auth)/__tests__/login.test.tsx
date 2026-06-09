@@ -2,6 +2,10 @@
  * Tests for the login screen — collects credentials, submits via useLogin, routes to /jobs on
  * success, surfaces the error message, and offers a "Change site" route back to onboarding.
  */
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import LoginScreen from '../login';
+
 const mockReplace = jest.fn();
 let mockLogin: { mutate: jest.Mock; isError: boolean; error: Error | null; isPending: boolean };
 
@@ -15,10 +19,6 @@ jest.mock('../../../hooks/useLogin', () => ({ useLogin: () => mockLogin }));
 jest.mock('../../../stores/authStore', () => ({
   useAuthStore: (sel: (s: unknown) => unknown) => sel({ siteUrl: 'https://acme.example' }),
 }));
-
-import { fireEvent, render, screen } from '@testing-library/react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import LoginScreen from '../login';
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 
@@ -62,5 +62,11 @@ describe('LoginScreen', () => {
     renderScreen();
     fireEvent.press(screen.getByText('Change site'));
     expect(mockReplace).toHaveBeenCalledWith('/onboarding');
+  });
+
+  it('"Change site" has accessibilityRole="button"', () => {
+    renderScreen();
+    const pressable = screen.getByTestId('login-change-site');
+    expect(pressable.props.accessibilityRole).toBe('button');
   });
 });

@@ -2,6 +2,9 @@
  * Tests for the entry guard (app/index.tsx). BootGate has already settled session state before this
  * renders, so it just routes: authenticated → /jobs, no site configured → /onboarding, else → /login.
  */
+import { render, screen } from '@testing-library/react-native';
+import Index from '../index';
+
 let mockAuthState: { status: string; siteUrl: string | null };
 
 jest.mock('expo-router', () => {
@@ -12,9 +15,6 @@ jest.mock('expo-router', () => {
 jest.mock('../../stores/authStore', () => ({
   useAuthStore: (sel: (s: unknown) => unknown) => sel(mockAuthState),
 }));
-
-import { render, screen } from '@testing-library/react-native';
-import Index from '../index';
 
 describe('Index entry guard', () => {
   it('redirects an authenticated user to /jobs', () => {

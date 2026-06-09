@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { JobCard } from '../../../components/jobs/JobCard';
 import { OfflineBanner } from '../../../components/sync/OfflineBanner';
 import { EmptyState } from '../../../components/shared/EmptyState';
+import { Icon } from '../../../components/shared/Icon';
 import { useDrivers } from '../../../hooks/useDrivers';
 import { useJobs } from '../../../hooks/useJobs';
 import { useOutbox } from '../../../hooks/useOutbox';
@@ -39,8 +40,15 @@ export default function DriverDetailScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <OfflineBanner />
       <View style={styles.header}>
-        <Pressable testID="driver-back" onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.back}>‹ Back</Text>
+        <Pressable
+          testID="driver-back"
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Icon name="chevron-left" size="lg" colour={COLOURS.primary} />
         </Pressable>
       </View>
 
@@ -105,7 +113,7 @@ function LinkRow({ label, value, url, testID }: { label: string; value: string; 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLOURS.background },
   header: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },
-  back: { ...TYPOGRAPHY.body, color: COLOURS.primary },
+  backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -SPACING.sm },
   content: { padding: SPACING.md, gap: SPACING.sm },
   headerBlock: { gap: SPACING.sm, marginBottom: SPACING.sm },
   name: { ...TYPOGRAPHY.title, color: COLOURS.text },

@@ -22,7 +22,7 @@ export function FirstSyncProgress({ onCancel, progress }: FirstSyncProgressProps
   const showDetail = progress != null && progress.total > 0;
   return (
     <View style={styles.container} testID="first-sync-progress">
-      <ActivityIndicator size="large" color={COLOURS.primary} />
+      <ActivityIndicator size="large" color={COLOURS.primary} accessibilityLabel="Setting up" />
       <Text style={styles.title}>Setting up</Text>
       <Text style={styles.subtitle}>
         {showDetail

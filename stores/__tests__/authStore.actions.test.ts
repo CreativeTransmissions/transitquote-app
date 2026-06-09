@@ -3,6 +3,8 @@
  * by a Map-backed SecureStore mock so save→read round-trips work: saveSiteConfig, setAccessToken,
  * clearSession, listSites, switchSite, and the hydrate site-not-found branch.
  */
+import { useAuthStore } from '../authStore';
+
 const mockStore = new Map<string, string>();
 
 jest.mock('expo-secure-store', () => ({
@@ -10,8 +12,6 @@ jest.mock('expo-secure-store', () => ({
   setItemAsync: jest.fn(async (k: string, v: string) => void mockStore.set(k, v)),
   deleteItemAsync: jest.fn(async (k: string) => void mockStore.delete(k)),
 }));
-
-import { useAuthStore } from '../authStore';
 
 const SITES_KEY = 'tq.sites';
 const ACTIVE_SITE_KEY = 'tq.activeSiteId';

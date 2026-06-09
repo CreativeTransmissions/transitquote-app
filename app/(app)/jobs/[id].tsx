@@ -10,6 +10,7 @@ import { StopList } from '../../../components/jobs/StopList';
 import { OfflineBanner } from '../../../components/sync/OfflineBanner';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { Button } from '../../../components/shared/Button';
+import { Icon } from '../../../components/shared/Icon';
 import { useJobDetail } from '../../../hooks/useJobDetail';
 import { useTeamSettings } from '../../../hooks/useTeamSettings';
 import { useStatusTypes, type StatusType } from '../../../hooks/useStatusTypes';
@@ -106,8 +107,15 @@ export default function JobDetailScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <OfflineBanner />
       <View style={styles.header}>
-        <Pressable testID="job-back" onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.back}>‹ Back</Text>
+        <Pressable
+          testID="job-back"
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Icon name="chevron-left" size="lg" colour={COLOURS.primary} />
         </Pressable>
       </View>
 
@@ -298,7 +306,7 @@ function LinkField({ label, value, url, testID }: { label: string; value: string
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLOURS.background },
   header: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },
-  back: { ...TYPOGRAPHY.body, color: COLOURS.primary },
+  backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -SPACING.sm },
   centre: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: SPACING.md, gap: SPACING.sm },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.sm },

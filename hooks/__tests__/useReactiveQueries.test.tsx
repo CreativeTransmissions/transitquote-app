@@ -3,15 +3,15 @@
  * useTeamSettings, useStatusTypes, useDriverJobCounts. Each returns null/empty before configuration
  * is seeded and otherwise passes the DB rows through (useDriverJobCounts via the real counter util).
  */
-jest.mock('../../database/client');
-jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
-
 import { renderHook } from '@testing-library/react-native';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useCurrentUser } from '../useCurrentUser';
 import { useTeamSettings } from '../useTeamSettings';
 import { useStatusTypes } from '../useStatusTypes';
 import { useDriverJobCounts } from '../useDriverJobCounts';
+
+jest.mock('../../database/client');
+jest.mock('drizzle-orm/expo-sqlite', () => ({ useLiveQuery: jest.fn() }));
 
 const mockLive = useLiveQuery as jest.Mock;
 const feed = (data: unknown[]) => mockLive.mockReturnValue({ data, error: undefined });

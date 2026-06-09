@@ -2,6 +2,10 @@
  * Tests for the driver detail screen: the dispatcher route guard (no redirect while role loads),
  * not-found, header render (availability + can-assign-to target + assigned jobs), and navigation.
  */
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import DriverDetailScreen from '../[id]';
+
 let mockRole: Record<string, unknown>;
 let mockDrivers: Record<string, unknown>[];
 let mockJobs: { id: number; jobRef: string }[];
@@ -24,10 +28,6 @@ jest.mock('../../../../components/sync/OfflineBanner', () => ({ OfflineBanner: (
 jest.mock('../../../../hooks/useDateFormat', () => ({
   useDateFormat: () => ({ formatDate: () => '', formatDateTime: () => '', formatDateTimeSmart: () => '' }),
 }));
-
-import { fireEvent, render, screen } from '@testing-library/react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import DriverDetailScreen from '../[id]';
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 

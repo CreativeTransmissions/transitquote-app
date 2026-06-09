@@ -3,6 +3,9 @@
  * renders the navigator behind the BootGate. BootGate is mocked to pass children through; Stack and
  * the status bar are stubbed.
  */
+import { render, screen } from '@testing-library/react-native';
+import RootLayout from '../_layout';
+
 jest.mock('expo-router', () => {
   const React = require('react');
   const { Text } = require('react-native');
@@ -15,9 +18,6 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('../../components/shared/BootGate', () => ({
   BootGate: ({ children }: { children: React.ReactNode }) => children,
 }));
-
-import { render, screen } from '@testing-library/react-native';
-import RootLayout from '../_layout';
 
 describe('RootLayout', () => {
   it('renders the navigator inside the provider stack', () => {

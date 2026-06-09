@@ -55,9 +55,16 @@ describe('DriverPicker', () => {
     expect(screen.queryByTestId('driver-option-1')).toBeNull();
   });
 
-  it('marks the currently-assigned driver with a tick', () => {
+  it('marks the currently-assigned driver with accessibilityState selected', () => {
     renderPicker({ currentDriverId: 2 });
-    expect(screen.getByText('✓')).toBeTruthy();
+    const row = screen.getByTestId('driver-option-2');
+    expect(row.props.accessibilityState).toEqual(expect.objectContaining({ selected: true }));
+  });
+
+  it('non-current driver rows are not selected', () => {
+    renderPicker({ currentDriverId: 2 });
+    const row = screen.getByTestId('driver-option-1');
+    expect(row.props.accessibilityState).toEqual(expect.objectContaining({ selected: false }));
   });
 
   it('shows availability for each driver', () => {

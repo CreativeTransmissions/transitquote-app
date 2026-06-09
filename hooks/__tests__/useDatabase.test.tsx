@@ -2,13 +2,13 @@
  * Tests for useDatabase — wraps Drizzle's Expo useMigrations so the root layout can gate the UI on
  * a ready/error status while migrations run. useMigrations + the native client/bundle are mocked.
  */
-jest.mock('drizzle-orm/expo-sqlite/migrator', () => ({ useMigrations: jest.fn() }));
-jest.mock('../../database/client', () => ({ db: {} }));
-jest.mock('../../database/migrations/bundle', () => ({ __esModule: true, default: {} }));
-
 import { renderHook } from '@testing-library/react-native';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { useDatabase } from '../useDatabase';
+
+jest.mock('drizzle-orm/expo-sqlite/migrator', () => ({ useMigrations: jest.fn() }));
+jest.mock('../../database/client', () => ({ db: {} }));
+jest.mock('../../database/migrations/bundle', () => ({ __esModule: true, default: {} }));
 
 const mockUseMigrations = useMigrations as jest.Mock;
 

@@ -3,14 +3,14 @@
  * a last-sync time, else a generic saved-data message. The connectivity store is mocked (selector
  * form); the relative-time formatter is real.
  */
+import { render, screen } from '@testing-library/react-native';
+import { OfflineBanner } from '../OfflineBanner';
+
 let mockState: { isOnline: boolean; lastSyncedAt: string | null };
 
 jest.mock('../../../stores/connectivityStore', () => ({
   useConnectivityStore: (sel: (s: unknown) => unknown) => sel(mockState),
 }));
-
-import { render, screen } from '@testing-library/react-native';
-import { OfflineBanner } from '../OfflineBanner';
 
 beforeEach(() => {
   mockState = { isOnline: true, lastSyncedAt: null };
@@ -35,5 +35,13 @@ describe('OfflineBanner', () => {
     mockState = { isOnline: false, lastSyncedAt: fiveMinAgo };
     render(<OfflineBanner />);
     expect(screen.getByText(/Offline — showing data from .*ago/)).toBeTruthy();
+  });
+
+  it('has accessibilityRole="alert" and accessibilityLiveRegion="polite" when offline', () => {
+    mockState = { isOnline: false, lastSyncedAt: null };
+    const { UNSAFE_getByProps } = render(<OfflineBanner />);
+    const banner = UNSAFE_getByProps({ accessibilityRole: 'alert' });
+    expect(banner).toBeTruthy();
+    expect(banner.props.accessibilityLiveRegion).toBe('polite');
   });
 });

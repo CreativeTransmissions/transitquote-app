@@ -18,6 +18,15 @@ export const COLOURS = {
   warning: '#ED6C02',
   danger: '#D32F2F',
   offline: '#9E9E9E',
+  // Semantic status colour tokens (§3.4). Use via resolveStatusColour() in utils/statusColours.ts.
+  statusNeutral: '#6B7280',  // pending / new / open
+  statusInfo: '#2563EB',     // assigned / accepted / claimed
+  statusActive: '#ED6C02',   // in transit / route / progress / collected / picked
+  statusDone: '#2E7D32',     // delivered / completed / done
+  statusProblem: '#D32F2F',  // cancelled / failed / rejected
+  // Surface tokens for failure/availability boxes — replaces hardcoded literals site-wide.
+  dangerSurface: '#FDECEA',
+  successSurface: '#E6F4EA',
 } as const;
 
 // Gradient colour stops for expo-linear-gradient `colors` props. Kept as readonly tuples

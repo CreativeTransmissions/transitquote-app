@@ -2,6 +2,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useConnectivityStore } from '../../stores/connectivityStore';
 import { relativeFromNow } from '../../utils/formatters';
+import { Icon } from '../shared/Icon';
 import { COLOURS, SPACING, TYPOGRAPHY } from '../../constants';
 
 export function OfflineBanner() {
@@ -14,7 +15,12 @@ export function OfflineBanner() {
   const message = updated ? `Offline — showing data from ${updated}` : 'Offline — showing saved data';
 
   return (
-    <View style={styles.banner}>
+    <View
+      style={styles.banner}
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+    >
+      <Icon name="cloud-off-outline" size="sm" colour={COLOURS.textInverse} />
       <Text style={styles.text} numberOfLines={1}>
         {message}
       </Text>
@@ -27,7 +33,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLOURS.offline,
     paddingVertical: SPACING.xs,
     paddingHorizontal: SPACING.md,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
   },
   text: { ...TYPOGRAPHY.caption, color: COLOURS.background },
 });

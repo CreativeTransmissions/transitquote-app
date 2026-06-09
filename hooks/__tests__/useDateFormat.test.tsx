@@ -3,12 +3,12 @@
  * (date_format / time_format / ask_for_time) so the app renders dates like the server does. Falls
  * back to app defaults until configuration is synced. useTeamSettings is mocked to drive the format.
  */
-jest.mock('../useTeamSettings', () => ({ useTeamSettings: jest.fn() }));
-
 import { renderHook } from '@testing-library/react-native';
 import { useTeamSettings } from '../useTeamSettings';
 import { useDateFormat } from '../useDateFormat';
 import type { TeamSettingsRow } from '../../database/schema';
+
+jest.mock('../useTeamSettings', () => ({ useTeamSettings: jest.fn() }));
 
 const mockSettings = useTeamSettings as jest.Mock;
 const settings = (o: Partial<TeamSettingsRow>) => mockSettings.mockReturnValue(o as TeamSettingsRow);

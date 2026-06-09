@@ -4,8 +4,6 @@
  * configuration (seed reference data + current user, wholesale), and session (clearLocalData wipes
  * every table). Complements jobs/outbox/writeActions which are tested separately.
  */
-jest.mock('../../client');
-
 import { db, resetTestDb } from '../../testkit/sqliteClient';
 import { driversListQuery } from '../drivers';
 import { customersListQuery, customerByIdQuery, customerJobsQuery, replaceCustomers } from '../customers';
@@ -22,6 +20,8 @@ import {
   type CustomerInsert,
 } from '../../schema';
 import type { MappedConfiguration } from '../../mappers';
+
+jest.mock('../../client');
 
 beforeEach(() => resetTestDb());
 

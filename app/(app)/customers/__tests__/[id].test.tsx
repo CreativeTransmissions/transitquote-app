@@ -2,6 +2,10 @@
  * Tests for the customer detail screen: the dispatcher route guard (no redirect while role loads),
  * not-found, header render with job history, and job navigation. Hooks + children are mocked.
  */
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import CustomerDetailScreen from '../[id]';
+
 let mockRole: Record<string, unknown>;
 let mockCustomers: Record<string, unknown>[];
 let mockJobs: { id: number; jobRef: string }[];
@@ -26,10 +30,6 @@ jest.mock('../../../../components/sync/OfflineBanner', () => ({ OfflineBanner: (
 jest.mock('../../../../hooks/useDateFormat', () => ({
   useDateFormat: () => ({ formatDate: () => '', formatDateTime: () => '', formatDateTimeSmart: () => '' }),
 }));
-
-import { fireEvent, render, screen } from '@testing-library/react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import CustomerDetailScreen from '../[id]';
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 

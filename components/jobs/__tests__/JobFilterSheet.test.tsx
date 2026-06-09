@@ -74,4 +74,26 @@ describe('JobFilterSheet', () => {
     fireEvent.press(screen.getByTestId('filter-clear'));
     expect(onClear).toHaveBeenCalledTimes(1);
   });
+
+  it('status chips have accessibilityRole="button" and accessibilityState', () => {
+    renderSheet({ filters: { statusIds: [1], driverId: null, dateFrom: null, dateTo: null } });
+    const activeChip = screen.getByTestId('filter-status-1');
+    expect(activeChip.props.accessibilityRole).toBe('button');
+    expect(activeChip.props.accessibilityState).toEqual(expect.objectContaining({ selected: true }));
+    const inactiveChip = screen.getByTestId('filter-status-3');
+    expect(inactiveChip.props.accessibilityState).toEqual(expect.objectContaining({ selected: false }));
+  });
+
+  it('"Clear all" has accessibilityRole="button"', () => {
+    renderSheet();
+    expect(screen.getByTestId('filter-clear').props.accessibilityRole).toBe('button');
+  });
+
+  it('driver chips have accessibilityRole="button" and accessibilityState', () => {
+    renderSheet({ showDriverFilter: true });
+    const anyChip = screen.getByTestId('filter-driver-any');
+    expect(anyChip.props.accessibilityRole).toBe('button');
+    // "Any" is selected by default (driverId is null)
+    expect(anyChip.props.accessibilityState).toEqual(expect.objectContaining({ selected: true }));
+  });
 });

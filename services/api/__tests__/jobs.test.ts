@@ -4,11 +4,11 @@
  * MUST go out form-encoded (docs/API_NOTES.md §10). We also cover the read unwrap and the
  * 200+success:false → ApiActionError contract that the outbox depends on for its retry policy.
  */
-jest.mock('../../apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
-
 import { apiClient } from '../../apiClient';
 import { getJobs, getJobDetail, updateJobStatus, updateAssigned } from '../jobs';
 import { ApiActionError } from '../../apiError';
+
+jest.mock('../../apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
 
 const get = apiClient.get as jest.Mock;
 const post = apiClient.post as jest.Mock;

@@ -4,12 +4,12 @@
  * row diverged from the server with no queued action to reconcile it. These tests prove the
  * db.transaction wrapping makes both writes all-or-nothing — including rollback on failure.
  */
-jest.mock('../../client');
-
 import { db, resetTestDb } from '../../testkit/sqliteClient';
 import { queueStatusUpdate, queueAssignment } from '../writeActions';
 import * as outboxQueries from '../outbox';
 import { jobs, outbox, type JobInsert } from '../../schema';
+
+jest.mock('../../client');
 
 function seedJob(overrides: Partial<JobInsert> = {}): void {
   db.insert(jobs)

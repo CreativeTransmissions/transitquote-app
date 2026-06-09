@@ -4,6 +4,11 @@
  * discard. Hooks + picker children are mocked; Button/Badge/EmptyState are real; Alert is mocked
  * so we can drive its confirm button.
  */
+import { Alert } from 'react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import JobDetailScreen from '../[id]';
+
 let mockDetail: Record<string, unknown>;
 let mockRole: Record<string, unknown>;
 let mockAssignable: Record<string, unknown>;
@@ -43,11 +48,6 @@ jest.mock('../../../../components/jobs/StatusPicker', () => {
       React.createElement(Pressable, { testID: 'pick-status', onPress: () => onSelect({ id: 5, name: 'Delivered' }) }, React.createElement(Text, null, 'pick')),
   };
 });
-
-import { Alert } from 'react-native';
-import { fireEvent, render, screen } from '@testing-library/react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import JobDetailScreen from '../[id]';
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 

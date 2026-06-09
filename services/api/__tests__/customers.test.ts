@@ -1,8 +1,8 @@
 /** Tests for the customers API — list (array-validated) and detail, via the shared envelope guard. */
-jest.mock('../../apiClient', () => ({ apiClient: { get: jest.fn() } }));
-
 import { apiClient } from '../../apiClient';
 import { getCustomers, getCustomerById } from '../customers';
+
+jest.mock('../../apiClient', () => ({ apiClient: { get: jest.fn() } }));
 
 const get = apiClient.get as jest.Mock;
 const PATH = '/wp-json/transitquote/v1/customers';
