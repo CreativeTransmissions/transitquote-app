@@ -26,4 +26,10 @@ describe('JobStatusBadge', () => {
     // Text must be present — colour alone is insufficient for accessibility
     expect(screen.getByText('Delivered')).toBeTruthy();
   });
+
+  it('caps font scaling on the label to 1.5 (A11y-3 dense chip)', () => {
+    render(<JobStatusBadge statusName="In Transit" />);
+    const label = screen.getByText('In Transit');
+    expect(label.props.maxFontSizeMultiplier).toBe(1.5);
+  });
 });

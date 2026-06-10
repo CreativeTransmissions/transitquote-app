@@ -25,4 +25,35 @@ describe('TextField', () => {
     render(<TextField label="Site URL" value="" onChangeText={jest.fn()} />);
     expect(screen.queryByText('Required')).toBeNull();
   });
+
+  it('shows helper text when provided and there is no errorText', () => {
+    render(
+      <TextField
+        label="Site URL"
+        value=""
+        onChangeText={jest.fn()}
+        helperText="Enter your full address"
+      />,
+    );
+    expect(screen.getByText('Enter your full address')).toBeTruthy();
+  });
+
+  it('hides helper text when errorText is also provided (error takes precedence)', () => {
+    render(
+      <TextField
+        label="Site URL"
+        value=""
+        onChangeText={jest.fn()}
+        helperText="Enter your full address"
+        errorText="Required"
+      />,
+    );
+    expect(screen.getByText('Required')).toBeTruthy();
+    expect(screen.queryByText('Enter your full address')).toBeNull();
+  });
+
+  it('renders no helper text by default', () => {
+    render(<TextField label="Site URL" value="" onChangeText={jest.fn()} />);
+    expect(screen.queryByText('Enter your full address')).toBeNull();
+  });
 });

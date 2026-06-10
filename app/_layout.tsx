@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BootGate } from '../components/shared/BootGate';
+import { useTheme } from '../hooks/useTheme';
 
 // Route-level error boundary for the root segment — the ultimate catch-all (CLAUDE.md).
 export { RouteErrorBoundary as ErrorBoundary } from '../components/shared/RouteErrorBoundary';
@@ -16,11 +17,16 @@ const queryClient = new QueryClient({
   },
 });
 
+/** StatusBar icon colour follows the resolved theme: dark icons on light, light on dark. */
+function ThemedStatusBar() {
+  const { scheme } = useTheme();
+  return <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />;
+}
+
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      {/* Dark icons — every screen has a light background at the top (CLAUDE.md: contrast). */}
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
       <QueryClientProvider client={queryClient}>
         <BootGate>
           <Stack screenOptions={{ headerShown: false }} />

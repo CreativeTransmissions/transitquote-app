@@ -3,8 +3,9 @@ import { useCallback, useMemo } from 'react';
 import { FlatList, RefreshControl, StyleSheet } from 'react-native';
 import { JobCard } from './JobCard';
 import { EmptyState } from '../shared/EmptyState';
-import { COLOURS, SPACING } from '../../constants';
+import { SPACING } from '../../constants';
 import { useJobCardLookups } from '../../hooks/useJobCardLookups';
+import { useTheme } from '../../hooks/useTheme';
 import type { JobRow } from '../../database/schema';
 import type { JobOutboxState } from '../../hooks/useOutbox';
 import type { IconName } from '../shared/Icon';
@@ -37,6 +38,7 @@ export function JobList({
   emptyAction,
 }: JobListProps) {
   const { serviceNames, vehicleNames, paymentStatusNames } = useJobCardLookups();
+  const t = useTheme();
 
   // Derive a flat primitive-map from the Map to avoid passing the whole Map into renderItem,
   // which would re-render all cards whenever any outbox state changes (P-3).
@@ -74,7 +76,7 @@ export function JobList({
       contentContainerStyle={jobs.length === 0 ? styles.emptyContent : styles.content}
       ListEmptyComponent={<EmptyState title={emptyTitle} subtitle={emptySubtitle} icon={emptyIcon} action={emptyAction} />}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLOURS.primary} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.colours.primary} />
       }
       windowSize={7}
       maxToRenderPerBatch={8}

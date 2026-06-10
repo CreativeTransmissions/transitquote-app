@@ -1,24 +1,34 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { router } from 'expo-router';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/shared/Button';
+import { Icon } from '../../components/shared/Icon';
 import { TextField } from '../../components/shared/TextField';
 import { useOnboarding } from '../../hooks/useOnboarding';
 import { getApiErrorMessage } from '../../services/apiError';
-import { COLOURS, SPACING, TYPOGRAPHY } from '../../constants';
+import { useTheme, type Theme } from '../../hooks/useTheme';
+import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
 
 export default function OnboardingScreen() {
   const [siteUrl, setSiteUrl] = useState('');
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
+  const [credExpanderOpen, setCredExpanderOpen] = useState(false);
   const onboarding = useOnboarding();
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
 
   const handleSubmit = () => {
     onboarding.mutate(
       { siteUrl, clientId, clientSecret },
       { onSuccess: () => router.replace('/login') },
     );
+  };
+
+  const toggleCredExpander = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCredExpanderOpen((prev) => !prev);
   };
 
   return (
@@ -42,7 +52,9 @@ export default function OnboardingScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
+            helperText="Your full WordPress site address, e.g. https://courier.example.com"
           />
+
           <TextField
             testID="onboarding-client-id"
             label="Client ID"
@@ -59,7 +71,27 @@ export default function OnboardingScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             secureTextEntry
+            helperText="Your administrator can find these under TransitTeam → API in WordPress."
           />
+
+          {/* "What's this?" expander for credential fields */}
+          <Pressable
+            testID="onboarding-cred-expander"
+            onPress={toggleCredExpander}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: credExpanderOpen }}
+            style={styles.expanderRow}
+          >
+            <Icon name="help-circle-outline" size="sm" colour={t.colours.primary} />
+            <Text style={styles.expanderLabel}>{"What's this?"}</Text>
+          </Pressable>
+          {credExpanderOpen ? (
+            <View testID="onboarding-cred-expander-content" style={styles.expanderContent}>
+              <Text style={styles.expanderText}>
+                {"TransitTeam connects this app to your company’s own WordPress site. The Client ID and Secret identify this app to your site — they’re created once by your administrator and shared with drivers."}
+              </Text>
+            </View>
+          ) : null}
 
           {onboarding.isError ? (
             <Text style={styles.error}>{getApiErrorMessage(onboarding.error)}</Text>
@@ -72,11 +104,26 @@ export default function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLOURS.background },
-  flex: { flex: 1 },
-  content: { padding: SPACING.lg, flexGrow: 1, justifyContent: 'center' },
-  title: { ...TYPOGRAPHY.title, color: COLOURS.text, marginBottom: SPACING.xs },
-  subtitle: { ...TYPOGRAPHY.body, color: COLOURS.textMuted, marginBottom: SPACING.lg },
-  error: { ...TYPOGRAPHY.caption, color: COLOURS.danger, marginBottom: SPACING.md },
-});
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: t.colours.background },
+    flex: { flex: 1 },
+    content: { padding: SPACING.lg, flexGrow: 1, justifyContent: 'center' },
+    title: { ...TYPOGRAPHY.title, color: t.colours.text, marginBottom: SPACING.xs },
+    subtitle: { ...TYPOGRAPHY.body, color: t.colours.textMuted, marginBottom: SPACING.lg },
+    error: { ...TYPOGRAPHY.caption, color: t.colours.danger, marginBottom: SPACING.md },
+    expanderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.xs,
+      marginBottom: SPACING.sm,
+    },
+    expanderLabel: { ...TYPOGRAPHY.caption, color: t.colours.primary },
+    expanderContent: {
+      backgroundColor: t.colours.surfaceAlt,
+      borderRadius: RADIUS.md,
+      padding: SPACING.md,
+      marginBottom: SPACING.md,
+    },
+    expanderText: { ...TYPOGRAPHY.caption, color: t.colours.textMuted },
+  });

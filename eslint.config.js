@@ -18,6 +18,18 @@ module.exports = [
     },
   },
   {
+    // Jest config/setup files run in Node with the jest global available.
+    files: ['jest.setup.js', 'jest.config.js'],
+    languageOptions: {
+      globals: {
+        jest: 'readonly',
+        require: 'readonly',
+        module: 'writable',
+        __dirname: 'readonly',
+      },
+    },
+  },
+  {
     ignores: ['dist/*', 'node_modules/*', '.expo/*', 'database/migrations/*'],
   },
 ];

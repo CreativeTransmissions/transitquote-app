@@ -46,8 +46,17 @@ jest.mock('../../../../components/sync/SyncStatusIndicator', () => ({ SyncStatus
 jest.mock('../../../../components/sync/FirstSyncProgress', () => {
   const React = require('react');
   const { Text } = require('react-native');
-  return { FirstSyncProgress: () => React.createElement(Text, { testID: 'first-sync' }, 'SYNCING') };
+  return {
+    FirstSyncProgress: ({ compact }: { compact?: boolean }) =>
+      React.createElement(Text, { testID: 'first-sync' }, compact ? 'SYNCING-COMPACT' : 'SYNCING'),
+  };
 });
+jest.mock('../../../../components/sync/SkeletonJobCard', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return { SkeletonJobCard: () => React.createElement(View, { testID: 'skeleton-card' }) };
+});
+jest.mock('../../../../components/sync/OutboxToast', () => ({ OutboxToast: () => null }));
 jest.mock('../../../../components/jobs/JobFilterSheet', () => ({ JobFilterSheet: () => null }));
 jest.mock('../../../../components/jobs/JobList', () => {
   const React = require('react');
@@ -155,10 +164,18 @@ describe('JobsScreen', () => {
     expect(screen.getByText('disk full')).toBeTruthy();
   });
 
-  it('shows the first-sync progress when empty + syncing', () => {
+  it('shows the first-sync progress (compact) when empty + syncing', () => {
     mockJobsResult = jobsResult({ jobs: [], isSyncing: true });
     renderScreen();
     expect(screen.getByTestId('first-sync')).toBeTruthy();
+    // compact prop is passed — mock renders 'SYNCING-COMPACT'
+    expect(screen.getByText('SYNCING-COMPACT')).toBeTruthy();
+  });
+
+  it('renders 4 skeleton cards alongside the compact first-sync header', () => {
+    mockJobsResult = jobsResult({ jobs: [], isSyncing: true });
+    renderScreen();
+    expect(screen.getAllByTestId('skeleton-card')).toHaveLength(4);
   });
 
   it('navigates to a job from the list', () => {

@@ -207,11 +207,92 @@ describe('JobCard — lookup maps (service / vehicle)', () => {
   });
 });
 
+describe('JobCard — dark scheme theming', () => {
+  const { StyleSheet } = require('react-native');
+  const { useSettingsStore } = require('../../../stores/settingsStore');
+  const { DARK_COLOURS } = require('../../../constants');
+
+  afterEach(() => useSettingsStore.setState({ themePreference: 'system' }));
+
+  it('renders the card with the dark background when the theme is dark', () => {
+    // Force the explicit dark preference (overrides the OS scheme) so useTheme resolves dark.
+    useSettingsStore.setState({ themePreference: 'dark' });
+    render(<JobCard job={makeJob()} onPress={jest.fn()} />);
+    const card = screen.getByTestId('job-card-1');
+    // RNTL resolves the Pressable's function style; flatten the resulting array.
+    const flat = StyleSheet.flatten(card.props.style);
+    expect(flat.backgroundColor).toBe(DARK_COLOURS.background);
+  });
+});
+
 describe('JobCard — React.memo identity', () => {
   it('is wrapped in React.memo', () => {
     // React.memo wraps the component and exposes $$typeof or the inner type
     expect((JobCard as unknown as { $$typeof: symbol }).$$typeof).toBe(
       Symbol.for('react.memo'),
     );
+  });
+});
+
+describe('JobCard — A11y-3 font scaling (maxFontSizeMultiplier)', () => {
+  it('caps font scaling on the job reference (dense single-line)', () => {
+    render(<JobCard job={makeJob()} onPress={jest.fn()} />);
+    const ref = screen.getByText('JOB-001');
+    expect(ref.props.maxFontSizeMultiplier).toBe(1.5);
+  });
+
+  it('caps font scaling on the pickup time row', () => {
+    render(<JobCard job={makeJob()} onPress={jest.fn()} />);
+    const time = screen.getByTestId('job-pickup-time-1');
+    expect(time.props.maxFontSizeMultiplier).toBe(1.5);
+  });
+
+  it('caps font scaling on the driver name row', () => {
+    render(<JobCard job={makeJob({ driverName: 'Sam' })} showDriver onPress={jest.fn()} />);
+    const driver = screen.getByText('Sam');
+    expect(driver.props.maxFontSizeMultiplier).toBe(1.5);
+  });
+
+  it('caps font scaling on the meta row text', () => {
+    render(
+      <JobCard
+        job={makeJob({ serviceId: 1 })}
+        serviceNames={{ 1: 'Same Day' }}
+        onPress={jest.fn()}
+      />,
+    );
+    const meta = screen.getByText('Same Day');
+    expect(meta.props.maxFontSizeMultiplier).toBe(1.5);
+  });
+
+  it('caps font scaling on the sync pending text', () => {
+    render(<JobCard job={makeJob()} outboxState="pending" onPress={jest.fn()} />);
+    const sync = screen.getByText('Pending sync');
+    expect(sync.props.maxFontSizeMultiplier).toBe(1.5);
+  });
+
+  it('caps font scaling on the sync failed text', () => {
+    render(<JobCard job={makeJob()} outboxState="failed" onPress={jest.fn()} />);
+    const sync = screen.getByText('Update failed');
+    expect(sync.props.maxFontSizeMultiplier).toBe(1.5);
+  });
+
+  it('caps font scaling on the payment badge chip text', () => {
+    render(
+      <JobCard
+        job={makeJob({ paymentStatusId: 2 })}
+        paymentStatusNames={{ 2: 'Paid' }}
+        onPress={jest.fn()}
+      />,
+    );
+    const badge = screen.getByText('Paid');
+    expect(badge.props.maxFontSizeMultiplier).toBe(1.5);
+  });
+
+  it('allows address text to scale freely (no maxFontSizeMultiplier cap)', () => {
+    render(<JobCard job={makeJob()} onPress={jest.fn()} />);
+    const address = screen.getByTestId('job-pickup-address-1');
+    // The address line must NOT have maxFontSizeMultiplier set (it may scale freely).
+    expect(address.props.maxFontSizeMultiplier).toBeUndefined();
   });
 });

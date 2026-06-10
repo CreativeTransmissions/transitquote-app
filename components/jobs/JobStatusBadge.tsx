@@ -2,6 +2,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { SPACING, TYPOGRAPHY } from '../../constants';
 import { resolveStatusColour } from '../../utils/statusColours';
+import { useTheme } from '../../hooks/useTheme';
 
 interface JobStatusBadgeProps {
   statusName: string | null;
@@ -9,8 +10,13 @@ interface JobStatusBadgeProps {
 }
 
 export function JobStatusBadge({ statusName, statusTypeId }: JobStatusBadgeProps) {
-  const colour = resolveStatusColour(statusName, statusTypeId != null ? String(statusTypeId) : undefined);
-  // 12% opacity = 0x1F in hex (≈ 31/255 ≈ 0.122)
+  const t = useTheme();
+  const colour = resolveStatusColour(
+    statusName,
+    statusTypeId != null ? String(statusTypeId) : undefined,
+    t.colours,
+  );
+  // 12% opacity = 0x1F in hex (≈ 31/255 ≈ 0.122). Full-strength text on the tint reads in both schemes.
   const bgColour = `${colour}1F`;
   return (
     <View style={[styles.badge, { backgroundColor: bgColour }]}>

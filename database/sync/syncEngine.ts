@@ -19,7 +19,7 @@ import { detectJobChanges } from './changeDetector';
 import { reconcileOptimistic } from './reconcileOptimistic';
 import { presentJobNotifications } from '../../services/notifications/notifier';
 import { resolveRole } from '../../utils/roleGuards';
-import { DETAIL_HYDRATION_CONCURRENCY, MAX_DETAIL_HYDRATION } from '../../constants';
+import { DETAIL_HYDRATION_CONCURRENCY, DETAIL_HYDRATION_FIRST_BATCH, MAX_DETAIL_HYDRATION } from '../../constants';
 
 /**
  * Pull the job list and reconcile it into the local DB. Before overwriting, snapshot the existing
@@ -72,6 +72,10 @@ export async function pullJobDetail(id: number, signal?: AbortSignal): Promise<v
  * docs/proposals/offline-bulk-detail-hydration.md). Runs AFTER `pullJobs` so the full id set and
  * each job's `modified` are known. Properties:
  *   - Incremental: only missing/stale jobs are fetched (steady state ⇒ zero requests).
+ *   - Staged (P-2): at most DETAIL_HYDRATION_FIRST_BATCH jobs are fetched in the first pass
+ *     (assigned-first ordering keeps the most valuable jobs first). If more remain, a continuation
+ *     pass hydrates the rest in the same run. Progress totals span the entire work set, so the
+ *     indicator is always monotone and reaches 100% within one sync run.
  *   - Bounded concurrency: a fixed worker pool over the work set (DETAIL_HYDRATION_CONCURRENCY).
  *   - Partial-failure tolerant: one job's detail failing logs and continues; it stays "needing
  *     detail" (its `job_modified_at` is untouched) and is retried next sync.
@@ -85,7 +89,7 @@ export async function hydrateJobDetails(
   const driverId = getCurrentUserRow()?.driverId ?? null;
   const work = getJobsNeedingDetail(driverId);
 
-  // Optional ceiling for pathological tenants — log when applied (no silent caps).
+  // Optional hard ceiling for pathological tenants — log when applied (no silent caps).
   const capped =
     MAX_DETAIL_HYDRATION > 0 && work.length > MAX_DETAIL_HYDRATION
       ? work.slice(0, MAX_DETAIL_HYDRATION)
@@ -99,30 +103,48 @@ export async function hydrateJobDetails(
   onProgress?.(done, total);
   if (total === 0) return;
 
-  // Bounded worker pool over a shared cursor — each worker pulls the next id until the list is drained.
-  let cursor = 0;
-  const worker = async (): Promise<void> => {
-    while (!signal?.aborted) {
-      const index = cursor++;
-      if (index >= total) return;
-      const { id, modified } = capped[index];
-      try {
-        const detail = await getJobDetail(id, signal);
-        const mapped = mapJobDetail(detail, new Date().toISOString());
-        upsertJobDetailRow(mapped.detail, modified);
-      } catch (e) {
-        if (isCancel(e)) return; // aborted mid-flight — stop quietly, leave the job "needing detail"
-        // One bad detail (e.g. a wpdberror on ?id=) must not fail the whole run — log and continue.
-        console.warn(`[sync] detail hydration failed for job ${id}`, e);
-      } finally {
-        done += 1;
-        onProgress?.(done, total);
+  // ── Staged hydration (P-2) ─────────────────────────────────────────────────────────────────
+  // Split into at most two sequential passes:
+  //   Pass 1 — up to DETAIL_HYDRATION_FIRST_BATCH jobs (assigned-first from getJobsNeedingDetail).
+  //             After this pass the UI is usable (first batch in the DB).
+  //   Pass 2 — remainder, if any. Runs immediately after Pass 1 in the same sync run so nothing
+  //             is left un-hydrated. The progress counter is global across both passes so the
+  //             sync indicator is always monotone and reaches N/N within this one run.
+  // For tenants ≤ DETAIL_HYDRATION_FIRST_BATCH the split is a no-op (pass2 is empty).
+  const pass1 = capped.slice(0, DETAIL_HYDRATION_FIRST_BATCH);
+  const pass2 = capped.slice(DETAIL_HYDRATION_FIRST_BATCH);
+
+  // Bounded worker pool over a shared cursor — each worker pulls the next id until the slice is drained.
+  const runSlice = async (slice: typeof capped): Promise<void> => {
+    let cursor = 0;
+    const worker = async (): Promise<void> => {
+      while (!signal?.aborted) {
+        const index = cursor++;
+        if (index >= slice.length) return;
+        const { id, modified } = slice[index];
+        try {
+          const detail = await getJobDetail(id, signal);
+          const mapped = mapJobDetail(detail, new Date().toISOString());
+          upsertJobDetailRow(mapped.detail, modified);
+        } catch (e) {
+          if (isCancel(e)) return; // aborted mid-flight — stop quietly, leave the job "needing detail"
+          // One bad detail (e.g. a wpdberror on ?id=) must not fail the whole run — log and continue.
+          console.warn(`[sync] detail hydration failed for job ${id}`, e);
+        } finally {
+          done += 1;
+          onProgress?.(done, total);
+        }
       }
-    }
+    };
+    const poolSize = Math.min(DETAIL_HYDRATION_CONCURRENCY, slice.length);
+    await Promise.all(Array.from({ length: poolSize }, () => worker()));
   };
 
-  const poolSize = Math.min(DETAIL_HYDRATION_CONCURRENCY, total);
-  await Promise.all(Array.from({ length: poolSize }, () => worker()));
+  await runSlice(pass1);
+
+  if (pass2.length > 0 && !signal?.aborted) {
+    await runSlice(pass2);
+  }
 }
 
 /** Pull the customers list and reconcile it into the local DB (dispatcher/admin — spec §6.8). */

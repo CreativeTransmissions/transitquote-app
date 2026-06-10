@@ -7,6 +7,7 @@ import { Alert } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import ProfileScreen from '../home';
+import { useSettingsStore } from '../../../stores/settingsStore';
 
 let mockUser: Record<string, unknown> | null;
 let mockRole: Record<string, unknown>;
@@ -46,6 +47,7 @@ beforeEach(() => {
   mockRole = { role: 'dispatch', assignmentMode: 'Centralized', driverId: null };
   mockDrivers = [];
   mockSites = { sites: [{ id: 'site-1', siteUrl: 'https://a.example' }], activeSiteId: 'site-1', switchTo: jest.fn().mockResolvedValue(undefined) };
+  useSettingsStore.setState({ themePreference: 'system' });
 });
 
 describe('ProfileScreen', () => {
@@ -95,6 +97,26 @@ describe('ProfileScreen', () => {
     pressAlertButton(1); // "Log out"
     expect(mockLogoutMutate).toHaveBeenCalled();
     expect(mockReplace).toHaveBeenCalledWith('/login');
+  });
+
+  it('renders the Appearance theme options and reflects the current preference', () => {
+    renderScreen();
+    expect(screen.getByText('Appearance')).toBeTruthy();
+    expect(screen.getByTestId('theme-system')).toBeTruthy();
+    expect(screen.getByTestId('theme-light')).toBeTruthy();
+    expect(screen.getByTestId('theme-dark')).toBeTruthy();
+    // Default 'system' row is checked.
+    expect(screen.getByTestId('theme-system').props.accessibilityState).toMatchObject({ checked: true });
+    expect(screen.getByTestId('theme-dark').props.accessibilityState).toMatchObject({ checked: false });
+  });
+
+  it('selecting a theme option updates the settings store immediately', () => {
+    renderScreen();
+    fireEvent.press(screen.getByTestId('theme-dark'));
+    expect(useSettingsStore.getState().themePreference).toBe('dark');
+
+    fireEvent.press(screen.getByTestId('theme-light'));
+    expect(useSettingsStore.getState().themePreference).toBe('light');
   });
 
   it('confirms a site switch then switches and resets to the entry route', async () => {

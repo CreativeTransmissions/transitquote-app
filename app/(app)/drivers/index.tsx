@@ -8,12 +8,14 @@ import { EmptyState } from '../../../components/shared/EmptyState';
 import { useDrivers } from '../../../hooks/useDrivers';
 import { useDriverJobCounts } from '../../../hooks/useDriverJobCounts';
 import { useRole } from '../../../hooks/useRole';
-import { COLOURS, GRADIENTS, SPACING, TYPOGRAPHY } from '../../../constants';
+import { useTheme } from '../../../hooks/useTheme';
+import { SPACING, TYPOGRAPHY } from '../../../constants';
 
 export default function DriversScreen() {
   const { role, isDispatcher } = useRole();
   const drivers = useDrivers();
   const counts = useDriverJobCounts();
+  const t = useTheme();
 
   // Drivers list is dispatcher/admin-only (spec §6.6); guard the route for non-dispatchers.
   // role is null until the reactive role query (useLiveQuery) hydrates — don't redirect during
@@ -21,11 +23,11 @@ export default function DriversScreen() {
   if (role !== null && !isDispatcher) return <Redirect href="/jobs" />;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <LinearGradient colors={GRADIENTS.screen} style={StyleSheet.absoluteFill} pointerEvents="none" />
+    <SafeAreaView style={[styles.safe, { backgroundColor: t.colours.background }]} edges={['top']}>
+      <LinearGradient colors={t.gradients.screen} style={StyleSheet.absoluteFill} pointerEvents="none" />
       <OfflineBanner />
       <View style={styles.header}>
-        <Text style={styles.title}>Drivers</Text>
+        <Text style={[styles.title, { color: t.colours.text }]}>Drivers</Text>
       </View>
 
       <FlatList
@@ -42,9 +44,9 @@ export default function DriversScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLOURS.background },
+  safe: { flex: 1 },
   header: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, gap: SPACING.xs },
-  title: { ...TYPOGRAPHY.title, color: COLOURS.text },
+  title: { ...TYPOGRAPHY.title },
   content: { padding: SPACING.md, gap: SPACING.sm },
   emptyContent: { flexGrow: 1 },
 });

@@ -2,6 +2,7 @@
 module.exports = {
   preset: 'jest-expo',
   // RNTL v13+ registers its matchers automatically — no extend-expect setup needed.
+  setupFiles: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
     // Point @expo/vector-icons at the manual mock so tests that transitively import Icon.tsx
     // don't need per-file jest.mock() calls for the native font loader.

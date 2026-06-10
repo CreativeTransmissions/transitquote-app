@@ -1,6 +1,7 @@
 /** Centered empty/error placeholder for lists and screens. */
 import { StyleSheet, Text, View } from 'react-native';
-import { COLOURS, SPACING, TYPOGRAPHY } from '../../constants';
+import { SPACING, TYPOGRAPHY } from '../../constants';
+import { useTheme } from '../../hooks/useTheme';
 import { Button } from './Button';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
@@ -16,13 +17,12 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ title, subtitle, icon, action, testID }: EmptyStateProps) {
+  const t = useTheme();
   return (
     <View style={styles.container} testID={testID}>
-      {icon ? (
-        <Icon name={icon} size="lg" colour={COLOURS.textMuted} />
-      ) : null}
-      <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      {icon ? <Icon name={icon} size="lg" colour={t.colours.textMuted} /> : null}
+      <Text style={[styles.title, { color: t.colours.text }]}>{title}</Text>
+      {subtitle ? <Text style={[styles.subtitle, { color: t.colours.textMuted }]}>{subtitle}</Text> : null}
       {action ? (
         <View style={styles.action}>
           <Button label={action.label} onPress={action.onPress} variant="secondary" />
@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     padding: SPACING.xl,
     gap: SPACING.xs,
   },
-  title: { ...TYPOGRAPHY.subheading, color: COLOURS.text, textAlign: 'center' },
-  subtitle: { ...TYPOGRAPHY.body, color: COLOURS.textMuted, textAlign: 'center' },
+  title: { ...TYPOGRAPHY.subheading, textAlign: 'center' },
+  subtitle: { ...TYPOGRAPHY.body, textAlign: 'center' },
   action: { marginTop: SPACING.sm, alignSelf: 'stretch' },
 });
