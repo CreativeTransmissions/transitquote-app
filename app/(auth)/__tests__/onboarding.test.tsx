@@ -1,7 +1,7 @@
 /**
  * Tests for the onboarding screen — collects site URL + credentials, submits via useOnboarding,
- * routes to /login on success, surfaces validation/save errors, and renders H-4 field helpers +
- * the "What's this?" credential expander.
+ * routes to /login on success, surfaces validation/save errors, and renders the §3.9 "What
+ * you'll need" card, H-4 field helpers, and the "What's this?" credential expander.
  */
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -114,5 +114,27 @@ describe('OnboardingScreen — H-4 field helpers', () => {
     expect(
       screen.getByText(/TransitTeam connects this app to your company/),
     ).toBeTruthy();
+  });
+});
+
+describe('OnboardingScreen — §3.9 "What you\'ll need" card', () => {
+  it('renders the card', () => {
+    renderScreen();
+    expect(screen.getByTestId('onboarding-needs-card')).toBeTruthy();
+  });
+
+  it('shows the site address bullet', () => {
+    renderScreen();
+    expect(screen.getByText('Your TransitTeam site address')).toBeTruthy();
+  });
+
+  it('shows the Client ID / Secret bullet', () => {
+    renderScreen();
+    expect(screen.getByText('A Client ID and Secret from your administrator')).toBeTruthy();
+  });
+
+  it('shows the WordPress username bullet', () => {
+    renderScreen();
+    expect(screen.getByText('Your WordPress username and password')).toBeTruthy();
   });
 });

@@ -3,18 +3,18 @@ import { useMemo } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button } from '../../components/shared/Button';
-import { Icon } from '../../components/shared/Icon';
-import { useCurrentUser } from '../../hooks/useCurrentUser';
-import { useRole } from '../../hooks/useRole';
-import { useDrivers } from '../../hooks/useDrivers';
-import { useLogout } from '../../hooks/useLogout';
-import { useSites } from '../../hooks/useSites';
-import { useTheme, type Theme } from '../../hooks/useTheme';
-import { useSettingsStore, type ThemePreference } from '../../stores/settingsStore';
-import { fullName } from '../../utils/formatters';
-import { RADIUS, SPACING, TYPOGRAPHY } from '../../constants';
-import type { SiteConfig } from '../../types/app';
+import { Button } from '../../../components/shared/Button';
+import { Icon } from '../../../components/shared/Icon';
+import { useCurrentUser } from '../../../hooks/useCurrentUser';
+import { useRole } from '../../../hooks/useRole';
+import { useDrivers } from '../../../hooks/useDrivers';
+import { useLogout } from '../../../hooks/useLogout';
+import { useSites } from '../../../hooks/useSites';
+import { useTheme, type Theme } from '../../../hooks/useTheme';
+import { useSettingsStore, type ThemePreference } from '../../../stores/settingsStore';
+import { fullName } from '../../../utils/formatters';
+import { RADIUS, SPACING, TYPOGRAPHY } from '../../../constants';
+import type { SiteConfig } from '../../../types/app';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string; testID: string }[] = [
   { value: 'system', label: 'System', testID: 'theme-system' },
@@ -118,6 +118,20 @@ export default function ProfileScreen() {
           </Section>
         ) : null}
 
+        <Section title="Help" styles={styles}>
+          <Pressable
+            testID="help-link"
+            style={styles.navRow}
+            onPress={() => router.push('/home/help')}
+            accessibilityRole="button"
+            accessibilityLabel="How this app works"
+          >
+            <Icon name="help-circle-outline" size="md" colour={t.colours.textMuted} />
+            <Text style={styles.navLabel}>How this app works</Text>
+            <Icon name="chevron-right" size="md" colour={t.colours.textMuted} />
+          </Pressable>
+        </Section>
+
         <Section title="Appearance" styles={styles}>
           {THEME_OPTIONS.map((option) => {
             const checked = themePreference === option.value;
@@ -200,6 +214,14 @@ const makeStyles = (t: Theme) =>
     },
     rowLabel: { ...TYPOGRAPHY.body, color: t.colours.textMuted },
     rowValue: { ...TYPOGRAPHY.body, color: t.colours.text, flexShrink: 1, textAlign: 'right' },
+    navRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 48,
+      paddingVertical: SPACING.sm,
+      gap: SPACING.sm,
+    },
+    navLabel: { ...TYPOGRAPHY.body, color: t.colours.text, flex: 1 },
     siteRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',

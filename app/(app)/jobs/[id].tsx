@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { AccessibilityInfo, ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { JobStatusBadge } from '../../../components/jobs/JobStatusBadge';
+import { StatusGlossarySheet } from '../../../components/jobs/StatusGlossarySheet';
 import { StatusPicker } from '../../../components/jobs/StatusPicker';
 import { DriverPicker } from '../../../components/jobs/DriverPicker';
 import { StopList } from '../../../components/jobs/StopList';
@@ -57,6 +58,7 @@ export default function JobDetailScreen() {
 
   const [pickerVisible, setPickerVisible] = useState(false);
   const [driverPickerVisible, setDriverPickerVisible] = useState(false);
+  const [glossaryVisible, setGlossaryVisible] = useState(false);
   const t = useTheme();
   const styles = useMemo(() => makeStyles(t), [t]);
 
@@ -179,6 +181,16 @@ export default function JobDetailScreen() {
           <View style={styles.titleRow}>
             <Text style={styles.ref}>{job.jobRef}</Text>
             <JobStatusBadge statusName={job.statusName} />
+            <Pressable
+              testID="status-glossary"
+              style={styles.glossaryButton}
+              onPress={() => setGlossaryVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="About job statuses"
+              hitSlop={12}
+            >
+              <Icon name="information-outline" size="sm" colour={t.colours.textMuted} />
+            </Pressable>
           </View>
 
           {serviceVehicleLine ? <Text style={styles.serviceVehicle}>{serviceVehicleLine}</Text> : null}
@@ -350,6 +362,8 @@ export default function JobDetailScreen() {
         onClose={() => setPickerVisible(false)}
       />
 
+      <StatusGlossarySheet visible={glossaryVisible} onClose={() => setGlossaryVisible(false)} />
+
       <DriverPicker
         visible={driverPickerVisible}
         drivers={assignableDrivers}
@@ -430,6 +444,7 @@ const makeStyles = (t: Theme) =>
     centre: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     content: { padding: SPACING.md, gap: SPACING.sm },
     titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.sm },
+    glossaryButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
     ref: { ...TYPOGRAPHY.title, color: t.colours.text, flexShrink: 1 },
     serviceVehicle: { ...TYPOGRAPHY.caption, color: t.colours.textMuted },
     description: { ...TYPOGRAPHY.body, color: t.colours.text },

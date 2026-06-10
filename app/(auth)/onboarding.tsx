@@ -43,6 +43,26 @@ export default function OnboardingScreen() {
             Enter your TransitTeam site URL and the API credentials provided by your administrator.
           </Text>
 
+          {/* "What you'll need" helper card */}
+          <View testID="onboarding-needs-card" style={styles.needsCard}>
+            <View style={styles.needsHeader}>
+              <Icon name="clipboard-check-outline" size="md" colour={t.colours.primary} />
+              <Text style={styles.needsTitle}>{"What you'll need"}</Text>
+            </View>
+            <View style={styles.needsBullet}>
+              <Icon name="circle-small" size="sm" colour={t.colours.primary} />
+              <Text style={styles.needsText}>Your TransitTeam site address</Text>
+            </View>
+            <View style={styles.needsBullet}>
+              <Icon name="circle-small" size="sm" colour={t.colours.primary} />
+              <Text style={styles.needsText}>A Client ID and Secret from your administrator</Text>
+            </View>
+            <View style={styles.needsBullet}>
+              <Icon name="circle-small" size="sm" colour={t.colours.primary} />
+              <Text style={styles.needsText}>Your WordPress username and password</Text>
+            </View>
+          </View>
+
           <TextField
             testID="onboarding-site-url"
             label="Site URL"
@@ -108,22 +128,38 @@ const makeStyles = (t: Theme) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: t.colours.background },
     flex: { flex: 1 },
-    content: { padding: SPACING.lg, flexGrow: 1, justifyContent: 'center' },
-    title: { ...TYPOGRAPHY.title, color: t.colours.text, marginBottom: SPACING.xs },
-    subtitle: { ...TYPOGRAPHY.body, color: t.colours.textMuted, marginBottom: SPACING.lg },
-    error: { ...TYPOGRAPHY.caption, color: t.colours.danger, marginBottom: SPACING.md },
+    content: { padding: SPACING.lg, flexGrow: 1, justifyContent: 'center', gap: SPACING.md },
+    title: { ...TYPOGRAPHY.title, color: t.colours.text },
+    subtitle: { ...TYPOGRAPHY.body, color: t.colours.textMuted },
+    error: { ...TYPOGRAPHY.caption, color: t.colours.danger },
+    needsCard: {
+      backgroundColor: t.colours.surfaceAlt,
+      borderRadius: RADIUS.md,
+      padding: SPACING.md,
+      gap: SPACING.xs,
+    },
+    needsHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      marginBottom: SPACING.xs,
+    },
+    needsTitle: { ...TYPOGRAPHY.body, color: t.colours.text, fontWeight: '600' as const },
+    needsBullet: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    needsText: { ...TYPOGRAPHY.body, color: t.colours.textMuted, flex: 1 },
     expanderRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: SPACING.xs,
-      marginBottom: SPACING.sm,
     },
     expanderLabel: { ...TYPOGRAPHY.caption, color: t.colours.primary },
     expanderContent: {
       backgroundColor: t.colours.surfaceAlt,
       borderRadius: RADIUS.md,
       padding: SPACING.md,
-      marginBottom: SPACING.md,
     },
     expanderText: { ...TYPOGRAPHY.caption, color: t.colours.textMuted },
   });
