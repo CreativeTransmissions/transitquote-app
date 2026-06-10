@@ -24,15 +24,18 @@ export const LIGHT_COLOURS = {
   // which flips to dark ink in dark mode (for dark text on the bright-green primary button).
   onColour: '#FFFFFF',
   success: '#2E7D32',
-  warning: '#ED6C02',
+  // A11y-6: warning used as text on white/surface cards. #ED6C02 was 3.11:1 on #FFFFFF —
+  // darkened to #AD4F01 (5.39:1 on #FFFFFF, 4.91:1 on #F2F5F4). Same token as statusActive.
+  warning: '#AD4F01',
   danger: '#D32F2F',
   offline: '#757575', // banner bg (darkened from #9E9E9E for white-text contrast margin — A11y-6)
   // Semantic status colour tokens (§3.4). Use via resolveStatusColour() in utils/statusColours.ts.
-  statusNeutral: '#6B7280', // pending / new / open
-  statusInfo: '#2563EB', // assigned / accepted / claimed
-  statusActive: '#ED6C02', // in transit / route / progress / collected / picked
-  statusDone: '#2E7D32', // delivered / completed / done
-  statusProblem: '#D32F2F', // cancelled / failed / rejected
+  // A11y-6 contrast-hardened: all tokens verified ≥4.5:1 text/pillBg (12% tint on #FFFFFF card).
+  statusNeutral: '#656B78', // was #6B7280 (4.16:1) → 4.57:1 on white pill
+  statusInfo: '#2460E4', // was #2563EB (4.37:1) → 4.58:1 on white pill
+  statusActive: '#AD4F01', // was #ED6C02 (2.72:1) → 4.55:1 on white pill; matches warning token
+  statusDone: '#2D7931', // was #2E7D32 (4.36:1) → 4.59:1 on white pill
+  statusProblem: '#C62C2C', // was #D32F2F (4.16:1) → 4.60:1 on white pill
   // Surface tokens for failure/availability boxes — replaces hardcoded literals site-wide.
   dangerSurface: '#FDECEA',
   successSurface: '#E6F4EA',
@@ -67,7 +70,8 @@ export const DARK_COLOURS: Palette = {
   statusInfo: '#60A5FA',
   statusActive: '#F5A146',
   statusDone: '#66BB6A',
-  statusProblem: '#EF6B5E',
+  // A11y-6: #EF6B5E was 4.47:1 on #1A2420 pill → lightened to #EF6E61 (4.56:1 on dark pill).
+  statusProblem: '#EF6E61',
   dangerSurface: '#3A1F1C',
   successSurface: '#1C3A26',
 };

@@ -57,6 +57,18 @@ jest.mock('../../../../components/jobs/StatusPicker', () => {
       React.createElement(Pressable, { testID: 'pick-status', onPress: () => onSelect({ id: 5, name: 'Delivered' }) }, React.createElement(Text, null, 'pick')),
   };
 });
+// StatusGlossarySheet stub records whether it was opened.
+const mockGlossaryVisible = jest.fn();
+jest.mock('../../../../components/jobs/StatusGlossarySheet', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    StatusGlossarySheet: ({ visible }: { visible: boolean }) => {
+      mockGlossaryVisible(visible);
+      return React.createElement(View, { testID: 'glossary-sheet' });
+    },
+  };
+});
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 
@@ -229,5 +241,28 @@ describe('JobDetailScreen — header & haptics', () => {
       </SafeAreaProvider>,
     );
     expect(hapticError).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('JobDetailScreen — status glossary', () => {
+  it('renders the status-glossary trigger button in the title row', () => {
+    renderScreen();
+    expect(screen.getByTestId('status-glossary')).toBeTruthy();
+  });
+
+  it('has accessibilityRole="button" and correct accessibilityLabel on the trigger', () => {
+    renderScreen();
+    const btn = screen.getByTestId('status-glossary');
+    expect(btn.props.accessibilityRole).toBe('button');
+    expect(btn.props.accessibilityLabel).toBe('About job statuses');
+  });
+
+  it('opens the glossary sheet when the trigger is pressed', () => {
+    mockGlossaryVisible.mockClear();
+    renderScreen();
+    // Initially closed (visible=false rendered once on mount).
+    fireEvent.press(screen.getByTestId('status-glossary'));
+    // After press, the sheet should be called with visible=true.
+    expect(mockGlossaryVisible).toHaveBeenCalledWith(true);
   });
 });

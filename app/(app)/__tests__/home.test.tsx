@@ -6,7 +6,7 @@
 import { Alert } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import ProfileScreen from '../home';
+import ProfileScreen from '../home/index';
 import { useSettingsStore } from '../../../stores/settingsStore';
 
 let mockUser: Record<string, unknown> | null;
@@ -15,8 +15,9 @@ let mockDrivers: Record<string, unknown>[];
 let mockSites: { sites: Record<string, unknown>[]; activeSiteId: string | null; switchTo: jest.Mock };
 const mockLogoutMutate = jest.fn();
 const mockReplace = jest.fn();
+const mockPush = jest.fn();
 
-jest.mock('expo-router', () => ({ router: { back: jest.fn(), replace: (...a: unknown[]) => mockReplace(...a) } }));
+jest.mock('expo-router', () => ({ router: { back: jest.fn(), replace: (...a: unknown[]) => mockReplace(...a), push: (...a: unknown[]) => mockPush(...a) } }));
 jest.mock('../../../hooks/useCurrentUser', () => ({ useCurrentUser: () => mockUser }));
 jest.mock('../../../hooks/useRole', () => ({ useRole: () => mockRole }));
 jest.mock('../../../hooks/useDrivers', () => ({ useDrivers: () => mockDrivers }));
@@ -137,5 +138,20 @@ describe('ProfileScreen', () => {
     await pressAlertButton(1); // "Switch"
     expect(switchTo).toHaveBeenCalledWith('site-2');
     expect(mockReplace).toHaveBeenCalledWith('/');
+  });
+});
+
+describe('ProfileScreen — Help section', () => {
+  it('renders the Help section with the help-link row', () => {
+    renderScreen();
+    expect(screen.getByText('Help')).toBeTruthy();
+    expect(screen.getByTestId('help-link')).toBeTruthy();
+    expect(screen.getByText('How this app works')).toBeTruthy();
+  });
+
+  it('navigates to /home/help when the help row is pressed', () => {
+    renderScreen();
+    fireEvent.press(screen.getByTestId('help-link'));
+    expect(mockPush).toHaveBeenCalledWith('/home/help');
   });
 });

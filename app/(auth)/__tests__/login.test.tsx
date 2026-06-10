@@ -1,6 +1,7 @@
 /**
  * Tests for the login screen — collects credentials, submits via useLogin, routes to /jobs on
  * success, surfaces the error message, and offers a "Change site" route back to onboarding.
+ * Also verifies §3.9 hero logo and change-site icon row.
  */
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -18,6 +19,10 @@ jest.mock('expo-linear-gradient', () => {
 jest.mock('../../../hooks/useLogin', () => ({ useLogin: () => mockLogin }));
 jest.mock('../../../stores/authStore', () => ({
   useAuthStore: (sel: (s: unknown) => unknown) => sel({ siteUrl: 'https://acme.example' }),
+}));
+// Icon is a native module wrapper — stub to avoid native setup in unit tests.
+jest.mock('../../../components/shared/Icon', () => ({
+  Icon: () => null,
 }));
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
@@ -68,5 +73,24 @@ describe('LoginScreen', () => {
     renderScreen();
     const pressable = screen.getByTestId('login-change-site');
     expect(pressable.props.accessibilityRole).toBe('button');
+  });
+
+  it('"Change site" has a hitSlop for a 44dp effective touch target (A11y-5)', () => {
+    renderScreen();
+    const pressable = screen.getByTestId('login-change-site');
+    // hitSlop may be normalised to an object or a number — check it is defined
+    expect(pressable.props.hitSlop).toBeTruthy();
+  });
+
+  it('renders the app logo image in the hero block', () => {
+    renderScreen();
+    // The Image is decorative (accessible=false). UNSAFE_getAllByType works with the RN Image
+    // component; we import it here to avoid inline require().
+    const { Image } = require('react-native') as typeof import('react-native');
+    const images = screen.UNSAFE_getAllByType(Image);
+    expect(images.length).toBeGreaterThanOrEqual(1);
+    // The logo image has accessible=false (decorative).
+    const logo = images.find((img) => img.props.accessible === false);
+    expect(logo).toBeTruthy();
   });
 });

@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { router } from 'expo-router';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/shared/Button';
+import { Icon } from '../../components/shared/Icon';
 import { TextField } from '../../components/shared/TextField';
 import { useLogin } from '../../hooks/useLogin';
 import { useAuthStore } from '../../stores/authStore';
@@ -39,6 +40,12 @@ export default function LoginScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.hero}
           >
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.logo}
+              accessible={false}
+              importantForAccessibility="no"
+            />
             <Text style={styles.brand}>TransitTeam</Text>
             <Text style={styles.heroSubtitle} numberOfLines={1}>
               {siteUrl ?? ''}
@@ -80,7 +87,9 @@ export default function LoginScreen() {
               disabled={loginMutation.isPending}
               style={styles.changeSite}
               accessibilityRole="button"
+              hitSlop={8}
             >
+              <Icon name="swap-horizontal" size="sm" colour={t.colours.primary} />
               <Text style={styles.changeSiteText}>Change site</Text>
             </Pressable>
           </View>
@@ -97,10 +106,17 @@ const makeStyles = (t: Theme) =>
     content: { padding: SPACING.lg, flexGrow: 1, justifyContent: 'center', gap: SPACING.lg },
     hero: {
       borderRadius: RADIUS.lg,
-      paddingVertical: SPACING.xl,
+      paddingVertical: SPACING.lg,
       paddingHorizontal: SPACING.lg,
       gap: SPACING.xs,
+      alignItems: 'center',
       ...t.shadows.md,
+    },
+    logo: {
+      width: 56,
+      height: 56,
+      borderRadius: RADIUS.md,
+      marginBottom: SPACING.xs,
     },
     // Hero gradient is dark in both schemes, so its text stays white (onColour), not textInverse.
     brand: { ...TYPOGRAPHY.title, color: t.colours.onColour },
@@ -114,6 +130,6 @@ const makeStyles = (t: Theme) =>
     },
     title: { ...TYPOGRAPHY.heading, color: t.colours.text, marginBottom: SPACING.xs },
     error: { ...TYPOGRAPHY.caption, color: t.colours.danger, marginBottom: SPACING.md },
-    changeSite: { marginTop: SPACING.lg, alignItems: 'center' },
+    changeSite: { marginTop: SPACING.lg, alignItems: 'center', flexDirection: 'row', gap: SPACING.xs, justifyContent: 'center', minHeight: 44 },
     changeSiteText: { ...TYPOGRAPHY.body, color: t.colours.primary },
   });
