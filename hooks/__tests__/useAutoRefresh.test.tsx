@@ -16,6 +16,7 @@ jest.mock('../useSync', () => ({ useSyncJobs: jest.fn() }));
 
 const mockUseSyncJobs = useSyncJobs as jest.Mock;
 const sync = jest.fn();
+let appStateHandler: ((state: string) => void) | null = null;
 
 beforeEach(() => {
   jest.useFakeTimers();
@@ -24,7 +25,11 @@ beforeEach(() => {
   useSettingsStore.setState({ autoRefreshMinutes: null });
   useAuthStore.setState({ status: 'authenticated' });
   useConnectivityStore.setState({ isOnline: true, isSyncing: false });
-  jest.spyOn(AppState, 'addEventListener').mockReturnValue({ remove: jest.fn() } as never);
+  appStateHandler = null;
+  jest.spyOn(AppState, 'addEventListener').mockImplementation(((_event: string, handler: (s: string) => void) => {
+    appStateHandler = handler;
+    return { remove: jest.fn() };
+  }) as never);
 });
 
 afterEach(() => {
@@ -89,6 +94,31 @@ describe('useAutoRefresh', () => {
       jest.advanceTimersByTime(minutes(1));
     });
     expect(sync).toHaveBeenCalledTimes(1);
+  });
+
+  it('pauses in the background and runs a catch-up sync on foreground resume', () => {
+    useSettingsStore.setState({ autoRefreshMinutes: 30 });
+    renderHook(() => useAutoRefresh());
+
+    act(() => appStateHandler!('background'));
+    act(() => {
+      jest.advanceTimersByTime(minutes(120)); // no ticks while backgrounded
+    });
+    expect(sync).not.toHaveBeenCalled();
+
+    act(() => appStateHandler!('active'));
+    expect(sync).toHaveBeenCalledTimes(1); // immediate catch-up, not a fresh 30-min wait
+  });
+
+  it('skips the resume catch-up while a sync is already in flight', () => {
+    useSettingsStore.setState({ autoRefreshMinutes: 30 });
+    renderHook(() => useAutoRefresh());
+    act(() => appStateHandler!('background'));
+    act(() => {
+      useConnectivityStore.setState({ isSyncing: true });
+      appStateHandler!('active');
+    });
+    expect(sync).not.toHaveBeenCalled();
   });
 
   it('stops polling when the setting is turned off', () => {

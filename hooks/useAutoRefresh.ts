@@ -4,7 +4,7 @@
  * app in the foreground, and no sync already in flight (skipped ticks are simply dropped —
  * the next tick catches up). Mounted once in the authenticated (app) layout.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
@@ -16,8 +16,6 @@ export function useAutoRefresh(): void {
   const status = useAuthStore((s) => s.status);
   const isOnline = useConnectivityStore((s) => s.isOnline);
   const { sync } = useSyncJobs();
-  // currentState can be null/'unknown' before the first native event (e.g. iOS cold start) —
-  // the JS is clearly running in the foreground then, so only an explicit background counts.
   // Treat the app as foregrounded unless the OS has explicitly told us otherwise —
   // currentState can be null/'unknown' before the first native event (e.g. iOS cold start).
   const [appActive, setAppActive] = useState(
@@ -28,6 +26,17 @@ export function useAutoRefresh(): void {
     const sub = AppState.addEventListener('change', (state) => setAppActive(state === 'active'));
     return () => sub.remove();
   }, []);
+
+  // Catch-up tick on foreground resume: returning from background restarts the interval from
+  // zero, so with a long interval the user could otherwise wait up to the full period for data.
+  const prevActiveRef = useRef(appActive);
+  useEffect(() => {
+    const wasActive = prevActiveRef.current;
+    prevActiveRef.current = appActive;
+    if (!wasActive && appActive && minutes != null && status === 'authenticated' && isOnline) {
+      if (!useConnectivityStore.getState().isSyncing) sync();
+    }
+  }, [appActive, minutes, status, isOnline, sync]);
 
   useEffect(() => {
     if (minutes == null || status !== 'authenticated' || !isOnline || !appActive) return;
