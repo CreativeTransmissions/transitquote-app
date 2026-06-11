@@ -28,4 +28,16 @@ describe('RefreshingFooter', () => {
     expect(screen.getByTestId('refreshing-footer')).toBeTruthy();
     expect(screen.getByText('Refreshing…')).toBeTruthy();
   });
+
+  // #21: screens with their own scoped sync (e.g. customers) drive the strip via the prop.
+  it('the syncing prop overrides the store: shows while the store is idle', () => {
+    render(<RefreshingFooter syncing />);
+    expect(screen.getByTestId('refreshing-footer')).toBeTruthy();
+  });
+
+  it('the syncing prop overrides the store: hidden while the store is syncing', () => {
+    mockState = { isSyncing: true };
+    render(<RefreshingFooter syncing={false} />);
+    expect(screen.queryByTestId('refreshing-footer')).toBeNull();
+  });
 });
