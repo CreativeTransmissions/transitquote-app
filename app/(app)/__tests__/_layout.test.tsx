@@ -48,6 +48,7 @@ jest.mock('../../../stores/authStore', () => ({
   useAuthStore: (sel: (s: unknown) => unknown) => sel({ status: mockStatus }),
 }));
 jest.mock('../../../hooks/useConnectivity', () => ({ useConnectivity: jest.fn() }));
+jest.mock('../../../hooks/useAutoRefresh', () => ({ useAutoRefresh: jest.fn() }));
 jest.mock('../../../hooks/useRole', () => ({ useRole: () => mockRole }));
 jest.mock('../../../hooks/useOutbox', () => ({ useOutbox: () => mockOutbox }));
 

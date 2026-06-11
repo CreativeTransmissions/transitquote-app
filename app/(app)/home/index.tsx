@@ -11,7 +11,12 @@ import { useDrivers } from '../../../hooks/useDrivers';
 import { useLogout } from '../../../hooks/useLogout';
 import { useSites } from '../../../hooks/useSites';
 import { useTheme, type Theme } from '../../../hooks/useTheme';
-import { useSettingsStore, type ThemePreference } from '../../../stores/settingsStore';
+import {
+  AUTO_REFRESH_OPTIONS,
+  useSettingsStore,
+  type AutoRefreshMinutes,
+  type ThemePreference,
+} from '../../../stores/settingsStore';
 import { fullName } from '../../../utils/formatters';
 import { RADIUS, SPACING, TYPOGRAPHY } from '../../../constants';
 import type { SiteConfig } from '../../../types/app';
@@ -20,6 +25,15 @@ const THEME_OPTIONS: { value: ThemePreference; label: string; testID: string }[]
   { value: 'system', label: 'System', testID: 'theme-system' },
   { value: 'light', label: 'Light', testID: 'theme-light' },
   { value: 'dark', label: 'Dark', testID: 'theme-dark' },
+];
+
+const AUTO_REFRESH_CHOICES: { value: AutoRefreshMinutes | null; label: string; testID: string }[] = [
+  { value: null, label: 'Off', testID: 'auto-refresh-off' },
+  ...AUTO_REFRESH_OPTIONS.map((minutes) => ({
+    value: minutes,
+    label: minutes === 60 ? '1 hour' : `${minutes} min`,
+    testID: `auto-refresh-${minutes}`,
+  })),
 ];
 
 /** Profile / Settings (spec §6.10): current user, driver details, active site + switcher, appearance, logout. */
@@ -33,6 +47,8 @@ export default function ProfileScreen() {
   const styles = useMemo(() => makeStyles(t), [t]);
   const themePreference = useSettingsStore((s) => s.themePreference);
   const setThemePreference = useSettingsStore((s) => s.setThemePreference);
+  const autoRefreshMinutes = useSettingsStore((s) => s.autoRefreshMinutes);
+  const setAutoRefreshMinutes = useSettingsStore((s) => s.setAutoRefreshMinutes);
 
   const name = fullName(user?.firstName, user?.lastName) || user?.firstName || '—';
   const driver = driverId != null ? drivers.find((d) => d.id === driverId) ?? null : null;
@@ -153,6 +169,30 @@ export default function ProfileScreen() {
           })}
         </Section>
 
+        <Section title="Auto refresh" styles={styles}>
+          <Text style={styles.sectionHint}>
+            Automatically check for new and updated jobs while the app is open.
+          </Text>
+          {AUTO_REFRESH_CHOICES.map((option) => {
+            const checked = autoRefreshMinutes === option.value;
+            return (
+              <Pressable
+                key={option.testID}
+                testID={option.testID}
+                style={styles.themeRow}
+                onPress={() => setAutoRefreshMinutes(option.value)}
+                accessibilityRole="radio"
+                accessibilityState={{ checked }}
+              >
+                <Text style={[styles.themeLabel, checked && styles.themeLabelActive]}>{option.label}</Text>
+                {checked ? (
+                  <Icon name="check" size="md" colour={t.colours.primary} accessibilityLabel="Selected" />
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </Section>
+
         <View style={styles.logout}>
           <Button label="Log out" variant="secondary" onPress={handleLogout} loading={logout.isPending} testID="profile-logout" />
         </View>
@@ -242,6 +282,7 @@ const makeStyles = (t: Theme) =>
       paddingVertical: SPACING.sm,
       gap: SPACING.md,
     },
+    sectionHint: { ...TYPOGRAPHY.caption, color: t.colours.textMuted, paddingTop: SPACING.sm },
     themeLabel: { ...TYPOGRAPHY.body, color: t.colours.text },
     themeLabelActive: { color: t.colours.primary, fontWeight: '600' },
     logout: { marginTop: SPACING.sm },

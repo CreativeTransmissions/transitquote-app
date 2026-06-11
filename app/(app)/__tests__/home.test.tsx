@@ -48,7 +48,7 @@ beforeEach(() => {
   mockRole = { role: 'dispatch', assignmentMode: 'Centralized', driverId: null };
   mockDrivers = [];
   mockSites = { sites: [{ id: 'site-1', siteUrl: 'https://a.example' }], activeSiteId: 'site-1', switchTo: jest.fn().mockResolvedValue(undefined) };
-  useSettingsStore.setState({ themePreference: 'system' });
+  useSettingsStore.setState({ themePreference: 'system', autoRefreshMinutes: null });
 });
 
 describe('ProfileScreen', () => {
@@ -118,6 +118,25 @@ describe('ProfileScreen', () => {
 
     fireEvent.press(screen.getByTestId('theme-light'));
     expect(useSettingsStore.getState().themePreference).toBe('light');
+  });
+
+  it('renders the Auto refresh options with Off checked by default (#13)', () => {
+    renderScreen();
+    expect(screen.getByText('Auto refresh')).toBeTruthy();
+    for (const id of ['auto-refresh-off', 'auto-refresh-1', 'auto-refresh-5', 'auto-refresh-10', 'auto-refresh-15', 'auto-refresh-30', 'auto-refresh-60']) {
+      expect(screen.getByTestId(id)).toBeTruthy();
+    }
+    expect(screen.getByTestId('auto-refresh-off').props.accessibilityState).toMatchObject({ checked: true });
+    expect(screen.getByTestId('auto-refresh-5').props.accessibilityState).toMatchObject({ checked: false });
+  });
+
+  it('selecting an auto-refresh interval updates the settings store, and Off clears it', () => {
+    renderScreen();
+    fireEvent.press(screen.getByTestId('auto-refresh-5'));
+    expect(useSettingsStore.getState().autoRefreshMinutes).toBe(5);
+
+    fireEvent.press(screen.getByTestId('auto-refresh-off'));
+    expect(useSettingsStore.getState().autoRefreshMinutes).toBeNull();
   });
 
   it('confirms a site switch then switches and resets to the entry route', async () => {
