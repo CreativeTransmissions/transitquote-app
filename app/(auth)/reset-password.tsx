@@ -24,6 +24,7 @@ export default function ResetPasswordScreen() {
   const styles = useMemo(() => makeStyles(t), [t]);
 
   const handleSubmit = () => {
+    if (username.trim() === '') return; // belt-and-braces with the Button's disabled guard
     resetMutation.mutate({ username });
   };
 
@@ -67,6 +68,7 @@ export default function ResetPasswordScreen() {
                   onChangeText={setUsername}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  autoComplete="username"
                   textContentType="username"
                 />
 
