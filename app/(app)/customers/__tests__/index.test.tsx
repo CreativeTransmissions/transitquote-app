@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react-native';
+import { act, render, screen } from '@testing-library/react-native';
+import { FlatList } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import type { RoleInfo } from '../../../../hooks/useRole';
 import { useRole } from '../../../../hooks/useRole';
@@ -17,10 +18,20 @@ jest.mock('expo-router', () => {
   };
 });
 jest.mock('../../../../hooks/useRole', () => ({ useRole: jest.fn() }));
+let mockCustomersResult: Record<string, unknown>;
 jest.mock('../../../../hooks/useCustomers', () => ({
-  useCustomers: () => ({ customers: [], dbError: undefined, isSyncing: false, refresh: jest.fn() }),
+  useCustomers: () => mockCustomersResult,
 }));
 jest.mock('../../../../components/sync/OfflineBanner', () => ({ OfflineBanner: () => null }));
+// Sentinel for the non-blocking refresh strip (#21) — its own behaviour is unit-tested.
+jest.mock('../../../../components/sync/RefreshingFooter', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  return {
+    RefreshingFooter: ({ syncing }: { syncing?: boolean }) =>
+      React.createElement(Text, { testID: 'refreshing-footer-slot' }, String(syncing)),
+  };
+});
 
 const METRICS = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -48,6 +59,10 @@ function renderScreen() {
   );
 }
 
+beforeEach(() => {
+  mockCustomersResult = { customers: [], dbError: undefined, isSyncing: false, syncError: null, refresh: jest.fn() };
+});
+
 describe('CustomersScreen — dispatcher route guard (role-loading redirect race)', () => {
   beforeEach(() => (useRole as jest.Mock).mockReset());
 
@@ -69,5 +84,46 @@ describe('CustomersScreen — dispatcher route guard (role-loading redirect race
     renderScreen();
     expect(screen.queryByTestId('redirect')).toBeNull();
     expect(screen.getByText('Customers')).toBeTruthy();
+  });
+});
+
+describe('CustomersScreen — non-blocking pull-to-refresh (#21)', () => {
+  beforeEach(() => {
+    (useRole as jest.Mock).mockReset();
+    (useRole as jest.Mock).mockReturnValue(roleInfo({ role: 'dispatch', isDispatcher: true }));
+  });
+
+  it('passes gesture-scoped refreshing to the list — NOT isSyncing', () => {
+    mockCustomersResult = { ...mockCustomersResult, isSyncing: true };
+    renderScreen();
+    const list = screen.UNSAFE_getByType(FlatList);
+    // A background sync is in flight, but no pull happened: the blocking spinner stays hidden.
+    expect(list.props.refreshing).toBe(false);
+  });
+
+  it('pull triggers the customers refresh and dismisses the spinner after the ack window', () => {
+    jest.useFakeTimers();
+    try {
+      const refresh = jest.fn();
+      mockCustomersResult = { ...mockCustomersResult, refresh };
+      renderScreen();
+
+      act(() => screen.UNSAFE_getByType(FlatList).props.onRefresh());
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(screen.UNSAFE_getByType(FlatList).props.refreshing).toBe(true);
+
+      act(() => {
+        jest.advanceTimersByTime(600);
+      });
+      expect(screen.UNSAFE_getByType(FlatList).props.refreshing).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('drives the RefreshingFooter from the customers-scoped sync state', () => {
+    mockCustomersResult = { ...mockCustomersResult, isSyncing: true };
+    renderScreen();
+    expect(screen.getByTestId('refreshing-footer-slot')).toHaveTextContent('true');
   });
 });

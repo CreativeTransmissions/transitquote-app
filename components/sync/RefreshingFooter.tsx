@@ -1,7 +1,8 @@
 /**
- * Slim, non-blocking "Refreshing" strip rendered below a list while a sync runs (issue #12).
+ * Slim, non-blocking "Refreshing" strip rendered below a list while a sync runs (issues #12/#21).
  * Unlike the RefreshControl spinner it never overlays the list, so the user can keep working.
- * Renders nothing when no sync is in flight.
+ * Renders nothing when no sync is in flight. By default it follows the global jobs-sync state
+ * (connectivityStore); screens with their own scoped pull (e.g. customers) pass `syncing` instead.
  */
 import { useEffect, useMemo } from 'react';
 import { AccessibilityInfo, ActivityIndicator, StyleSheet, Text, View } from 'react-native';
@@ -9,8 +10,14 @@ import { useConnectivityStore } from '../../stores/connectivityStore';
 import { SPACING, TYPOGRAPHY } from '../../constants';
 import { useTheme, type Theme } from '../../hooks/useTheme';
 
-export function RefreshingFooter() {
-  const isSyncing = useConnectivityStore((s) => s.isSyncing);
+interface RefreshingFooterProps {
+  /** Override for screens whose sync does not run through connectivityStore. */
+  syncing?: boolean;
+}
+
+export function RefreshingFooter({ syncing }: RefreshingFooterProps) {
+  const storeSyncing = useConnectivityStore((s) => s.isSyncing);
+  const isSyncing = syncing ?? storeSyncing;
   const t = useTheme();
   const styles = useMemo(() => makeStyles(t), [t]);
 

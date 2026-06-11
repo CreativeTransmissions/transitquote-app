@@ -6,8 +6,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { CustomerCard } from '../../../components/customers/CustomerCard';
 import { TextField } from '../../../components/shared/TextField';
 import { OfflineBanner } from '../../../components/sync/OfflineBanner';
+import { RefreshingFooter } from '../../../components/sync/RefreshingFooter';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { useCustomers } from '../../../hooks/useCustomers';
+import { usePullToRefresh } from '../../../hooks/usePullToRefresh';
 import { useRole } from '../../../hooks/useRole';
 import { filterCustomers } from '../../../utils/customerSearch';
 import { useTheme } from '../../../hooks/useTheme';
@@ -16,6 +18,9 @@ import { SPACING, TYPOGRAPHY } from '../../../constants';
 export default function CustomersScreen() {
   const { role, isDispatcher } = useRole();
   const { customers, dbError, isSyncing, refresh } = useCustomers();
+  // #21: the RefreshControl spinner only acknowledges the gesture — ongoing sync progress is
+  // shown by the non-blocking RefreshingFooter below the list (same pattern as the jobs list).
+  const { refreshing, onRefresh } = usePullToRefresh(refresh);
   const [query, setQuery] = useState('');
   const t = useTheme();
 
@@ -52,8 +57,8 @@ export default function CustomersScreen() {
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => <CustomerCard customer={item} onPress={(id) => router.push(`/customers/${id}`)} />}
           contentContainerStyle={visible.length === 0 ? styles.emptyContent : styles.content}
-          refreshing={isSyncing}
-          onRefresh={refresh}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
           ListEmptyComponent={
             <EmptyState
               title={query ? 'No matches' : 'No customers'}
@@ -63,6 +68,8 @@ export default function CustomersScreen() {
           }
         />
       )}
+
+      <RefreshingFooter syncing={isSyncing} />
     </SafeAreaView>
   );
 }
