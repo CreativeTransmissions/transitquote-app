@@ -8,9 +8,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import LoginScreen from '../login';
 
 const mockReplace = jest.fn();
+const mockPush = jest.fn();
 let mockLogin: { mutate: jest.Mock; isError: boolean; error: Error | null; isPending: boolean };
 
-jest.mock('expo-router', () => ({ router: { replace: (...a: unknown[]) => mockReplace(...a) } }));
+jest.mock('expo-router', () => ({
+  router: { replace: (...a: unknown[]) => mockReplace(...a), push: (...a: unknown[]) => mockPush(...a) },
+}));
 jest.mock('expo-linear-gradient', () => {
   const React = require('react');
   const { View } = require('react-native');
@@ -37,6 +40,7 @@ function renderScreen() {
 
 beforeEach(() => {
   mockReplace.mockReset();
+  mockPush.mockReset();
   mockLogin = { mutate: jest.fn(), isError: false, error: null, isPending: false };
 });
 
@@ -61,6 +65,13 @@ describe('LoginScreen', () => {
     mockLogin = { mutate: jest.fn(), isError: true, error: new Error('Invalid credentials'), isPending: false };
     renderScreen();
     expect(screen.getByText('Invalid credentials')).toBeTruthy();
+  });
+
+  it('routes to the reset-password screen with the typed username (issue #14)', () => {
+    renderScreen();
+    fireEvent.changeText(screen.getByTestId('login-username'), 'api-driver');
+    fireEvent.press(screen.getByTestId('login-forgot-password'));
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/reset-password', params: { username: 'api-driver' } });
   });
 
   it('routes to onboarding from "Change site"', () => {
