@@ -119,7 +119,7 @@ const makeStyles = (t: Theme) =>
       width: 96,
       height: 67,
       borderRadius: RADIUS.md,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: t.colours.onColour,
       marginBottom: SPACING.xs,
     },
     // Hero gradient is dark in both schemes, so its text stays white (onColour), not textInverse.
