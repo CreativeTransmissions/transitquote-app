@@ -41,8 +41,9 @@ export default function LoginScreen() {
             style={styles.hero}
           >
             <Image
-              source={require('../../assets/icon.png')}
+              source={require('../../assets/logo.png')}
               style={styles.logo}
+              resizeMode="contain"
               accessible={false}
               importantForAccessibility="no"
             />
@@ -112,10 +113,13 @@ const makeStyles = (t: Theme) =>
       alignItems: 'center',
       ...t.shadows.md,
     },
+    // The source artwork is 116x81 on an opaque white background — keep its aspect ratio and
+    // let the rounded corners + white chip read as intentional against the dark hero gradient.
     logo: {
-      width: 56,
-      height: 56,
+      width: 96,
+      height: 67,
       borderRadius: RADIUS.md,
+      backgroundColor: t.colours.onColour,
       marginBottom: SPACING.xs,
     },
     // Hero gradient is dark in both schemes, so its text stays white (onColour), not textInverse.
