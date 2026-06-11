@@ -3,8 +3,8 @@
  * Unlike the RefreshControl spinner it never overlays the list, so the user can keep working.
  * Renders nothing when no sync is in flight.
  */
-import { useMemo } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { AccessibilityInfo, ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useConnectivityStore } from '../../stores/connectivityStore';
 import { SPACING, TYPOGRAPHY } from '../../constants';
 import { useTheme, type Theme } from '../../hooks/useTheme';
@@ -13,6 +13,11 @@ export function RefreshingFooter() {
   const isSyncing = useConnectivityStore((s) => s.isSyncing);
   const t = useTheme();
   const styles = useMemo(() => makeStyles(t), [t]);
+
+  // accessibilityLiveRegion is Android-only; announce explicitly for iOS VoiceOver parity.
+  useEffect(() => {
+    if (isSyncing) AccessibilityInfo.announceForAccessibility('Refreshing');
+  }, [isSyncing]);
 
   if (!isSyncing) return null;
 
@@ -32,9 +37,9 @@ const makeStyles = (t: Theme) =>
       justifyContent: 'center',
       gap: SPACING.xs,
       paddingVertical: SPACING.xs,
+      // No top border: the toolbar below already draws a hairline, and a second one here
+      // doubled the line while the strip was visible. The surface tint separates the list.
       backgroundColor: t.colours.surface,
-      borderTopWidth: 1,
-      borderTopColor: t.colours.border,
     },
     text: { ...TYPOGRAPHY.caption, color: t.colours.textMuted },
   });

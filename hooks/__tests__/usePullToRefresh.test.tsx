@@ -67,9 +67,8 @@ describe('usePullToRefresh', () => {
   it('cleans up the pending timer on unmount', () => {
     const { result, unmount } = renderHook(() => usePullToRefresh(jest.fn()));
     act(() => result.current.onRefresh());
+    expect(jest.getTimerCount()).toBe(1);
     unmount();
-    act(() => {
-      jest.runAllTimers(); // must not warn about state updates on an unmounted component
-    });
+    expect(jest.getTimerCount()).toBe(0); // the ack timer was cleared, not left to fire
   });
 });
