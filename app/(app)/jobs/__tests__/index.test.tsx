@@ -5,7 +5,7 @@
  * lives in the bottom tab bar ((app)/_layout.tsx), not header links. Hooks + heavy children are
  * mocked; the filter utils are real.
  */
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import JobsScreen from '../index';
 
@@ -57,6 +57,13 @@ jest.mock('../../../../components/sync/SkeletonJobCard', () => {
   return { SkeletonJobCard: () => React.createElement(View, { testID: 'skeleton-card' }) };
 });
 jest.mock('../../../../components/sync/OutboxToast', () => ({ OutboxToast: () => null }));
+// Sentinel for the non-blocking refresh strip (#12) — its own visibility logic is unit-tested;
+// here we assert the screen's !showSpinner gating.
+jest.mock('../../../../components/sync/RefreshingFooter', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  return { RefreshingFooter: () => React.createElement(Text, { testID: 'refreshing-footer-slot' }, 'footer') };
+});
 jest.mock('../../../../components/jobs/JobFilterSheet', () => ({ JobFilterSheet: () => null }));
 jest.mock('../../../../components/jobs/JobList', () => {
   const React = require('react');
@@ -67,13 +74,19 @@ jest.mock('../../../../components/jobs/JobList', () => {
       onSelect,
       emptyTitle,
       emptyAction,
+      refreshing,
+      onRefresh,
     }: {
       jobs: { id: number }[];
       onSelect: (id: number) => void;
       emptyTitle: string;
       emptyAction?: { label: string; onPress: () => void };
-    }) =>
-      jobs.length === 0
+      refreshing: boolean;
+      onRefresh: () => void;
+    }) => {
+      mockCapturedListProps.refreshing = refreshing;
+      mockCapturedListProps.onRefresh = onRefresh;
+      return jobs.length === 0
         ? React.createElement(
             React.Fragment,
             null,
@@ -90,9 +103,13 @@ jest.mock('../../../../components/jobs/JobList', () => {
             React.Fragment,
             null,
             jobs.map((j) => React.createElement(Pressable, { key: j.id, testID: `row-${j.id}`, onPress: () => onSelect(j.id) }, React.createElement(Text, null, `J${j.id}`))),
-          ),
+          );
+    },
   };
 });
+
+// Captured from the JobList mock so tests can assert the gesture-scoped refreshing prop (#12).
+const mockCapturedListProps: { refreshing?: boolean; onRefresh?: () => void } = {};
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 
@@ -114,6 +131,8 @@ function renderScreen() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  delete mockCapturedListProps.refreshing;
+  delete mockCapturedListProps.onRefresh;
   mockShowHint = false;
   mockClear = jest.fn();
   mockActiveFilters = { statusIds: [], driverId: null, dateFrom: null, dateTo: null };
@@ -183,6 +202,48 @@ describe('JobsScreen', () => {
     renderScreen();
     fireEvent.press(screen.getByTestId('row-42'));
     expect(mockPush).toHaveBeenCalledWith('/jobs/42');
+  });
+
+  // ── Non-blocking pull-to-refresh (#12) ──────────────────────────────────────
+
+  it('passes gesture-scoped refreshing to JobList — NOT isSyncing', () => {
+    mockJobsResult = jobsResult({ jobs: [{ id: 1 }], isSyncing: true });
+    renderScreen();
+    // A background sync is in flight, but no pull gesture happened: the spinner must stay hidden.
+    expect(mockCapturedListProps.refreshing).toBe(false);
+  });
+
+  it('pull triggers the sync and dismisses the spinner after the ack window', () => {
+    jest.useFakeTimers();
+    try {
+      const refresh = jest.fn();
+      mockJobsResult = jobsResult({ jobs: [{ id: 1 }], refresh });
+      renderScreen();
+
+      act(() => mockCapturedListProps.onRefresh!());
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(mockCapturedListProps.refreshing).toBe(true);
+
+      act(() => {
+        jest.advanceTimersByTime(600);
+      });
+      expect(mockCapturedListProps.refreshing).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('renders the RefreshingFooter slot alongside the list', () => {
+    mockJobsResult = jobsResult({ jobs: [{ id: 1 }], isSyncing: true });
+    renderScreen();
+    expect(screen.getByTestId('refreshing-footer-slot')).toBeTruthy();
+  });
+
+  it('suppresses the RefreshingFooter during the first-sync skeleton', () => {
+    mockJobsResult = jobsResult({ jobs: [], isSyncing: true });
+    renderScreen();
+    expect(screen.getByTestId('first-sync')).toBeTruthy();
+    expect(screen.queryByTestId('refreshing-footer-slot')).toBeNull();
   });
 
   // ── HintCard — first-run hint ────────────────────────────────────────────────
