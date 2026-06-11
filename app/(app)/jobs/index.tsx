@@ -10,10 +10,12 @@ import { SyncStatusIndicator } from '../../../components/sync/SyncStatusIndicato
 import { FirstSyncProgress } from '../../../components/sync/FirstSyncProgress';
 import { SkeletonJobCard } from '../../../components/sync/SkeletonJobCard';
 import { OutboxToast } from '../../../components/sync/OutboxToast';
+import { RefreshingFooter } from '../../../components/sync/RefreshingFooter';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { HintCard } from '../../../components/shared/HintCard';
 import { Icon } from '../../../components/shared/Icon';
 import { useJobs, type JobScope } from '../../../hooks/useJobs';
+import { usePullToRefresh } from '../../../hooks/usePullToRefresh';
 import { useJobFilters } from '../../../hooks/useJobFilters';
 import { useRole } from '../../../hooks/useRole';
 import { useOutbox } from '../../../hooks/useOutbox';
@@ -44,6 +46,9 @@ export default function JobsScreen() {
   const scope: JobScope = showTabs ? tab : 'all';
 
   const { jobs, dbError, isSyncing, syncError, refresh, cancelSync } = useJobs(scope, driverId);
+  // #12: the RefreshControl spinner only acknowledges the gesture — sync progress is shown by
+  // the non-blocking RefreshingFooter below the list, so the user can keep working.
+  const { refreshing, onRefresh } = usePullToRefresh(refresh);
   const detailHydration = useConnectivityStore((s) => s.detailHydration);
   const [filterVisible, setFilterVisible] = useState(false);
 
@@ -98,8 +103,8 @@ export default function JobsScreen() {
           <JobList
             jobs={visibleJobs}
             onSelect={(id) => router.push(`/jobs/${id}`)}
-            refreshing={isSyncing}
-            onRefresh={refresh}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             showDriver={isDispatcher}
             outboxStateByJob={stateByJob}
             emptyTitle={activeFilters > 0 ? 'No jobs match your filters' : emptyTitle(scope)}
@@ -125,6 +130,8 @@ export default function JobsScreen() {
           />
         )}
       </View>
+
+      {!showSpinner ? <RefreshingFooter /> : null}
 
       <View style={styles.toolbar}>
         <Pressable
