@@ -3,6 +3,7 @@ import type { ColorValue } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../stores/authStore';
+import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 import { useConnectivity } from '../../hooks/useConnectivity';
 import { useRole } from '../../hooks/useRole';
 import { useOutbox } from '../../hooks/useOutbox';
@@ -32,6 +33,7 @@ function tabIcon(base: IconName, focusedName: IconName) {
 export default function AppLayout() {
   const status = useAuthStore((s) => s.status);
   useConnectivity(); // keep online/offline state fresh across the authenticated area
+  useAutoRefresh(); // optional interval polling (issue #13) — no-op unless enabled in settings
   const { isDispatcher } = useRole();
   const { failed } = useOutbox();
   const failedCount = failed.length;
