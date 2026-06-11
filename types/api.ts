@@ -71,6 +71,17 @@ export interface TokenResponse {
   token_type: string; // "bearer"
 }
 
+/**
+ * POST /transitquote/v1/reset_password (issue #14). Unauthenticated apart from the client
+ * credentials. Unusually for this API the SUCCESS response carries a `message` (the
+ * enumeration-safe "if an account exists…" copy) — surface it verbatim.
+ */
+export interface ResetPasswordResponse {
+  data: unknown;
+  success: boolean;
+  message?: string;
+}
+
 // ─── Configuration (GET /configuration) ─────────────────────────────────────
 
 export interface ConfigurationData {

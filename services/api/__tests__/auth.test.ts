@@ -4,7 +4,8 @@
  * token. Covers the happy path, both failure points, role defaulting, and logout.
  */
 import { apiClient } from '../../apiClient';
-import { login, logout } from '../auth';
+import { ApiActionError } from '../../apiError';
+import { login, logout, resetPassword } from '../auth';
 
 jest.mock('../../apiClient', () => ({ apiClient: { post: jest.fn() } }));
 
@@ -12,6 +13,7 @@ const post = apiClient.post as jest.Mock;
 const LOGIN_PATH = '/wp-json/transitquote/v1/rest_login';
 const TOKEN_PATH = '/wp-json/oauth2/access_token';
 const LOGOUT_PATH = '/wp-json/transitquote/v1/rest_logout';
+const RESET_PASSWORD_PATH = '/wp-json/transitquote/v1/reset_password';
 
 const creds = { username: 'u', password: 'p', clientId: 'cid', clientSecret: 'secret' };
 
@@ -63,6 +65,34 @@ describe('login', () => {
       .mockResolvedValueOnce({ data: { success: true, code: 'AUTH_CODE' } })
       .mockResolvedValueOnce({ data: {} });
     await expect(login(creds)).rejects.toThrow('Token exchange failed');
+  });
+});
+
+describe('resetPassword (issue #14)', () => {
+  const params = { username: 'driver@example.com', clientId: 'cid', clientSecret: 'secret' };
+
+  it('posts the username with the client credentials and resolves to the server message', async () => {
+    const message = 'If an account exists for that username or email, a password reset email has been sent.';
+    post.mockResolvedValueOnce({ data: { data: [], success: true, message } });
+
+    await expect(resetPassword(params)).resolves.toBe(message);
+    expect(post).toHaveBeenCalledWith(RESET_PASSWORD_PATH, {
+      username: 'driver@example.com',
+      client_id: 'cid',
+      client_secret: 'secret',
+    });
+  });
+
+  it('falls back to the standard copy when success carries no message', async () => {
+    post.mockResolvedValueOnce({ data: { data: [], success: true } });
+    await expect(resetPassword(params)).resolves.toMatch(/password reset email has been sent/);
+  });
+
+  it('throws the server message on success:false (invalid client credentials)', async () => {
+    post.mockResolvedValueOnce({ data: { data: [], success: false, message: 'Not authorized' } });
+    await expect(resetPassword(params)).rejects.toThrow(ApiActionError);
+    post.mockResolvedValueOnce({ data: { data: [], success: false, message: 'Not authorized' } });
+    await expect(resetPassword(params)).rejects.toThrow('Not authorized');
   });
 });
 

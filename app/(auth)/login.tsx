@@ -82,6 +82,18 @@ export default function LoginScreen() {
           <Button testID="login-submit" label="Sign in" onPress={handleSubmit} loading={loginMutation.isPending} />
 
             <Pressable
+              testID="login-forgot-password"
+              onPress={() => router.push({ pathname: '/reset-password', params: { username } })}
+              disabled={loginMutation.isPending}
+              style={styles.changeSite}
+              accessibilityRole="button"
+              hitSlop={8}
+            >
+              <Icon name="lock-reset" size="sm" colour={t.colours.primary} />
+              <Text style={styles.changeSiteText}>Forgot password?</Text>
+            </Pressable>
+
+            <Pressable
               testID="login-change-site"
               onPress={() => router.replace('/onboarding')}
               disabled={loginMutation.isPending}
